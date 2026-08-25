@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type AppRoute = 'home' | 'journey' | 'money' | 'actions'
+export type AppRoute = 'home' | 'journey' | 'money' | 'actions' | 'profile'
 
 const navigation: Array<{ id: AppRoute; label: string }> = [
   { id: 'home', label: 'Home' },
@@ -27,8 +27,10 @@ export function AppShell({ activeRoute, children, onNavigate, memberName = 'Memb
           <span><strong>EPF journey</strong><small>Know your work and money record</small></span>
         </button>
         <div className="member-menu">
-          <span className="member-avatar" aria-hidden="true">{memberName.slice(0, 1).toUpperCase()}</span>
-          <span className="member-name">{memberName}</span>
+          <button className="profile-trigger" type="button" onClick={() => onNavigate('profile')} aria-label={`Open ${memberName}'s profile`}>
+            <span className="member-avatar" aria-hidden="true">{memberName.slice(0, 1).toUpperCase()}</span>
+            <span className="member-name">{memberName}</span>
+          </button>
           {onSignOut && <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={onSignOut}>Sign out</button>}
         </div>
       </header>

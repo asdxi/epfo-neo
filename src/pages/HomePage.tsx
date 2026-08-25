@@ -18,8 +18,8 @@ export function HomePage({ summary, onNavigate }: HomePageProps) {
     <div className="page-stack">
       <header className="page-heading">
         <p className="eyebrow">Home</p>
-        <h1>Hello, {summary.memberName}</h1>
-        <p>Here is your current PF situation.</p>
+        <h1>Welcome, {summary.memberName}</h1>
+        <p>View your EPF balance, latest contribution and any action that may be needed.</p>
       </header>
 
       <section className="ux4g-card ux4g-card-solid balance-card" aria-labelledby="epf-balance-title">
@@ -30,15 +30,15 @@ export function HomePage({ summary, onNavigate }: HomePageProps) {
             <div><span>Current employer</span><strong>{summary.currentEmployer}</strong><small>Joined {summary.joinedDate}</small></div>
             <div><span>Latest contribution</span><strong>{summary.latestContribution}</strong><small>{summary.latestContributionMonth}</small></div>
           </div>
-          <div className="health-ok" role="status"><span aria-hidden="true">✓</span> Everything looks up to date</div>
+          <div className="health-ok" role="status"><span aria-hidden="true">✓</span> Your latest recorded contribution is up to date.</div>
         </div>
         <div className="ux4g-card-footer">
-          <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => onNavigate('money')}>Understand your balance</button>
+          <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => onNavigate('money')}>View balance details</button>
         </div>
       </section>
 
       <section className="home-section" aria-labelledby="journey-heading">
-        <div className="section-heading"><div><p className="eyebrow">Your employment journey</p><h2 id="journey-heading">Where you have worked</h2></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => onNavigate('journey')}>View full journey</button></div>
+        <div className="section-heading"><div><p className="eyebrow">Your employment journey</p><h2 id="journey-heading">Employment record</h2></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => onNavigate('journey')}>View employment record</button></div>
         <ol className="journey-preview">
           <li><time>2018</time><div><strong>Northstar Consumer Technologies</strong><span>PF Trust</span></div></li>
           <li><time>2020</time><div><strong>BlueKite Digital Services</strong><span>EPFO</span></div></li>
@@ -48,7 +48,7 @@ export function HomePage({ summary, onNavigate }: HomePageProps) {
       </section>
 
       {summary.attention && <section className="ux4g-alert ux4g-alert-warning attention-card" aria-labelledby="attention-heading">
-        <div className="ux4g-alert-content"><p className="eyebrow">Things that need your attention</p><h2 className="ux4g-alert-title" id="attention-heading">{summary.attention.title}</h2><p className="ux4g-alert-message">{summary.attention.description}</p><button className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-md" type="button" onClick={() => onNavigate('actions')}>{summary.attention.actionLabel}</button></div>
+        <div className="ux4g-alert-content"><p className="eyebrow">Action may be needed</p><h2 className="ux4g-alert-title" id="attention-heading">{summary.attention.title}</h2><p className="ux4g-alert-message">{summary.attention.description}</p><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={() => onNavigate('actions')}>{summary.attention.actionLabel}</button></div>
       </section>}
     </div>
   )

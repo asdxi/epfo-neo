@@ -13,6 +13,7 @@ import {
 import { arjunMehta } from './domain/data'
 import { balanceForEmployment, moneyBreakdown, totalEpfBalance, totalEpsServiceMonths } from './domain/calculations'
 import { HomePage } from './pages/HomePage'
+import { ProfilePage } from './pages/ProfilePage'
 
 const formatMoney = (value: number) => new Intl.NumberFormat('en-IN', {
   style: 'currency', currency: 'INR', maximumFractionDigits: 0,
@@ -53,20 +54,20 @@ const monthlyContributions: MonthlyContribution[] = currentEmployment.contributi
   employerEpf: item.employerEpf,
   eps: item.eps,
   received: item.status === 'received' ? 'Received' : item.status === 'missing' ? 'Missing' : 'Pending',
-  message: item.note ?? 'Everything looks correct.',
+  message: item.note ?? 'The contribution is recorded.',
   needsAttention: item.status === 'needs-attention' || item.status === 'missing',
 }))
 
 const actions: ActionItem[] = [
-  ['transfer', 'Transfer my previous PF', 'Move eligible PF from a previous account.', 'Processing'],
-  ['withdraw', 'Withdraw or claim my PF', 'Start a claim and see what happens next.'],
-  ['details', 'Update my personal details', 'Review the details attached to your account.'],
-  ['kyc', 'Verify or update KYC', 'Keep your identity and bank details ready for services.', 'Needs attention'],
-  ['nominee', 'Add or change nominee', 'Choose who should receive benefits if needed.'],
-  ['employment', 'Correct an employment record', 'Tell us about an employment record that looks wrong.'],
-  ['claim', 'Check an existing claim', 'See the progress of a submitted request.', 'In progress'],
-  ['grievance', 'Raise a grievance', 'Get help when an issue cannot be resolved here.'],
-].map(([id, title, description, status]) => ({ id, title, description, status, tone: status === 'Needs attention' ? 'warning' : 'info' }))
+  { id: 'transfer', title: 'Transfer my previous PF', description: 'Move eligible PF from a previous account.', status: 'Processing', tone: 'info', actionLabel: 'Track transfer' },
+  { id: 'withdraw', title: 'Withdraw or claim my PF', description: 'Start a claim and see what happens next.', actionLabel: 'Start claim' },
+  { id: 'details', title: 'Update my personal details', description: 'View and update your contact details.', actionLabel: 'Manage personal details' },
+  { id: 'kyc', title: 'Verify or update KYC', description: 'Keep your identity and bank details ready for services.', status: 'Needs attention', tone: 'warning', actionLabel: 'Review KYC' },
+  { id: 'nominee', title: 'Add or change nominee', description: 'Choose who should receive benefits if needed.', actionLabel: 'Manage nominee' },
+  { id: 'employment', title: 'Correct an employment record', description: 'Tell us about an employment record that looks wrong.', actionLabel: 'Report a record issue' },
+  { id: 'claim', title: 'Check an existing claim', description: 'See the progress of a submitted request.', status: 'In progress', tone: 'info', actionLabel: 'View claim status' },
+  { id: 'grievance', title: 'Raise a grievance', description: 'Get help when an issue cannot be resolved here.', actionLabel: 'Raise a grievance' },
+]
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -90,18 +91,18 @@ export default function App() {
 
   const completeAction = (id: string) => {
     const item = actions.find((action) => action.id === id)
-    setActionMessage(item ? `${item.title} is ready to continue in this prototype.` : 'Your bank details can be reviewed in this prototype.')
+    setActionMessage(item ? `This service is available in the prototype.` : 'Your bank details can be reviewed in this prototype.')
   }
 
   if (!authenticated) return <LoginScreen onAuthenticated={() => setAuthenticated(true)} />
 
   const page = route === 'home' ? <HomePage
-    summary={{ memberName: arjunMehta.name.split(' ')[0], epfBalance: formatMoney(total), currentEmployer: currentEmployment.employer, joinedDate: 'March 2026', latestContribution: formatMoney(2_350), latestContributionMonth: 'May 2026', attention: pendingTransfer ? { title: 'Previous PF transfer is still processing', description: `${formatMoney(pendingTransfer.amount)} remains in your previous Member ID.`, actionLabel: 'Understand and track' } : undefined }}
+    summary={{ memberName: arjunMehta.name.split(' ')[0], epfBalance: formatMoney(total), currentEmployer: currentEmployment.employer, joinedDate: 'March 2026', latestContribution: formatMoney(2_350), latestContributionMonth: 'May 2026', attention: pendingTransfer ? { title: 'Previous PF transfer is still processing', description: `${formatMoney(pendingTransfer.amount)} remains in your previous Member ID.`, actionLabel: 'View transfer status' } : undefined }}
     onNavigate={(target) => setRoute(target)}
-  /> : route === 'journey' ? <JourneyPage employments={journeyItems} /> : route === 'money' ? <MoneyPage
+  /> : route === 'journey' ? <JourneyPage employments={journeyItems} gapLabel={arjunMehta.employmentGaps[0].label} /> : route === 'money' ? <MoneyPage
     summary={{ closingBalance: total, employeeContributions: breakdown.employeeContributions, employerContributions: breakdown.employerEpfContributions, interest: breakdown.interest, transfersIn: breakdown.transfersIn, transfersOut: breakdown.transfersOut, withdrawals: breakdown.withdrawals, pensionService: `${Math.floor(monthCount / 12)} years ${monthCount % 12} months` }}
     contributions={monthlyContributions}
-  /> : <ActionsPage actions={actions} kycStatus="Bank details need verification" tracker={tracker} onAction={completeAction} />
+  /> : route === 'profile' ? <ProfilePage name={arjunMehta.name} uan={arjunMehta.uan} /> : <ActionsPage actions={actions} kycStatus="Bank details need verification" tracker={tracker} onAction={completeAction} />
 
   return <AppShell activeRoute={route} onNavigate={setRoute} memberName={arjunMehta.name} onSignOut={() => { setAuthenticated(false); setRoute('home') }}>
     {actionMessage && <div className="ux4g-alert ux4g-alert-success" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{actionMessage}</p></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" onClick={() => setActionMessage(null)} type="button">Dismiss</button></div>}

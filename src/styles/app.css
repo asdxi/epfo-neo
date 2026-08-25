@@ -1,10 +1,39 @@
 :root {
   color: var(--ux4g-text-neutral-primary);
-  background: var(--ux4g-bg-neutral-default);
+  background: var(--ux4g-bg-neutral-elevated);
 }
 
-body { min-width: 320px; margin: 0; background: var(--ux4g-bg-neutral-default); }
+html[data-theme='light'] {
+  /* EPFO-inspired brand mapping: navy is primary; red is reserved for secondary emphasis. */
+  --ux4g-bg-neutral: #ffffff !important;
+  --ux4g-bg-primary: #edf4fa !important;
+  --ux4g-bg-primary-soft: #dceaf6 !important;
+  --ux4g-bg-primary-subtle: #bdd7eb !important;
+  --ux4g-bg-primary-emphasis: #92b9d7 !important;
+  --ux4g-bg-primary-strong: #1f4e79 !important;
+  --ux4g-bg-primary-strong-hover: #173b5c !important;
+  --ux4g-bg-primary-stronger: #102a42 !important;
+  --ux4g-bg-primary-stronger-hover: #102a42 !important;
+  --ux4g-text-brand-primary-default: #1f4e79 !important;
+  --ux4g-text-link-default-default: #1f4e79 !important;
+  --ux4g-text-link-default-hover: #173b5c !important;
+  --ux4g-text-link-default-active: #102a42 !important;
+  --ux4g-border-color-primary-default: #92b9d7 !important;
+  --ux4g-border-color-primary-strong: #1f4e79 !important;
+  --ux4g-bg-secondary: #fdf0ee !important;
+  --ux4g-bg-secondary-soft: #f9ded9 !important;
+  --ux4g-bg-secondary-subtle: #f0bbb3 !important;
+  --ux4g-bg-secondary-emphasis: #e18a80 !important;
+  --ux4g-bg-secondary-strong: #b73432 !important;
+  --ux4g-text-brand-secondary-default: #9d2928 !important;
+}
+
+body { min-width: 320px; margin: 0; background: var(--ux4g-bg-neutral-elevated); }
 button, input { font: inherit; }
+/* The package's cascade-fixes layer makes primary buttons white; restore the documented primary variant. */
+.ux4g-btn-primary:not(:disabled) { background-color: var(--ux4g-bg-primary-strong) !important; border-color: var(--ux4g-bg-primary-strong) !important; color: var(--ux4g-text-neutral-inverse) !important; }
+.ux4g-btn-primary:hover:not(:disabled) { background-color: var(--ux4g-bg-primary-strong-hover) !important; }
+:where(button, a, input, summary):focus-visible { box-shadow: 0 0 0 var(--ux4g-border-width-md) var(--ux4g-border-color-primary-strong); outline: none; }
 .app-page { width: min(100% - 2rem, 75rem); margin: 0 auto; padding: var(--ux4g-section-m) 0 calc(var(--ux4g-section-xl) + 4rem); }
 .page-stack { display: grid; gap: var(--ux4g-section-m); }
 .content-grid { display: grid; gap: var(--ux4g-stack-l); }

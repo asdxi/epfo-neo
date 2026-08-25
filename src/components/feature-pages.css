@@ -6,8 +6,10 @@
 .feature-section { display: grid; gap: var(--ux4g-space-6); }
 .feature-row { align-items: center; display: flex; gap: var(--ux4g-space-5); }
 .feature-row--between { align-items: flex-start; justify-content: space-between; }
-.feature-journey-list { display: grid; gap: var(--ux4g-space-6); }
-.feature-journey-card { display: grid; gap: var(--ux4g-space-5); padding: var(--ux4g-space-6); }
+.feature-journey-list { display: grid; gap: var(--ux4g-stack-m); list-style: none; }
+.feature-journey-card { display: grid; gap: var(--ux4g-stack-m); padding: var(--ux4g-padding-m); }
+.feature-provider { color: var(--ux4g-text-neutral-secondary); }
+.feature-gap-card { display: grid; gap: var(--ux4g-stack-xs); padding: var(--ux4g-padding-m); color: var(--ux4g-text-neutral-secondary); }
 .feature-metric-grid { display: grid; gap: var(--ux4g-space-5); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .feature-metric-grid div { display: grid; gap: var(--ux4g-space-2); }
 .feature-metric-grid dt { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); }
@@ -34,4 +36,5 @@
 .feature-action-card .ux4g-card-footer { align-self: end; }
 .feature-tracker .ux4g-card-body { display: grid; gap: var(--ux4g-space-6); }
 .feature-tracker-message { color: var(--ux4g-text-neutral-secondary); }
+.profile-page { display: grid; gap: var(--ux4g-section-m); max-width: var(--ux4g-container-md); }.profile-card { display: grid; }.profile-form { display: grid; gap: var(--ux4g-stack-m); }.profile-form label { display: grid; gap: var(--ux4g-stack-xs); color: var(--ux4g-text-neutral-primary); font-weight: var(--ux4g-font-weight-semibold); }.profile-readonly { display: grid; gap: var(--ux4g-stack-xs); padding-bottom: var(--ux4g-padding-m); border-bottom: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-subtle); }.profile-readonly span, .profile-note { color: var(--ux4g-text-neutral-secondary); }.profile-note { font-size: var(--ux4g-size-14); }
 @media (max-width: 36rem) { .feature-alert { align-items: stretch; flex-direction: column; } .feature-alert-actions .ux4g-btn { width: 100%; } }

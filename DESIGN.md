@@ -203,6 +203,61 @@ Do not claim UX4G compliance without this verification.
 
 ---
 
+## 0.7 EPF Journey application profile
+
+The EPF Journey prototype uses `ux4g-web-components@1.0.0` through npm. It is a
+mobile-first member service, not an official EPFO product. All member data,
+authentication and service outcomes are synthetic.
+
+### Approved application theme
+
+The application uses an EPFO-inspired theme approved for this prototype:
+
+| Role | Value | Use |
+|---|---|---|
+| Primary | `#1F4E79` muted navy | Primary actions, selected navigation, links and keyboard focus |
+| Secondary | `#B73432` restrained red | Secondary emphasis only; never a default call to action |
+| Neutral ground | `#FFFFFF` | Application canvas and elevated surfaces |
+
+These values are mapped once at the application root to confirmed UX4G semantic
+tokens (`--ux4g-bg-primary-*`, `--ux4g-text-brand-primary-default`,
+`--ux4g-border-color-primary-*`, plus the secondary equivalents). Status tokens
+remain UX4G semantic colours. Do not use red as a substitute for a warning or
+error status.
+
+### Application-specific exceptions
+
+- The npm package's cascade-fixes layer incorrectly resets `.ux4g-btn-primary`
+  to a white surface with `!important`. The application restores the documented
+  primary button variant once in its application stylesheet, using the approved
+  primary semantic tokens. This is a temporary package exception, not a pattern
+  for overriding component internals.
+- The package embeds approximately 8 MB of fonts in its CSS. The Vite build
+  removes only the embedded `@font-face` payloads and retains UX4G tokens,
+  components and system-font fallback. This keeps the mobile CSS payload near
+  80 KB gzip; the package should eventually offer a supported font-free build.
+- UX4G's Journey Timeline requires its full indicator/step DOM and disables
+  interaction for inactive steps. Employment history therefore uses accessible
+  UX4G Card surfaces in chronological order rather than an incomplete timeline
+  composition. This keeps record details keyboard-accessible and avoids
+  decorative connector lines.
+- Status words use filled UX4G Tag variants, not icon badges. Icon badges are
+  intentionally tiny indicators and are not suitable containers for text.
+
+### Interaction requirements for this application
+
+- Navigation, month selection and buttons retain a visible navy
+  `:focus-visible` treatment. Focus must never be removed; selected state uses
+  text and an underline or tonal surface in addition to colour.
+- Do not use primary outline buttons for standard member tasks in this app.
+  Use a primary button for the single main action, tonal primary for a secondary
+  action, and text-primary for lower-emphasis navigation.
+- The profile trigger is a minimum 44px target and opens the Profile route.
+  Only synthetic mobile number and email address are editable in the prototype.
+- Sign-in is mobile-number and one-time-password only. Aadhaar is not an
+  authentication option in the prototype. The mobile flow exposes clearly
+  labelled demo success and failure outcomes and never collects real credentials.
+
 ## 1. Token architecture
 
 Three tiers. Consumers touch tier 2 and tier 3 only.

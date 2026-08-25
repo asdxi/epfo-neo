@@ -1,0 +1,24 @@
+/* App-specific login composition: UX4G supplies the controls, card, OTP states and tokens. */
+.otp-login { display: grid; gap: var(--ux4g-section-m); margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
+.otp-login__hero { display: grid; align-content: end; gap: var(--ux4g-stack-s); padding-top: var(--ux4g-section-m); }
+.otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-xs); }
+.otp-login h1 { font-size: var(--ux4g-size-32); line-height: var(--ux4g-line-height-36); margin: 0; }
+.otp-login h2 { font-size: var(--ux4g-size-20); line-height: var(--ux4g-line-height-24); margin: 0; }
+.otp-login__hero > p:last-child, .otp-login__supporting { color: var(--ux4g-text-neutral-secondary); line-height: var(--ux4g-line-height-24); margin: 0; }
+.otp-login__card { align-self: start; width: 100%; }
+.otp-login__form, .otp-login__field { display: grid; gap: var(--ux4g-stack-m); }
+.otp-login__field { gap: var(--ux4g-stack-xs); }
+.otp-login__field label, .ux4g-otp-label { color: var(--ux4g-text-neutral-primary); font-size: var(--ux4g-size-14); font-weight: var(--ux4g-font-weight-semibold); }
+.otp-login__primary { justify-content: center; width: 100%; }
+.otp-login__secondary { justify-content: center; }
+.otp-login__error { color: var(--ux4g-text-status-error); font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); margin: 0; }
+.otp-login .ux4g-otp { gap: var(--ux4g-stack-xs); }
+.otp-login .ux4g-otp-slot { min-width: 0; }
+.otp-login__demo { border: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-strong); border-radius: var(--ux4g-radius-md); display: grid; gap: var(--ux4g-stack-xs); margin: 0; padding: var(--ux4g-padding-m); }
+.otp-login__demo legend { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); font-weight: var(--ux4g-font-weight-semibold); padding: 0 var(--ux4g-inline-xs); }
+.otp-login__demo p { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); margin: 0; }
+.otp-login__demo-options { display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-s); }
+.otp-login__demo-option { align-items: center; border: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-strong); border-radius: var(--ux4g-radius-full); color: var(--ux4g-text-neutral-secondary); display: inline-flex; font-size: var(--ux4g-size-14); gap: var(--ux4g-inline-xs); min-height: 44px; padding: 0 var(--ux4g-padding-s); }
+.otp-login__demo-option--selected { background: var(--ux4g-bg-primary); border-color: var(--ux4g-border-color-primary-strong); color: var(--ux4g-text-brand-primary-default); font-weight: var(--ux4g-font-weight-semibold); }
+.otp-login__demo-option input { accent-color: var(--ux4g-bg-primary-strong); }
+@media (min-width: 48rem) { .otp-login { max-width: 36rem; padding-top: var(--ux4g-section-xl); } }

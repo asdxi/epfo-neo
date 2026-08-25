@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import './feature-pages.css'
 
 export type AttentionTone = 'success' | 'warning' | 'info' | 'error'
@@ -51,6 +51,7 @@ export interface ActionItem {
   description: string
   status?: string
   tone?: AttentionTone
+  actionLabel: string
 }
 
 export interface TrackerStep {
@@ -72,25 +73,25 @@ const money = (amount: number | null | undefined) =>
     ? 'Not available'
     : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 
-const toneClass = (tone: AttentionTone = 'info') => `ux4g-badge-icon-${tone} ux4g-badge-m`
+const toneClass = (tone: AttentionTone = 'info') => `ux4g-tag-filled-${tone} ux4g-tag-s`
 
 function DataState({ label, tone = 'info' }: { label: string; tone?: AttentionTone }) {
   return <span className={toneClass(tone)}>{label}</span>
 }
 
-export function JourneyPage({ employments }: { employments: JourneyEmployment[] }) {
+export function JourneyPage({ employments, gapLabel }: { employments: JourneyEmployment[]; gapLabel: string }) {
   return (
     <section className="feature-page" aria-labelledby="journey-title">
       <header className="feature-heading">
-        <p className="feature-eyebrow">Employment record</p>
+        <p className="feature-eyebrow">Employment history</p>
         <h1 id="journey-title">My journey</h1>
-        <p>See your EPF-covered employment and how your PF money moved. A gap only means no EPF-covered employment is recorded.</p>
+        <p>View your EPF-covered employment records and how your EPF balance moved between accounts.</p>
       </header>
 
-      <ol className="ux4g-journey-timeline ux4g-journey-timeline--vertical feature-journey-list" aria-label="Employment timeline">
+      <ol className="feature-journey-list" aria-label="Employment history">
         {employments.map((employment) => (
-          <li className="ux4g-journey-step" key={employment.id}>
-            <article className="ux4g-journey-card ux4g-journey-card--standard feature-journey-card">
+          <Fragment key={employment.id}><li>
+            <article className="ux4g-card ux4g-card-outline feature-journey-card">
               <div className="feature-row feature-row--between">
                 <div>
                   <p className="ux4g-journey-date">{employment.dates}</p>
@@ -98,7 +99,7 @@ export function JourneyPage({ employments }: { employments: JourneyEmployment[] 
                 </div>
                 <DataState label={employment.current ? 'Current' : employment.status} tone={employment.statusTone} />
               </div>
-              <p className="ux4g-journey-description">PF provider: {employment.provider}</p>
+              <p className="feature-provider">PF provider: {employment.provider}</p>
               <dl className="feature-metric-grid">
                 <div><dt>Employee EPF</dt><dd>{money(employment.employeeEpf)}</dd></div>
                 <div><dt>Employer EPF</dt><dd>{money(employment.employerEpf)}</dd></div>
@@ -109,19 +110,19 @@ export function JourneyPage({ employments }: { employments: JourneyEmployment[] 
                 <p className="feature-transfer"><strong>{money(employment.transfersIn)} transferred in</strong>{employment.transferNote ? ` · ${employment.transferNote}` : ''}</p>
               )}
               <details className="ux4g-accordion ux4g-accordion-bordered feature-details">
-                <summary>Record details</summary>
+                <summary>View record details</summary>
                 <div className="feature-details-content">
                   <p><strong>Member ID:</strong> {employment.memberId}</p>
-                  <p><strong>Historical statement:</strong> {employment.confidence}</p>
+                  <p><strong>Historical record availability:</strong> {employment.confidence}</p>
                   {employment.confidenceNote && <p>{employment.confidenceNote}</p>}
                 </div>
               </details>
             </article>
-          </li>
+          </li>{employment.id === 'harbor' && <li><article className="ux4g-card ux4g-card-outline feature-gap-card"><strong>{gapLabel}</strong><span>July 2024 – February 2026</span></article></li>}</Fragment>
         ))}
       </ol>
       <aside className="ux4g-alert ux4g-alert-info feature-alert" aria-label="What this timeline shows">
-        <div className="ux4g-alert-content"><p className="ux4g-alert-title">EPF and EPS are different</p><p className="ux4g-alert-message">EPF is money in your provident fund. EPS is a pension service record and is not added to your EPF balance.</p></div>
+        <div className="ux4g-alert-content"><p className="ux4g-alert-title">EPF balance and EPS service are shown separately</p><p className="ux4g-alert-message">EPF is money in your provident fund. EPS is a pension service record and is not added to your EPF balance.</p></div>
       </aside>
     </section>
   )
@@ -144,17 +145,17 @@ export function MoneyPage({ summary, contributions }: { summary: MoneySummary; c
       <header className="feature-heading">
         <p className="feature-eyebrow">Your provident fund</p>
         <h1 id="money-title">My money</h1>
-        <p>Every amount below is calculated from the recorded EPF transactions.</p>
+        <p>This balance is calculated from recorded EPF transactions.</p>
       </header>
       <article className="ux4g-card ux4g-card-solid feature-balance-card">
         <div className="ux4g-card-body">
           <p className="feature-eyebrow">Current EPF balance</p>
           <p className="feature-balance">{money(summary.closingBalance)}</p>
-          <p>Money accumulated in your provident fund account.</p>
+          <p>This is the amount recorded in your EPF account. EPS is shown separately.</p>
         </div>
       </article>
       <section className="feature-section" aria-labelledby="breakdown-title">
-        <h2 id="breakdown-title">How this balance was created</h2>
+        <h2 id="breakdown-title">EPF balance breakdown</h2>
         <dl className="ux4g-card ux4g-card-outline feature-ledger">
           {rows.map(([label, amount]) => <div className="feature-ledger-row" key={label as string}><dt>{label}</dt><dd className={(amount as number) < 0 ? 'feature-negative' : ''}>{money(amount as number)}</dd></div>)}
           <div className="feature-ledger-row feature-ledger-total"><dt>Current EPF balance</dt><dd>{money(summary.closingBalance)}</dd></div>
@@ -164,10 +165,10 @@ export function MoneyPage({ summary, contributions }: { summary: MoneySummary; c
         <div className="ux4g-alert-content"><p className="ux4g-alert-title">Your pension service</p><p className="ux4g-alert-message">{summary.pensionService}. EPS is pension-related service and is shown separately from EPF money.</p></div>
       </article>
       <section className="feature-section" aria-labelledby="contribution-title">
-        <div className="feature-row feature-row--between"><div><h2 id="contribution-title">Monthly contributions</h2><p>Choose a month to inspect what was recorded.</p></div></div>
+        <div className="feature-row feature-row--between"><div><h2 id="contribution-title">Monthly contributions</h2><p>Select a month to view the contributions recorded for it.</p></div></div>
         <div className="feature-month-list" role="list" aria-label="Contribution months">
           {contributions.map((contribution) => (
-            <button className={`ux4g-btn ux4g-btn-md ${selected?.id === contribution.id ? 'ux4g-btn-primary' : 'ux4g-btn-outline-primary'}`} type="button" key={contribution.id} onClick={() => setSelectedId(contribution.id)} aria-pressed={selected?.id === contribution.id}>
+            <button className={`ux4g-btn ux4g-btn-md ${selected?.id === contribution.id ? 'ux4g-btn-tonal-primary' : 'ux4g-btn-text-neutral'}`} type="button" key={contribution.id} onClick={() => setSelectedId(contribution.id)} aria-pressed={selected?.id === contribution.id}>
               {contribution.month}{contribution.needsAttention ? ' · needs attention' : ''}
             </button>
           ))}
@@ -195,10 +196,10 @@ function ContributionDetail({ contribution }: { contribution: MonthlyContributio
 
 export function ActionsPage({ actions, kycStatus, tracker, onAction }: { actions: ActionItem[]; kycStatus: string; tracker: Tracker; onAction?: (id: string) => void }) {
   return <section className="feature-page" aria-labelledby="actions-title">
-    <header className="feature-heading"><p className="feature-eyebrow">Get things done</p><h1 id="actions-title">Actions</h1><p>Choose what you want to do. We will explain the next step in plain language.</p></header>
-    <article className="ux4g-alert ux4g-alert-warning feature-alert" aria-label="KYC needs attention"><div className="ux4g-alert-content"><p className="ux4g-alert-title">KYC status: {kycStatus}</p><p className="ux4g-alert-message">Verify your identity details to help claims and transfers move without interruption.</p></div><div className="ux4g-alert-actions"><button type="button" className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-md" onClick={() => onAction?.('kyc')}>Review KYC</button></div></article>
+    <header className="feature-heading"><p className="feature-eyebrow">Member services</p><h1 id="actions-title">Actions</h1><p>Select a service to view the next steps.</p></header>
+    <article className="ux4g-alert ux4g-alert-warning feature-alert" aria-label="KYC needs attention"><div className="ux4g-alert-content"><p className="ux4g-alert-title">KYC status: {kycStatus}</p><p className="ux4g-alert-message">Verify your identity details to help claims and transfers move without interruption.</p></div><div className="ux4g-alert-actions"><button type="button" className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" onClick={() => onAction?.('kyc')}>Review KYC</button></div></article>
     <div className="feature-action-grid">
-      {actions.map((action) => <article className="ux4g-card ux4g-card-outline feature-action-card" key={action.id}><div className="ux4g-card-body"><h2 className="ux4g-card-title">{action.title}</h2><p>{action.description}</p>{action.status && <DataState label={action.status} tone={action.tone} />}</div><div className="ux4g-card-footer"><button type="button" className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" onClick={() => onAction?.(action.id)}>Start or check status</button></div></article>)}
+      {actions.map((action) => <article className="ux4g-card ux4g-card-outline feature-action-card" key={action.id}><div className="ux4g-card-body"><h2 className="ux4g-card-title">{action.title}</h2><p>{action.description}</p>{action.status && <DataState label={action.status} tone={action.tone} />}</div><div className="ux4g-card-footer"><button type="button" className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" onClick={() => onAction?.(action.id)}>{action.actionLabel}</button></div></article>)}
     </div>
     <TrackerCard tracker={tracker} onAction={onAction} />
   </section>
