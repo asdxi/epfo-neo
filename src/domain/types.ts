@@ -1,137 +1,234 @@
-/** Domain types for the synthetic EPF member journey. Monetary amounts are whole INR. */
+/** Authoritative v0.2 domain contract. All data is fictional and monetary values are whole INR. */
 export type Money = number
 
-export type DataState =
-  | 'verified'
-  | 'unverified'
-  | 'received'
-  | 'missing'
-  | 'pending'
-  | 'transferred'
-  | 'withdrawn'
-  | 'unavailable'
-  | 'not-applicable'
-  | 'needs-attention'
+export type DataAvailability = 'complete' | 'partial' | 'unavailable'
+export type EstablishmentType = 'epfo' | 'exempted-pf-trust'
+export type EmploymentStatus = 'current' | 'closed' | 'transferred' | 'balance-remaining'
+export type VerificationState = 'verified' | 'pending' | 'unverified'
+export type ContributionStatus =
+  | 'recorded-correctly'
+  | 'recorded-late'
+  | 'amount-needs-review'
+  | 'missing-contribution'
+  | 'awaiting-record'
 
-export type DataConfidence = 'complete' | 'partial' | 'unavailable'
-export type PFProvider = 'epfo' | 'employer-pf-trust'
-export type EmploymentStatus = 'current' | 'closed' | 'transferred' | 'needs-attention'
-export type TransferStatus = 'completed' | 'pending' | 'processing'
-export type ClaimStatus = 'completed' | 'processing' | 'action-required' | 'withdrawn'
+export type RequestType = 'claim' | 'transfer' | 'correction' | 'grievance'
+export type RequestState = 'submitted' | 'in-progress' | 'action-required' | 'completed'
+export type ReportFormat = 'pdf' | 'excel'
+export type ReportState = 'preparing' | 'ready' | 'failed' | 'expired'
+export type AttentionPriority = 'action-required' | 'in-progress' | 'good-to-know'
 
-export interface Contribution {
-  id: string
-  month: string // YYYY-MM
-  pfWage: Money | null
-  employeeEpf: Money
-  employerEpf: Money | null
-  eps: Money | null
-  status: DataState
-  note?: string
+export interface ContactChannel {
+  value: string
+  verified: boolean
+  updatedOn: string
 }
 
-export interface InterestCredit {
+export interface Member {
   id: string
-  creditedOn: string
-  financialYear: string
-  amount: Money
-  status: Extract<DataState, 'verified' | 'received'>
-}
-
-export interface Transfer {
-  id: string
-  fromMemberId: string
-  toMemberId: string
-  amount: Money
-  initiatedOn: string
-  completedOn?: string
-  status: TransferStatus
-  source: PFProvider
-  note?: string
-}
-
-export interface Withdrawal {
-  id: string
-  amount: Money
-  processedOn: string
-  status: Extract<DataState, 'withdrawn'>
-  claimId: string
-}
-
-export interface Claim {
-  id: string
-  kind: 'partial-withdrawal' | 'pf-transfer'
-  submittedOn: string
-  amount: Money
-  status: ClaimStatus
-  currentStatusMessage: string
-  nextStep: string
+  name: string
+  uan: string
+  dateOfBirth: string
+  mobile: ContactChannel
+  email: ContactChannel
+  communicationPreferences: {
+    contributionRecorded: boolean
+    requestUpdates: boolean
+    reportReady: boolean
+  }
 }
 
 export interface KycRecord {
-  type: 'aadhaar' | 'pan' | 'bank-account'
-  status: Extract<DataState, 'verified' | 'unverified' | 'needs-attention'>
-  message: string
-  actionLabel?: string
-}
-
-export interface EpsService {
-  months: number
-  contributions: Money
-  status: DataState
+  type: 'aadhaar' | 'pan' | 'bank'
+  state: VerificationState
+  maskedValue: string
+  updatedOn: string
   explanation: string
 }
 
 export interface Employment {
   id: string
   employer: string
+  establishmentType: EstablishmentType
   memberId: string
-  provider: PFProvider
   joinedOn: string
   exitedOn?: string
   status: EmploymentStatus
-  dataConfidence: DataConfidence
-  dataConfidenceNote?: string
-  openingBalance: Money
-  contributions: Contribution[]
-  interestCredits: InterestCredit[]
-  transfers: Transfer[]
-  withdrawals: Withdrawal[]
-  claims: Claim[]
-  epsService: EpsService
+  dataAvailability: DataAvailability
+  dataAvailabilityNote?: string
 }
 
 export interface EmploymentGap {
-  type: 'no-epf-covered-employment-recorded'
   startsOn: string
   endsOn: string
-  label: string
+  label: 'No EPF-covered employment recorded'
 }
 
-export interface Person {
+export interface ContributionRecord {
+  id: string
+  employmentId: string
+  memberId: string
+  wageMonth: string
+  recordedOn: string | null
+  pfWage: Money | null
+  employeeEpf: Money | null
+  employerEpf: Money | null
+  eps: Money | null
+  status: ContributionStatus
+  explanation: string
+}
+
+export interface InterestCredit {
+  id: string
+  memberId: string
+  financialYear: string
+  creditedOn: string
+  amount: Money
+  kind: 'official-credit'
+}
+
+export interface EstimatedInterestAccrual {
+  id: string
+  memberId: string
+  calculatedThrough: string
+  amount: Money
+  kind: 'estimate'
+  explanation: string
+}
+
+export interface TransferRecord {
+  id: string
+  fromMemberId: string
+  toMemberId: string
+  amount: Money
+  initiatedOn: string
+  completedOn?: string
+  state: 'pending' | 'submitted' | 'processing' | 'completed'
+  source: EstablishmentType
+  explanation: string
+}
+
+export interface WithdrawalRecord {
+  id: string
+  memberId: string
+  claimReference: string
+  processedOn: string
+  amount: Money
+  state: 'completed'
+  explanation: string
+}
+
+export interface RequestEvent {
+  id: string
+  label: string
+  date: string | null
+  state: 'completed' | 'current' | 'upcoming'
+  explanation?: string
+}
+
+export interface MemberRequest {
+  id: string
+  type: RequestType
+  service: string
+  reference: string
+  title: string
+  state: RequestState
+  submittedOn: string
+  updatedOn: string
+  amount?: Money
+  employmentId?: string
+  contributionId?: string
+  nextExpectedStep: string
+  citizenAction?: string
+  timeline: RequestEvent[]
+}
+
+export interface GeneratedReport {
+  id: string
   name: string
-  uan: string
+  periodLabel: string
+  startsOn: string
+  endsOn: string
+  format: ReportFormat
+  state: ReportState
+  requestedOn: string
+  generatedOn: string | null
+  expiresOn: string
+  deliveryState: 'not-requested' | 'mock-sent-to-verified-email'
+}
+
+export interface AccountException {
+  id: string
+  kind: 'previous-balance' | 'contribution-review' | 'kyc-review'
+  state: 'open' | 'in-progress' | 'resolved'
+  title: string
+  explanation: string
+  amount?: Money
+  employmentId?: string
+  contributionId?: string
+  kycType?: KycRecord['type']
+  relatedRequestId?: string
+}
+
+export interface Ledger {
+  contributions: ContributionRecord[]
+  officialInterestCredits: InterestCredit[]
+  estimatedInterestAccruals: EstimatedInterestAccrual[]
+  transfers: TransferRecord[]
+  withdrawals: WithdrawalRecord[]
+}
+
+export interface AccountState {
+  version: 2
+  member: Member
   kyc: KycRecord[]
   employments: Employment[]
   employmentGaps: EmploymentGap[]
-  contributionIssues: ContributionIssue[]
+  ledger: Ledger
+  exceptions: AccountException[]
+  requests: MemberRequest[]
+  generatedReports: GeneratedReport[]
 }
 
 export interface Reconciliation {
   openingBalance: Money
   employeeContributions: Money
   employerEpfContributions: Money
-  interest: Money
+  officialInterestCredits: Money
   transfersIn: Money
   transfersOut: Money
   withdrawals: Money
   closingBalance: Money
 }
 
-export interface ContributionIssue {
-  employmentId: string
+export interface EmployerSummary extends Reconciliation {
+  employment: Employment
+  epsContributions: Money
+  estimatedInterestAccrued: Money
+  transferState: TransferRecord['state'] | 'not-applicable'
+}
+
+export interface AttentionItem {
+  id: string
+  priority: AttentionPriority
+  title: string
+  explanation: string
+  actionLabel: string
+  route: 'passbook' | 'services' | 'requests' | 'account'
+  contextId?: string
+}
+
+export interface LedgerTransaction {
+  id: string
+  date: string | null
+  wageMonth?: string
   memberId: string
-  month: string
-  message: string
-  state: DataState
+  employmentId: string
+  type: 'contribution' | 'official-interest' | 'estimated-interest' | 'transfer-in' | 'transfer-out' | 'withdrawal'
+  amount: Money | null
+  state: string
+  title: string
+  explanation: string
+  recordedDateExplanation: string
+  needsAttention: boolean
 }

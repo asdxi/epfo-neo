@@ -1,111 +1,212 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppShell, type AppRoute } from './components/AppShell'
 import { LoginScreen } from './components/LoginScreen'
+import { loadPersistedAccount, persistAccount } from './domain/persistence'
+import { buildExcelStatement, buildPdfStatement, createReportRecord } from './domain/reports'
 import {
-  ActionsPage,
-  JourneyPage,
-  MoneyPage,
-  type ActionItem,
-  type JourneyEmployment,
-  type MonthlyContribution,
-  type Tracker,
-} from './components/feature-pages'
-import { arjunMehta } from './domain/data'
-import { balanceForEmployment, moneyBreakdown, totalEpfBalance, totalEpsServiceMonths } from './domain/calculations'
-import { HomePage } from './pages/HomePage'
-import { ProfilePage } from './pages/ProfilePage'
+  addGeneratedReport,
+  markReportReady,
+  submitClaim,
+  submitCorrection,
+  submitGrievance,
+  submitPanVerification,
+  submitTransfer,
+  updateContact,
+} from './domain/state'
+import type { AccountState, GeneratedReport, Member, MemberRequest } from './domain/types'
+import { AccountPage } from './pages/AccountPage'
+import { HomePage, type CoreServiceId, type FinancialRoute } from './pages/HomePage'
+import { LegalPage } from './pages/LegalPage'
+import { PassbookPage, type PassbookView, type StatementRequest } from './pages/PassbookPage'
+import { RequestsPage } from './pages/RequestsPage'
+import { ServicesPage, type ServiceId } from './pages/ServicesPage'
 
-const formatMoney = (value: number) => new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
-}).format(value)
+type Surface = AppRoute | 'terms' | 'privacy'
+type LoadState = 'loading' | 'ready' | 'error'
 
-const formatMonth = (month: string) => new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' })
-  .format(new Date(`${month}-01T00:00:00`))
+const demoToday = '2026-08-28'
 
-const journeyItems: JourneyEmployment[] = arjunMehta.employments.map((employment) => {
-  const balance = balanceForEmployment(employment)
-  const transferIn = employment.transfers.find((transfer) => transfer.toMemberId === employment.memberId && transfer.status === 'completed')
-  return {
-    id: employment.id,
-    employer: employment.employer,
-    dates: `${new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(employment.joinedOn))} – ${employment.exitedOn ? new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(employment.exitedOn)) : 'Present'}`,
-    provider: employment.provider === 'employer-pf-trust' ? 'Employer PF Trust' : 'EPFO',
-    memberId: employment.memberId,
-    employeeEpf: employment.contributions.reduce((total, item) => total + item.employeeEpf, 0),
-    employerEpf: employment.contributions.reduce((total, item) => total + (item.employerEpf ?? 0), 0),
-    eps: employment.epsService.contributions,
-    interest: employment.interestCredits.reduce((total, item) => total + item.amount, 0),
-    transfersIn: transferIn?.amount,
-    transferNote: transferIn?.note ?? (balance === 0 ? 'Balance moved to the next account.' : undefined),
-    status: employment.status === 'transferred' ? 'Transferred' : employment.status === 'closed' ? 'Closed' : 'Needs attention',
-    statusTone: employment.status === 'needs-attention' ? 'warning' : employment.status === 'current' ? 'success' : 'info',
-    confidence: employment.dataConfidence[0].toUpperCase() + employment.dataConfidence.slice(1) as 'Complete' | 'Partial' | 'Unavailable',
-    confidenceNote: employment.dataConfidenceNote,
-    current: employment.status === 'current',
+const safeInitialAccount = (): AccountState => {
+  try {
+    return loadPersistedAccount(window.localStorage)
+  } catch {
+    return loadPersistedAccount({ getItem: () => null })
   }
-})
+}
 
-const currentEmployment = arjunMehta.employments.at(-1)!
-const monthlyContributions: MonthlyContribution[] = currentEmployment.contributions.map((item) => ({
-  id: item.id,
-  month: formatMonth(item.month),
-  pfWage: item.pfWage,
-  employeeEpf: item.employeeEpf,
-  employerEpf: item.employerEpf,
-  eps: item.eps,
-  received: item.status === 'received' ? 'Received' : item.status === 'missing' ? 'Missing' : 'Pending',
-  message: item.note ?? 'The contribution is recorded.',
-  needsAttention: item.status === 'needs-attention' || item.status === 'missing',
-}))
+const fileSafe = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-const actions: ActionItem[] = [
-  { id: 'transfer', title: 'Transfer my previous PF', description: 'Move eligible PF from a previous account.', status: 'Processing', tone: 'info', actionLabel: 'Track transfer' },
-  { id: 'withdraw', title: 'Withdraw or claim my PF', description: 'Start a claim and see what happens next.', actionLabel: 'Start claim' },
-  { id: 'details', title: 'Update my personal details', description: 'View and update your contact details.', actionLabel: 'Manage personal details' },
-  { id: 'kyc', title: 'Verify or update KYC', description: 'Keep your identity and bank details ready for services.', status: 'Needs attention', tone: 'warning', actionLabel: 'Review KYC' },
-  { id: 'nominee', title: 'Add or change nominee', description: 'Choose who should receive benefits if needed.', actionLabel: 'Manage nominee' },
-  { id: 'employment', title: 'Correct an employment record', description: 'Tell us about an employment record that looks wrong.', actionLabel: 'Report a record issue' },
-  { id: 'claim', title: 'Check an existing claim', description: 'See the progress of a submitted request.', status: 'In progress', tone: 'info', actionLabel: 'View claim status' },
-  { id: 'grievance', title: 'Raise a grievance', description: 'Get help when an issue cannot be resolved here.', actionLabel: 'Raise a grievance' },
-]
+function downloadReport(account: AccountState, report: GeneratedReport): void {
+  const isPdf = report.format === 'pdf'
+  const contents = isPdf ? new TextDecoder().decode(buildPdfStatement(account, report)) : buildExcelStatement(account, report)
+  const blob = new Blob([contents], { type: isPdf ? 'application/pdf' : 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `${fileSafe(report.name)}.${isPdf ? 'pdf' : 'xls'}`
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+}
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false)
-  const [route, setRoute] = useState<AppRoute>('home')
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
-  const total = totalEpfBalance(arjunMehta)
-  const breakdown = useMemo(() => moneyBreakdown(arjunMehta), [])
-  const monthCount = totalEpsServiceMonths(arjunMehta)
-  const pendingTransfer = arjunMehta.employments.flatMap((item) => item.transfers).find((item) => item.status === 'pending')
-  const tracker: Tracker = {
-    title: 'PF transfer',
-    steps: [
-      { label: 'Submitted', state: 'completed' },
-      { label: 'Employer verification', state: 'completed' },
-      { label: 'EPFO processing', detail: 'Current status', state: 'current' },
-      { label: 'Funds transferred', state: 'upcoming' },
-      { label: 'Completed', state: 'upcoming' },
-    ],
-    message: 'EPFO is processing your transfer. You do not need to do anything right now.',
+  const [surface, setSurface] = useState<Surface>('home')
+  const [account, setAccount] = useState<AccountState>(safeInitialAccount)
+  const [loadState, setLoadState] = useState<LoadState>('ready')
+  const [passbookContext, setPassbookContext] = useState<string>()
+  const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({})
+  const [requestContext, setRequestContext] = useState<string>()
+  const [announcement, setAnnouncement] = useState<string>()
+
+  useEffect(() => {
+    try { persistAccount(window.localStorage, account) } catch { /* Browser storage is optional; in-memory state remains safe. */ }
+  }, [account])
+
+  const authenticate = () => {
+    setAuthenticated(true)
+    setLoadState('loading')
+    window.setTimeout(() => setLoadState('ready'), 450)
   }
 
-  const completeAction = (id: string) => {
-    const item = actions.find((action) => action.id === id)
-    setActionMessage(item ? `This service is available in the prototype.` : 'Your bank details can be reviewed in this prototype.')
+  const navigate = (route: AppRoute) => {
+    setSurface(route)
+    setAnnouncement(undefined)
+    if (route !== 'passbook') setPassbookContext(undefined)
+    if (route !== 'services') setServiceContext({})
+    if (route !== 'requests') setRequestContext(undefined)
+    window.scrollTo({ top: 0 })
   }
 
-  if (!authenticated) return <LoginScreen onAuthenticated={() => setAuthenticated(true)} />
+  const navigateFinancial = (route: FinancialRoute, contextId?: string) => {
+    if (route === 'passbook') setPassbookContext(contextId)
+    if (route === 'requests') setRequestContext(contextId)
+    setSurface(route)
+    window.scrollTo({ top: 0 })
+  }
 
-  const page = route === 'home' ? <HomePage
-    summary={{ memberName: arjunMehta.name.split(' ')[0], epfBalance: formatMoney(total), currentEmployer: currentEmployment.employer, joinedDate: 'March 2026', latestContribution: formatMoney(2_350), latestContributionMonth: 'May 2026', attention: pendingTransfer ? { title: 'Previous PF transfer is still processing', description: `${formatMoney(pendingTransfer.amount)} remains in your previous Member ID.`, actionLabel: 'View transfer status' } : undefined }}
-    onNavigate={(target) => setRoute(target)}
-  /> : route === 'journey' ? <JourneyPage employments={journeyItems} gapLabel={arjunMehta.employmentGaps[0].label} /> : route === 'money' ? <MoneyPage
-    summary={{ closingBalance: total, employeeContributions: breakdown.employeeContributions, employerContributions: breakdown.employerEpfContributions, interest: breakdown.interest, transfersIn: breakdown.transfersIn, transfersOut: breakdown.transfersOut, withdrawals: breakdown.withdrawals, pensionService: `${Math.floor(monthCount / 12)} years ${monthCount % 12} months` }}
-    contributions={monthlyContributions}
-  /> : route === 'profile' ? <ProfilePage name={arjunMehta.name} uan={arjunMehta.uan} /> : <ActionsPage actions={actions} kycStatus="Bank details need verification" tracker={tracker} onAction={completeAction} />
+  const openService = (service: CoreServiceId | ServiceId, contextId?: string) => {
+    const normalized: ServiceId = service === 'claims' ? 'claim' : service
+    setServiceContext({ service: normalized, contributionId: normalized === 'grievance' ? contextId : undefined })
+    setSurface('services')
+    window.scrollTo({ top: 0 })
+  }
 
-  return <AppShell activeRoute={route} onNavigate={setRoute} memberName={arjunMehta.name} onSignOut={() => { setAuthenticated(false); setRoute('home') }}>
-    {actionMessage && <div className="ux4g-alert ux4g-alert-success" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{actionMessage}</p></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" onClick={() => setActionMessage(null)} type="button">Dismiss</button></div>}
+  const openContributionGrievance = (contribution: AccountState['ledger']['contributions'][number]) => {
+    setServiceContext({ service: 'grievance', employmentId: contribution.employmentId, contributionId: contribution.id })
+    setSurface('services')
+    window.scrollTo({ top: 0 })
+  }
+
+  const submitAndFind = (next: AccountState, predicate: (request: MemberRequest) => boolean): MemberRequest | void => {
+    const request = next.requests.find(predicate)
+    setAccount(next)
+    return request
+  }
+
+  const handleTransfer = (submittedOn: string) => submitAndFind(
+    submitTransfer(account, submittedOn),
+    (request) => request.type === 'transfer' && request.submittedOn === submittedOn,
+  )
+
+  const handleClaim = (input: { submittedOn: string; amount: number; title: string }) => submitAndFind(
+    submitClaim(account, input),
+    (request) => request.type === 'claim' && request.submittedOn === input.submittedOn && request.amount === input.amount,
+  )
+
+  const handleCorrection = (input: { submittedOn: string; employmentId: string; field: string; proposedValue: string }) => submitAndFind(
+    submitCorrection(account, input),
+    (request) => request.type === 'correction' && request.submittedOn === input.submittedOn && request.employmentId === input.employmentId,
+  )
+
+  const handleGrievance = (input: { submittedOn: string; employmentId: string; contributionId?: string; category: string; description: string }) => submitAndFind(
+    submitGrievance(account, input),
+    (request) => request.type === 'grievance' && request.submittedOn === input.submittedOn && request.contributionId === input.contributionId,
+  )
+
+  const handleStatement = (request: StatementRequest) => {
+    const background = request.range === '5-years' || request.range === 'all-time'
+    const report = createReportRecord({
+      id: `report-${Date.now()}`,
+      periodLabel: request.periodLabel,
+      startsOn: request.startsOn,
+      endsOn: request.endsOn,
+      format: request.format,
+      requestedOn: demoToday,
+      background,
+      deliverToEmail: background && account.member.email.verified,
+    })
+    setAccount((current) => addGeneratedReport(current, report))
+    if (background) {
+      setAnnouncement('Your statement is being prepared. It is available under Generated Reports in Account.')
+      window.setTimeout(() => {
+        setAccount((current) => markReportReady(current, report.id, demoToday))
+        setAnnouncement('Your statement is ready in Generated Reports.')
+      }, 1400)
+    } else {
+      downloadReport(account, report)
+      setAnnouncement(`${report.format === 'pdf' ? 'PDF' : 'Excel'} statement downloaded and added to Generated Reports.`)
+    }
+  }
+
+  if (!authenticated) return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} />
+
+  const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface
+  const initialPassbookView = (passbookContext && ['overview', 'contributions', 'employers', 'transactions'].includes(passbookContext)) ? passbookContext as PassbookView : undefined
+
+  const page = loadState === 'loading'
+    ? <div className="route-skeleton" aria-busy="true" aria-label="Loading account"><span /><span /><span /><span /></div>
+    : loadState === 'error'
+      ? <div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Account Could Not Be Loaded</p><p className="ux4g-alert-message">Your saved account data is safe. Try loading it again.</p><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => { setLoadState('loading'); window.setTimeout(() => setLoadState('ready'), 350) }}>Try Again</button></div></div>
+      : surface === 'home'
+        ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} />
+        : surface === 'passbook'
+          ? <PassbookPage
+              key={passbookContext ?? 'overview'}
+              account={account}
+              initialView={initialPassbookView}
+              initialContextId={passbookContext}
+              onGenerateStatement={handleStatement}
+              onRaiseContributionGrievance={openContributionGrievance}
+              onStartTransfer={(employmentId) => { setServiceContext({ service: 'transfer', employmentId }); setSurface('services') }}
+            />
+          : surface === 'services'
+            ? <ServicesPage
+                key={`${serviceContext.service ?? 'catalogue'}-${serviceContext.contributionId ?? ''}`}
+                account={account}
+                initialService={serviceContext.service}
+                initialEmploymentId={serviceContext.employmentId}
+                initialContributionId={serviceContext.contributionId}
+                onSubmitTransfer={handleTransfer}
+                onSubmitClaim={handleClaim}
+                onSubmitPanVerification={(submittedOn) => setAccount((current) => submitPanVerification(current, submittedOn))}
+                onSubmitCorrection={handleCorrection}
+                onSubmitGrievance={handleGrievance}
+                onViewRequests={(requestId) => { setRequestContext(requestId); setSurface('requests') }}
+              />
+            : surface === 'requests'
+              ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" />
+              : surface === 'account'
+                ? <AccountPage
+                    account={account}
+                    onUpdateContact={(input) => setAccount((current) => updateContact(current, input))}
+                    onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
+                    onDownloadReport={(report) => downloadReport(account, report)}
+                    onStartPanVerification={() => { setServiceContext({ service: 'kyc' }); setSurface('services') }}
+                    onNavigateLegal={setSurface}
+                  />
+                : <LegalPage page={surface} onBack={() => setSurface('account')} onNavigate={setSurface} />
+
+  return <AppShell
+    activeRoute={activeRoute}
+    onNavigate={navigate}
+    memberName={account.member.name}
+    onSignOut={() => { setAuthenticated(false); setSurface('home'); setServiceContext({}); setPassbookContext(undefined); setRequestContext(undefined) }}
+    onOpenTerms={() => setSurface('terms')}
+    onOpenPrivacy={() => setSurface('privacy')}
+  >
+    {announcement && <div className="ux4g-alert ux4g-alert-success app-announcement" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement}</p></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm" type="button" onClick={() => setAnnouncement(undefined)}>Dismiss</button></div>}
     {page}
   </AppShell>
 }

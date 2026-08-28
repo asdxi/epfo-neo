@@ -180,11 +180,16 @@ Use this order:
 - Do not rebuild an existing UX4G component with custom markup.
 - Do not write unnecessary custom CSS.
 - Custom CSS is allowed only for application-specific layout or behaviour that
-  UX4G does not provide. Keep it minimal and document the missing capability.
+  UX4G does not provide. Application-owned components are allowed when no UX4G
+  component adequately serves the product task; document their rationale,
+  anatomy, responsive behaviour, interaction states and accessibility contract
+  in this file.
 - Do not hard-code colours, spacing, radius, typography, borders, focus
   treatment, or component states when a UX4G token or class exists.
 - If UX4G cannot satisfy a requirement, explain the gap before adding custom
-  markup or CSS.
+  markup or CSS. Use UX4G semantic tokens and established application patterns
+  as the visual foundation, but do not force an unsuitable UX4G component into
+  the interface merely to avoid creating an application-owned component.
 
 ### Required completion report
 
@@ -225,7 +230,27 @@ tokens (`--ux4g-bg-primary-*`, `--ux4g-text-brand-primary-default`,
 remain UX4G semantic colours. Do not use red as a substitute for a warning or
 error status.
 
-### Application-specific exceptions
+### Application component extension policy
+
+UX4G is the foundation of this application, not a ceiling on its interface.
+When UX4G has no suitable component or its available pattern conflicts with the
+member task, EPFO Neo may introduce an application-owned component. Such a
+component must:
+
+- solve a documented user or product need rather than add decoration;
+- reuse UX4G semantic colour, spacing, typography, radius, border and focus
+  tokens wherever they express the intended role;
+- preserve WCAG 2.1 AA semantics, keyboard operation, focus visibility and
+  minimum target sizes;
+- define mobile and desktop behaviour, including wrapping, overflow, empty and
+  long-content states;
+- reuse existing application patterns before creating another near-duplicate;
+- be documented below so later screens can use it consistently.
+
+This policy permits tasteful custom composition and interaction design while
+keeping UX4G components as the default whenever they genuinely fit.
+
+### Application-specific exceptions and components
 
 - The npm package's cascade-fixes layer incorrectly resets `.ux4g-btn-primary`
   to a white surface with `!important`. The application restores the documented
@@ -236,11 +261,16 @@ error status.
   removes only the embedded `@font-face` payloads and retains UX4G tokens,
   components and system-font fallback. This keeps the mobile CSS payload near
   80 KB gzip; the package should eventually offer a supported font-free build.
-- UX4G's Journey Timeline requires its full indicator/step DOM and disables
-  interaction for inactive steps. Employment history therefore uses accessible
-  UX4G Card surfaces in chronological order rather than an incomplete timeline
-  composition. This keeps record details keyboard-accessible and avoids
-  decorative connector lines.
+- **Compact Employment Timeline:** UX4G's Journey Timeline is unsuitable for a
+  compact set of employer records because its step states imply a process and
+  inactive steps are not interactive. EPFO Neo therefore uses an application-
+  owned ordered list in reverse chronological order. A semantic border token
+  draws the vertical connector and each employer receives a primary-colour
+  marker. Every row is one keyboard-focusable navigation target and shows year,
+  employer, recorded period, provider/state and explainable EPF contributions.
+  Desktop presents these fields on one compact line; mobile reflows them beneath
+  the employer without changing DOM or focus order. Employment gaps remain
+  explicit timeline entries and never infer their cause.
 - Status words use filled UX4G Tag variants, not icon badges. Icon badges are
   intentionally tiny indicators and are not suitable containers for text.
 
@@ -255,8 +285,9 @@ error status.
 - The profile trigger is a minimum 44px target and opens the Profile route.
   Only synthetic mobile number and email address are editable in the prototype.
 - Sign-in is mobile-number and one-time-password only. Aadhaar is not an
-  authentication option in the prototype. The mobile flow exposes clearly
-  labelled demo success and failure outcomes and never collects real credentials.
+  authentication option in the prototype. The mobile flow provides validation-
+  driven success and error feedback without exposing demo credentials or a
+  separate outcome control, and never collects real credentials.
 
 ## 1. Token architecture
 

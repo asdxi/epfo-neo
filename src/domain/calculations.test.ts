@@ -1,39 +1,168 @@
 import { describe, expect, it } from 'vitest'
-import { arjunMehta } from './data'
-import { balanceForEmployment, moneyBreakdown, pendingTransfers, reconcileEmployment, totalEpfBalance, totalEpsServiceMonths } from './calculations'
+import {
+  accountReconciliation,
+  contributionIsReconciled,
+  deriveAttentionItems,
+  employerSummaries,
+  reconcileMemberId,
+  totalEpfBalance,
+  totalEpsContributions,
+  totalEpsServiceMonths,
+} from './calculations'
+import { createInitialAccount } from './data'
+import { loadPersistedAccount, persistAccount } from './persistence'
+import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExpired } from './reports'
+import { markReportReady, submitGrievance, submitTransfer, transitionRequest } from './state'
+import { validateContribution, validateEmail, validateIndianMobile } from './validation'
 
-describe('EPF reconciliation', () => {
-  it('reconciles every Member ID from recorded EPF transactions', () => {
-    for (const employment of arjunMehta.employments) {
-      const ledger = reconcileEmployment(employment)
-      expect(ledger.closingBalance).toBe(balanceForEmployment(employment))
-      expect(ledger.closingBalance).toBeGreaterThanOrEqual(0)
+describe('v0.2 financial reconciliation', () => {
+  it('reconciles the headline balance from the underlying ledger', () => {
+    const account = createInitialAccount()
+    expect(totalEpfBalance(account)).toBe(482_650)
+    expect(accountReconciliation(account).closingBalance).toBe(482_650)
+  })
+
+  it('reconciles every employer total with its Member ID transactions', () => {
+    const account = createInitialAccount()
+    const summaries = employerSummaries(account)
+    expect(summaries.map((item) => item.closingBalance)).toEqual([0, 0, 38_450, 444_200])
+    for (const summary of summaries) {
+      expect(summary).toMatchObject(reconcileMemberId(account, summary.employment.memberId))
+      expect(summary.closingBalance).toBeGreaterThanOrEqual(0)
     }
   })
 
-  it('does not add EPS contributions to the EPF balance', () => {
-    expect(totalEpfBalance(arjunMehta)).toBe(482_650)
-    expect(totalEpsServiceMonths(arjunMehta)).toBe(75)
-    expect(totalEpfBalance(arjunMehta)).not.toBe(482_650 + 93_750)
+  it('keeps employee EPF, employer EPF and EPS separate', () => {
+    const account = createInitialAccount()
+    const reconciliation = accountReconciliation(account)
+    expect(reconciliation.employeeContributions).toBe(310_200)
+    expect(reconciliation.employerEpfContributions).toBe(94_233)
+    expect(totalEpsContributions(account)).toBe(93_750)
+    expect(totalEpsServiceMonths(account)).toBe(75)
+    expect(totalEpfBalance(account)).not.toBe(482_650 + 93_750)
   })
 
-  it('does not post the pending remainder of the previous PF transfer', () => {
-    const harbor = arjunMehta.employments.find(({ id }) => id === 'harbor')!
-    expect(balanceForEmployment(harbor)).toBe(38_450)
-    expect(pendingTransfers(arjunMehta)).toHaveLength(1)
-    expect(pendingTransfers(arjunMehta)[0].amount).toBe(38_450)
+  it('moves completed transfers without creating money', () => {
+    const account = createInitialAccount()
+    const reconciliation = accountReconciliation(account)
+    expect(reconciliation.transfersIn).toBe(722_050)
+    expect(reconciliation.transfersOut).toBe(722_050)
+    expect(reconciliation.transfersIn - reconciliation.transfersOut).toBe(0)
   })
 
-  it('surfaces the reported February discrepancy without inventing an EPF ledger entry', () => {
-    expect(arjunMehta.contributionIssues).toEqual([expect.objectContaining({ month: '2026-02', state: 'needs-attention' })])
-    expect(arjunMehta.employments.flatMap(({ contributions }) => contributions).some(({ month }) => month === '2026-02')).toBe(false)
+  it('does not move money when the transfer request is only submitted', () => {
+    const account = createInitialAccount()
+    const submitted = submitTransfer(account, '2026-08-28')
+    expect(totalEpfBalance(submitted)).toBe(totalEpfBalance(account))
+    expect(reconcileMemberId(submitted, 'KA/HFI/0031849').closingBalance).toBe(38_450)
+    expect(submitted.ledger.transfers.at(-1)?.state).toBe('submitted')
   })
 
-  it('makes the money movement explainable as a complete aggregate', () => {
-    const totals = moneyBreakdown(arjunMehta)
-    expect(totals.employeeContributions).toBe(310_200)
-    expect(totals.employerEpfContributions).toBe(94_233)
-    expect(totals.interest).toBe(123_217)
-    expect(totals.withdrawals).toBe(45_000)
+  it('subtracts completed withdrawals and includes only official interest credits', () => {
+    const account = createInitialAccount()
+    const reconciliation = accountReconciliation(account)
+    expect(reconciliation.withdrawals).toBe(45_000)
+    expect(reconciliation.officialInterestCredits).toBe(123_217)
+    expect(account.ledger.estimatedInterestAccruals[0].amount).toBe(6_480)
+    expect(totalEpfBalance(account)).toBe(482_650)
+  })
+})
+
+describe('record integrity and validation', () => {
+  it('stores Wage Month and Recorded On as distinct values', () => {
+    const record = createInitialAccount().ledger.contributions.find((item) => item.id === 'vertex-2026-05')!
+    expect(record.wageMonth).toBe('2026-05')
+    expect(record.recordedOn).toBe('2026-06-08')
+    expect(record.wageMonth).not.toBe(record.recordedOn?.slice(0, 7))
+  })
+
+  it('surfaces a contribution with an unavailable employer EPF amount', () => {
+    const record = createInitialAccount().ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    expect(record.employerEpf).toBeNull()
+    expect(record.status).toBe('amount-needs-review')
+    expect(contributionIsReconciled(record)).toBe(false)
+    expect(validateContribution(record)).toEqual([])
+  })
+
+  it('validates Indian mobile numbers and email addresses', () => {
+    for (const mobile of ['6876543210', '7876543210', '8876543210', '9876543210']) expect(validateIndianMobile(mobile)).toBeNull()
+    expect(validateIndianMobile('3876543210')).toMatch(/beginning/)
+    expect(validateIndianMobile('5876543210')).toMatch(/beginning/)
+    expect(validateIndianMobile('987654321')).toMatch(/exactly 10/)
+    expect(validateIndianMobile('98abc')).toMatch(/digits only/)
+    expect(validateEmail(' arjun@example.in ')).toBeNull()
+    expect(validateEmail('arjun@invalid')).toMatch(/valid email/)
+  })
+})
+
+describe('derived attention and connected request state', () => {
+  it('derives attention items from account exceptions', () => {
+    const attention = deriveAttentionItems(createInitialAccount())
+    expect(attention).toHaveLength(3)
+    expect(attention.every((item) => item.priority === 'action-required')).toBe(true)
+    expect(attention.map((item) => item.title)).toContain('Previous PF balance')
+  })
+
+  it('creates a transfer request and updates the related attention surface', () => {
+    const account = submitTransfer(createInitialAccount(), '2026-08-28')
+    const request = account.requests.find((item) => item.type === 'transfer')!
+    expect(request.reference).toMatch(/^TRF-/)
+    expect(request.state).toBe('submitted')
+    expect(deriveAttentionItems(account)).toContainEqual(expect.objectContaining({ title: 'Previous PF Transfer', priority: 'in-progress', contextId: request.id }))
+    expect(submitTransfer(account, '2026-08-28').requests.filter((item) => item.type === 'transfer')).toHaveLength(1)
+  })
+
+  it('creates and transitions a contribution grievance', () => {
+    const account = submitGrievance(createInitialAccount(), { submittedOn: '2026-08-28', employmentId: 'vertex', contributionId: 'vertex-2026-06', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount.' })
+    const grievance = account.requests.find((item) => item.contributionId === 'vertex-2026-06')!
+    expect(grievance.reference).toMatch(/^GRV-/)
+    expect(account.exceptions.find((item) => item.contributionId === 'vertex-2026-06')?.state).toBe('in-progress')
+    expect(transitionRequest(account, grievance.id, 'in-progress', '2026-08-29').requests.find((item) => item.id === grievance.id)?.state).toBe('in-progress')
+  })
+
+  it('expires generated reports after 90 days', () => {
+    const report = createReportRecord({ id: 'report-1', periodLabel: '1 Year', startsOn: '2025-08-01', endsOn: '2026-08-28', format: 'pdf', requestedOn: '2026-08-28', background: false, deliverToEmail: false })
+    expect(report.expiresOn).toBe('2026-11-26')
+    expect(isReportExpired(report, '2026-11-26')).toBe(false)
+    expect(isReportExpired(report, '2026-11-27')).toBe(true)
+  })
+
+  it('builds real PDF and Excel-compatible statement payloads', () => {
+    const account = createInitialAccount()
+    const pdfReport = createReportRecord({ id: 'report-pdf', periodLabel: '1 Year', startsOn: '2025-08-01', endsOn: '2026-08-28', format: 'pdf', requestedOn: '2026-08-28', background: false, deliverToEmail: false })
+    const excelReport = { ...pdfReport, id: 'report-excel', format: 'excel' as const }
+    expect(new TextDecoder().decode(buildPdfStatement(account, pdfReport))).toMatch(/^%PDF-1\.4/)
+    expect(new TextDecoder().decode(buildPdfStatement(account, pdfReport))).toContain('%%EOF')
+    expect(buildExcelStatement(account, excelReport)).toContain('<?mso-application progid="Excel.Sheet"?>')
+    expect(buildExcelStatement(account, excelReport)).toContain('Wage Month')
+  })
+
+  it('paginates an all-time PDF without dropping contribution rows', () => {
+    const account = createInitialAccount()
+    const report = createReportRecord({ id: 'report-all-pdf', periodLabel: 'All Time', startsOn: '2018-08-01', endsOn: '2026-08-28', format: 'pdf', requestedOn: '2026-08-28', background: false, deliverToEmail: false })
+    const contents = new TextDecoder().decode(buildPdfStatement(account, report))
+    expect(contents.match(/\/Type \/Page\b/g)?.length).toBeGreaterThan(1)
+    expect(contents).toContain('Northstar Consumer Tech')
+    expect(contents).toContain('Vertex Mobility')
+    expect(contents).toContain('Page 1 of')
+    expect(contents).toContain(`Page ${contents.match(/\/Type \/Page\b/g)?.length} of`)
+  })
+
+  it('moves a background report from preparing to ready', () => {
+    const account = createInitialAccount()
+    const report = createReportRecord({ id: 'report-all', periodLabel: 'All Time', startsOn: '2018-08-01', endsOn: '2026-08-28', format: 'pdf', requestedOn: '2026-08-28', background: true, deliverToEmail: true })
+    const ready = markReportReady({ ...account, generatedReports: [report] }, report.id, '2026-08-28').generatedReports[0]
+    expect(ready.state).toBe('ready')
+    expect(ready.generatedOn).toBe('2026-08-28')
+  })
+
+  it('persists and restores the connected account state safely', () => {
+    let stored: string | null = null
+    const storage = { getItem: () => stored, setItem: (_key: string, value: string) => { stored = value } }
+    const submitted = submitTransfer(createInitialAccount(), '2026-08-28')
+    persistAccount(storage, submitted)
+    expect(loadPersistedAccount(storage).requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
+    stored = '{invalid json'
+    expect(loadPersistedAccount(storage).version).toBe(2)
   })
 })
