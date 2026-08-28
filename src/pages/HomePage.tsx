@@ -11,6 +11,7 @@ import {
   totalEpsContributions,
   totalEpsServiceMonths,
 } from '../domain/calculations'
+import { demoNotices } from '../domain/notices'
 import type { AccountState, AttentionItem, Employment } from '../domain/types'
 import './financial-pages.css'
 
@@ -118,10 +119,15 @@ function StatusTag({ status }: { status: AccountState['ledger']['contributions']
 }
 
 function NoticeBoard() {
-  const notices = [
-    { title: 'Keep your Aadhaar-linked mobile number active', body: 'Aadhaar OTP verification is needed for selected member services.' },
-    { title: 'Check your profile before submitting a claim', body: 'Confirm your contact details and KYC status are up to date.' },
-    { title: 'Passbook updates may take time to appear', body: 'Recent contribution records can take time to be posted after processing.' },
-  ]
-  return <section className="notice-board" aria-labelledby="notice-board-title"><h3 id="notice-board-title">Notices</h3><div className="notice-board-list">{notices.map((notice) => <article key={notice.title}><strong>{notice.title}</strong><p>{notice.body}</p><small>Demo notice</small></article>)}</div></section>
+  return <section className="notice-board" aria-labelledby="notice-board-title">
+    <div className="financial-section-heading"><h2 id="notice-board-title">Notices</h2></div>
+    <div className="notice-board-list" aria-label="Notices, newest first" role="region" tabIndex={0}>
+      {demoNotices.map((notice) => <article className="notice-card" key={notice.id}>
+        <div className="notice-card__meta"><time dateTime={notice.publishedOn}>{formatDate(notice.publishedOn)}</time>{notice.isNew && <span className="ux4g-tag ux4g-tag-filled-info ux4g-tag-s">New</span>}</div>
+        <h3>{notice.title}</h3>
+        <p>{notice.body}</p>
+        {notice.attachment === 'pdf' && <a className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm" href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" target="_blank" rel="noopener noreferrer">{notice.attachmentLabel}</a>}
+      </article>)}
+    </div>
+  </section>
 }

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShell } from './components/AppShell'
 import { createInitialAccount } from './domain/data'
-import { saveNominees, submitGrievance, submitTransfer } from './domain/state'
+import { addGeneratedReport, saveNominees, submitGrievance, submitTransfer } from './domain/state'
 import { AccountPage } from './pages/AccountPage'
 import { HomePage } from './pages/HomePage'
 import { LegalPage } from './pages/LegalPage'
@@ -107,6 +107,11 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('₹35,250')
     expect(html).toContain('No EPF-covered employment recorded')
     expect(html.indexOf('Vertex Mobility')).toBeLessThan(html.indexOf('Northstar Consumer Technologies'))
+    expect(html).toContain('id="notice-board-title">Notices</h2>')
+    expect(html.match(/>New<\/span>/g)).toHaveLength(2)
+    expect(html).toContain('aria-label="Notices, newest first"')
+    expect(html).toContain('target="_blank"')
+    expect(html.indexOf('Keep your Aadhaar-linked mobile number active')).toBeLessThan(html.indexOf('Updates are available in Requests'))
     expect(html).not.toContain('Recent Activity')
     expect(html).not.toContain('What Would You Like to Do?')
     expect(html).not.toContain('Action Required')
@@ -300,7 +305,7 @@ describe('v0.2 application surfaces', () => {
   })
 
   it('renders editable account capabilities and both legal pages', () => {
-    const account = createInitialAccount()
+    const account = addGeneratedReport(createInitialAccount(), { id: 'report-ready', name: 'EPFO Passbook Transactions', periodLabel: 'All Time', startsOn: '2018-08-01', endsOn: '2026-08-28', format: 'pdf', state: 'ready', requestedOn: '2026-08-28', generatedOn: '2026-08-28', expiresOn: '2026-11-26', deliveryState: 'not-requested' })
     const accountHtml = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onStartPanVerification={noop} onNavigateLegal={noop} />)
     const terms = renderToStaticMarkup(<LegalPage page="terms" onBack={noop} onNavigate={noop} />)
     const privacy = renderToStaticMarkup(<LegalPage page="privacy" onBack={noop} onNavigate={noop} />)
@@ -312,9 +317,17 @@ describe('v0.2 application surfaces', () => {
     expect(accountHtml).toContain('Your profile information is used to match your EPFO member record.')
     expect(accountHtml).toContain('Father’s/Husband’s name')
     expect(accountHtml).toContain('Locked after UAN activation')
-    expect(accountHtml).toContain('Last password change')
-    expect(accountHtml).toContain('Change photograph')
-    expect(accountHtml).toContain('Change password')
+    expect(accountHtml).toContain('Change Photograph')
+    expect(accountHtml).toContain('profile-photo-card')
+    expect(accountHtml).toContain('profile-updated-panel')
+    expect(accountHtml).toContain('src/assets/ade4f4eb-8a5e-4290-b28f-f12b5db4ebb9.png')
+    expect(accountHtml).toContain('account-report-actions')
+    expect(accountHtml).toContain('Passport Photograph')
+    expect(accountHtml).toContain('Photograph requirements')
+    expect(accountHtml).toContain('JPEG or PNG format')
+    expect(accountHtml).toContain('Edit profile')
+    expect(accountHtml).not.toContain('Choose photograph')
+    expect(accountHtml).toContain('Contact Details')
     expect(accountHtml).toContain('Review the verification status of your identity and bank details.')
     expect(accountHtml).toContain('Download reports within 90 days of generation.')
     expect(accountHtml).toContain('PAN verification is in progress.')
@@ -324,11 +337,54 @@ describe('v0.2 application surfaces', () => {
     expect(accountHtml).not.toContain('synthetic account')
     expect(accountHtml).not.toContain('Member account')
     expect(accountHtml).not.toContain('Login and Security Settings')
+    expect(accountHtml).not.toContain('Last password change')
+    expect(accountHtml).not.toContain('Change password')
     expect(accountHtml).not.toContain('Legal and Privacy')
     expect(accountHtml).toContain('Save Preferences</button>')
     expect(accountHtml).toContain('disabled=""')
     expect(terms).toContain('Terms of Use')
     expect(privacy).toContain('Privacy Policy')
+  })
+
+  it('renders a saved legacy profile safely when an older date is absent', () => {
+    const account = createInitialAccount()
+    delete (account.member as Partial<typeof account.member>).profileUpdatedOn
+
+    const html = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />)
+
+    expect(html).toContain('Profile Last Updated</p><p class="ux4g-alert-message"><time>Not available')
+    expect(html).toContain('Profile and account')
+  })
+
+  it('reveals photo instructions on demand and allows only the intended profile fields to be edited', async () => {
+    const onUpdateProfile = vi.fn()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<AccountPage account={createInitialAccount()} onUpdateContact={noop} onUpdateProfile={onUpdateProfile} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />))
+
+    const photoInput = container.querySelector<HTMLInputElement>('input[type="file"]')
+    const click = vi.spyOn(photoInput!, 'click')
+    await act(async () => buttonNamed('Change Photograph')?.click())
+    expect(click).toHaveBeenCalledOnce()
+    expect(container.querySelector('[role="tooltip"]')?.textContent).toContain('JPEG or PNG format')
+
+    await act(async () => buttonNamed('Edit profile')?.click())
+    expect(container.querySelector('#profile-name')).not.toBeNull()
+    expect(container.querySelector('#profile-uan')).not.toBeNull()
+    expect(container.querySelector('#profile-permanent-address')).not.toBeNull()
+    expect(container.querySelector('#profile-current-address')).not.toBeNull()
+    expect(container.querySelector('#profile-father-name')).toBeNull()
+    expect(container.querySelector('#profile-relationship')).toBeNull()
+    expect(container.querySelector('#profile-international-worker')).toBeNull()
+    expect(container.querySelector('#profile-differently-abled')).toBeNull()
+
+    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')?.click())
+    expect(onUpdateProfile).toHaveBeenCalledOnce()
+    expect(onUpdateProfile.mock.calls[0]?.[0]).toMatchObject({ name: 'Arjun Mehta', uan: createInitialAccount().member.uan })
+
+    await act(async () => root.unmount())
+    container.remove()
   })
 
   it('edits and verifies only one contact channel at a time', async () => {

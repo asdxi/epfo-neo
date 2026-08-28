@@ -17,6 +17,7 @@ export type RequestState = 'submitted' | 'in-progress' | 'action-required' | 'co
 export type ReportFormat = 'pdf' | 'excel'
 export type ReportState = 'preparing' | 'ready' | 'failed' | 'expired'
 export type AttentionPriority = 'action-required' | 'in-progress' | 'good-to-know'
+export type NoticeAttachment = 'pdf' | 'none'
 
 export interface ContactChannel {
   value: string
@@ -52,7 +53,6 @@ export interface Member {
   differentlyAbled: boolean
   passportPhotoUrl: string
   profileUpdatedOn: string
-  passwordChangedOn: string
   communicationPreferences: {
     contributionRecorded: boolean
     requestUpdates: boolean
@@ -240,6 +240,16 @@ export interface AttentionItem {
   actionLabel: string
   route: 'passbook' | 'services' | 'requests' | 'account'
   contextId?: string
+}
+
+export interface MemberNotice {
+  id: string
+  title: string
+  body: string
+  publishedOn: string
+  isNew: boolean
+  attachment: NoticeAttachment
+  attachmentLabel?: string
 }
 
 export interface LedgerTransaction {

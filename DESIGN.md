@@ -289,6 +289,27 @@ keeping UX4G components as the default whenever they genuinely fit.
   every matching transaction after the member chooses PDF or Excel in a native,
   keyboard-operable dialog. The on-page list remains capped to prevent excessive
   scrolling, while the export is not truncated.
+- **Home Notice Feed:** UX4G has no compact, mixed-interaction notice-feed
+  pattern. EPFO Neo therefore uses a semantic reverse-chronological list with a
+  fixed-height, keyboard-focusable scroll region that shows about three notices
+  before scrolling. Every item shows its heading and published date; new items
+  use the UX4G small filled-info Tag. Announcement-only entries are not
+  interactive, while entries with an attachment expose a text-primary link that
+  opens the synthetic PDF in a new tab. Items use a subtle primary surface on
+  hover, with no internal dividers, so the feed remains distinct from the
+  action-oriented divided list above it. Mobile keeps the same DOM and scroll
+  behavior; the visible height remains sufficient for three compact entries.
+- **Editable Profile Layout:** UX4G has no member-record editor with a
+  persistent supporting rail. EPFO Neo uses an application-owned two-column
+  composition: member details and the edit form are primary content, while a
+  desktop right rail contains a passport photograph and a UX4G info Alert
+  for its update date. The rail becomes normal stacked content on mobile.
+  Editable details use the existing UX4G input, select and button patterns;
+  activation facts remain read-only. The tonal-primary `Change Photograph`
+  button triggers the native file picker directly. An application-owned,
+  keyboard-accessible info tooltip holds the four upload requirements without
+  persistently occupying page space; inline validation and status feedback
+  remain available after selection.
 - Status words use filled UX4G Tag variants, not icon badges. Icon badges are
   intentionally tiny indicators and are not suitable containers for text.
 

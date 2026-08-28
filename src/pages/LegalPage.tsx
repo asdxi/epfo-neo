@@ -35,7 +35,7 @@ function Privacy() {
     <section><h2>Sharing and External Delivery</h2><p>The prototype does not intentionally send entered information to EPFO, employers, banks, Aadhaar services or email providers. A report marked as sent to a verified email represents account state and does not confirm external delivery.</p></section>
     <section><h2>Storage and Retention</h2><p>Connected account state may be stored in the browser used for the demonstration. Generated reports show a 90-day availability period as product behaviour. Clearing browser storage or resetting the demo may remove the prototype state sooner.</p></section>
     <section><h2>Your Choices</h2><p>You can change communication preferences, edit demo contact details, clear browser storage or stop using the prototype. Do not use these controls to manage a real EPFO account.</p></section>
-    <section><h2>Security</h2><p>The prototype uses interface safeguards suitable for a demonstration, but it is not approved for real identity or financial information. Never enter an actual Aadhaar number, PAN, bank account, mobile number, email address or password.</p></section>
+    <section><h2>Security</h2><p>The prototype uses interface safeguards suitable for a demonstration, but it is not approved for real identity or financial information. Never enter an actual Aadhaar number, PAN, bank account, mobile number or email address.</p></section>
     <section><h2>Questions</h2><p>Privacy questions about this proof of concept should be directed to the demonstration team through the hackathon review channel.</p></section>
   </div></>
 }

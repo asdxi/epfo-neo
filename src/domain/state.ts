@@ -128,10 +128,6 @@ export function updateMemberProfile(account: AccountState, input: Partial<Accoun
   return { ...account, member: { ...account.member, ...changes, profileUpdatedOn: updatedOn } }
 }
 
-export function changePassword(account: AccountState, changedOn: string): AccountState {
-  return { ...account, member: { ...account.member, passwordChangedOn: changedOn } }
-}
-
 export function submitExit(account: AccountState, input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }): AccountState {
   const employment = account.employments.find((item) => item.id === input.employmentId)
   if (!employment) return account

@@ -5,7 +5,7 @@ import type {
   InterestCredit,
   Money,
 } from './types'
-import defaultProfilePhoto from '../assets/member-placeholder.svg'
+import defaultProfilePhoto from '../assets/ade4f4eb-8a5e-4290-b28f-f12b5db4ebb9.png'
 
 const monthsBetween = (first: string, last: string): string[] => {
   const [firstYear, firstMonth] = first.split('-').map(Number)
@@ -157,7 +157,6 @@ export const initialAccount: AccountState = {
     differentlyAbled: false,
     passportPhotoUrl: defaultProfilePhoto,
     profileUpdatedOn: '2026-04-08',
-    passwordChangedOn: '2026-08-28',
     nominees: [],
     communicationPreferences: { contributionRecorded: true, requestUpdates: true, reportReady: true },
   },

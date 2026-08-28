@@ -63,6 +63,11 @@ summary {
   background-color: var(--ux4g-bg-primary-strong-hover) !important;
 }
 
+/* Filled success tags sit on a dark green surface and require inverse text. */
+.ux4g-tag-filled-success {
+  color: var(--ux4g-text-neutral-inverse) !important;
+}
+
 :where(button, a, input, select, textarea, summary):focus-visible {
   outline: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-primary-strong);
   outline-offset: var(--ux4g-space-1);

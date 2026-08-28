@@ -15,7 +15,6 @@ import {
   submitTransfer,
   submitExit,
   updateMemberProfile,
-  changePassword,
   saveNominees,
   updateContact,
 } from './domain/state'
@@ -247,7 +246,6 @@ export default function App() {
                     focusSection={accountContext}
                     onUpdateContact={(input) => setAccount((current) => updateContact(current, input))}
                     onUpdateProfile={(input) => setAccount((current) => updateMemberProfile(current, input))}
-                    onChangePassword={(changedOn) => setAccount((current) => changePassword(current, changedOn))}
                     onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
                     onDownloadReport={(report) => downloadReport(account, report)}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
