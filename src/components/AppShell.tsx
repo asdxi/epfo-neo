@@ -145,16 +145,16 @@ export function AppShell({
           </button>
           <button className="shell-brand shell-brand-mobile" type="button" onClick={() => navigate('home')}>
             <span className="brand-mark" aria-hidden="true">EPFO</span>
-            <span className="brand-copy">EPFO Member Services</span>
+            <span className="brand-copy">EPFO Neo</span>
           </button>
         </div>
       </header>
 
       <header className="desktop-header ux4g-navbar">
         <div className="ux4g-navbar-wrap shell-navbar-wrap">
-          <button className="shell-brand" type="button" onClick={() => navigate('home')} aria-label="EPFO Member Services home">
+          <button className="shell-brand" type="button" onClick={() => navigate('home')} aria-label="EPFO Neo home">
             <span className="brand-mark" aria-hidden="true">EPFO</span>
-            <span className="brand-copy">EPFO Member Services</span>
+            <span className="brand-copy">EPFO Neo</span>
           </button>
           <nav className="ux4g-navbar-right" aria-label="Primary navigation">
             <div className="desktop-primary-navigation">
@@ -204,7 +204,7 @@ export function AppShell({
           <div className="ux4g-drawer-header">
             <div className="ux4g-drawer-title-group">
               <div className="ux4g-drawer-title-wrapper">
-                <h2 id="mobile-navigation-title" className="ux4g-drawer-title">EPFO Member Services</h2>
+                <h2 id="mobile-navigation-title" className="ux4g-drawer-title">EPFO Neo</h2>
               </div>
               <span className="ux4g-drawer-subtitle">Signed in as {memberName}</span>
             </div>
@@ -252,7 +252,7 @@ export function AppShell({
       </div>
 
       <dialog ref={signOutDialogRef} className="sign-out-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description">
-        <div><h2 id="sign-out-title">Sign out?</h2><p id="sign-out-description">Are you sure you want to sign out of EPFO Member Services?</p></div>
+        <div><h2 id="sign-out-title">Sign out?</h2><p id="sign-out-description">Are you sure you want to sign out of EPFO Neo?</p></div>
         <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => signOutDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={confirmSignOut}>Sign Out</button></div>
       </dialog>
 
@@ -266,7 +266,7 @@ export function AppShell({
       {hasFooterLinks && (
         <footer className="app-footer ux4g-footer-primary">
           <div className="ux4g-footer-content app-footer-content">
-            <span>EPFO Member Services</span>
+            <span>EPFO Neo</span>
             <nav className="app-footer-links" aria-label="Legal information">
               {onResetDemo && <button className="ux4g-btn ux4g-btn-outline-danger ux4g-btn-md footer-reset-demo" type="button" onClick={() => resetDemoDialogRef.current?.showModal()}>Reset Demo</button>}
               {onOpenTerms && (

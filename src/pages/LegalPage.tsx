@@ -16,7 +16,7 @@ export function LegalPage({ page, onBack, onNavigate }: LegalPageProps) {
 
 function Terms() {
   return <><header className="service-page-heading"><p className="service-eyebrow">Proof of concept</p><h1 id="legal-title">Terms of Use</h1><p>Last updated: 28 August 2026</p></header><div className="legal-content">
-    <section><h2>About EPFO Member Services</h2><p>This application is a fictional proof of concept created for product evaluation. It is not an official Employees' Provident Fund Organisation service and is not connected to EPFO systems.</p></section>
+    <section><h2>About EPFO Neo</h2><p>This application is a fictional proof of concept created for product evaluation. It is not an official Employees' Provident Fund Organisation service and is not connected to EPFO systems.</p></section>
     <section><h2>Demo Information Only</h2><p>All member names, identifiers, employment records, contributions, balances, requests and reports in this application are fictional. Do not enter real personal information, EPFO credentials, Aadhaar numbers, bank details or documents.</p></section>
     <section><h2>No Financial or Legal Determination</h2><p>Balances, eligibility messages, pension-service summaries, claim amounts and process outcomes are demonstrations. They are not official account statements, legal advice, financial advice, eligibility decisions or payment commitments.</p></section>
     <section><h2>Prototype Actions</h2><p>Transfers, claims, KYC verification, corrections and grievances remain within the prototype. Submitting a flow does not contact an employer, EPFO, a bank or another government service. Email delivery and one-time passwords are mocked.</p></section>
@@ -28,7 +28,7 @@ function Terms() {
 
 function Privacy() {
   return <><header className="service-page-heading"><p className="service-eyebrow">Proof of concept</p><h1 id="legal-title">Privacy Policy</h1><p>Last updated: 28 August 2026</p></header><div className="legal-content">
-    <section><h2>Scope</h2><p>This policy describes how the EPFO Member Services proof of concept handles information during a demonstration. It does not describe the practices of EPFO or any Government of India production system.</p></section>
+    <section><h2>Scope</h2><p>This policy describes how the EPFO Neo proof of concept handles information during a demonstration. It does not describe the practices of EPFO or any Government of India production system.</p></section>
     <section><h2>Information in the Prototype</h2><p>The application starts with a fictional member profile and illustrative employment, contribution, KYC, request and report records. The demo must not be used with real personal data or credentials.</p></section>
     <section><h2>Information You Enter</h2><p>Contact edits, service-flow answers, descriptions and preferences may be stored in browser state so the demonstration remains connected while you navigate. Enter demo information only. Demo one-time passwords are not sent through a telecom service.</p></section>
     <section><h2>How Information Is Used</h2><p>Prototype information is used to calculate explanatory balances, show service readiness, create mocked requests, preserve status continuity and generate illustrative passbook reports.</p></section>

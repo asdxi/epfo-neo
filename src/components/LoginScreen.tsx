@@ -109,7 +109,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
     <main className="otp-login" aria-labelledby="login-title">
       <section className="otp-login__hero">
         <span className="brand-mark" aria-hidden="true">EPFO</span>
-        <h1 id="login-title">EPFO Member Services</h1>
+        <h1 id="login-title">EPFO Neo</h1>
         <p>Secure access with an Aadhaar OTP sent to your Aadhaar-linked mobile number.</p>
       </section>
       <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby={step === 'mobile' ? 'sign-in-mobile-title' : 'sign-in-otp-title'}>
