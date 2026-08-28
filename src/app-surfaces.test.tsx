@@ -313,6 +313,7 @@ describe('v0.2 application surfaces', () => {
     const privacy = renderToStaticMarkup(<LegalPage page="privacy" onBack={noop} onNavigate={noop} />)
 
     expect(accountHtml).toContain('Add Email ID')
+    expect(accountHtml).toContain('Edit Mobile Number')
     expect(accountHtml).toContain('KYC and Verification')
     expect(accountHtml).toContain('Generated Reports')
     expect(accountHtml).toContain('Add Nominee')
