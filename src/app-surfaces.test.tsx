@@ -312,7 +312,7 @@ describe('v0.2 application surfaces', () => {
     const terms = renderToStaticMarkup(<LegalPage page="terms" onBack={noop} onNavigate={noop} />)
     const privacy = renderToStaticMarkup(<LegalPage page="privacy" onBack={noop} onNavigate={noop} />)
 
-    expect(accountHtml).toContain('Edit Contact Details')
+    expect(accountHtml).toContain('Add Email ID')
     expect(accountHtml).toContain('KYC and Verification')
     expect(accountHtml).toContain('Generated Reports')
     expect(accountHtml).toContain('Add Nominee')
@@ -393,10 +393,17 @@ describe('v0.2 application surfaces', () => {
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
-    await act(async () => root.render(<AccountPage account={createInitialAccount()} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />))
+    const onUpdateContact = vi.fn()
+    await act(async () => root.render(<AccountPage account={createInitialAccount()} onUpdateContact={onUpdateContact} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />))
 
-    const edit = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Edit Contact Details')
+    const edit = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Add Email ID')
     await act(async () => edit?.click())
+    expect(container.querySelector('#account-mobile')).toBeNull()
+    expect(container.querySelector('#account-email')).not.toBeNull()
+    expect(container.querySelectorAll<HTMLInputElement>('input[name="contact-channel"]')[1]?.checked).toBe(true)
+
+    const mobileChoice = container.querySelectorAll<HTMLInputElement>('input[name="contact-channel"]')[0]
+    await act(async () => mobileChoice?.click())
     expect(container.querySelector('#account-mobile')).not.toBeNull()
     expect(container.querySelector('#account-email')).toBeNull()
 
@@ -424,6 +431,21 @@ describe('v0.2 application surfaces', () => {
       emailInput?.dispatchEvent(new Event('input', { bubbles: true }))
     })
     expect(container.textContent).toContain('Use an email address you can access. We will send the verification code there.')
+
+    await act(async () => container.querySelector<HTMLFormElement>('.contact-editor')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(container.textContent).toContain('Email OTP verification required')
+    expect(container.textContent).toContain('A one-time password was sent to member@example.in.')
+
+    const otpInput = container.querySelector<HTMLInputElement>('#contact-otp')
+    await act(async () => {
+      valueSetter?.call(otpInput, '123456')
+      otpInput?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => container.querySelector<HTMLFormElement>('.contact-editor')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(container.textContent).toContain('Review your change')
+
+    await clickButton('Save Contact Details')
+    expect(onUpdateContact).toHaveBeenCalledWith(expect.objectContaining({ type: 'email', value: 'member@example.in' }))
 
     await act(async () => root.unmount())
     container.remove()

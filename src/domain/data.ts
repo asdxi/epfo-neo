@@ -146,7 +146,7 @@ export const initialAccount: AccountState = {
     uan: '100000123456',
     dateOfBirth: '1993-11-14',
     mobile: { value: '9876543210', verified: true, updatedOn: '2026-03-01' },
-    email: { value: 'arjun.mehta@example.in', verified: true, updatedOn: '2026-03-01' },
+    email: { value: '', verified: false, updatedOn: '' },
     fatherOrHusbandName: 'Ramesh Mehta',
     relationship: 'father',
     internationalWorker: false,

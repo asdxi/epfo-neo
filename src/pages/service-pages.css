@@ -546,7 +546,9 @@
 .contact-readonly { display: grid; gap: var(--ux4g-stack-m); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .contact-readonly > div { align-content: start; background: var(--ux4g-bg-neutral-soft); border-radius: var(--ux4g-radius-sm); display: grid; gap: var(--ux4g-stack-xs); padding: var(--ux4g-padding-m); }
 .contact-readonly > div > span:first-child { color: var(--ux4g-text-neutral-secondary); }
-.contact-readonly > button { justify-self: start; }
+.contact-readonly-email { align-items: center; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+.contact-readonly-email > div { align-content: start; display: grid; gap: var(--ux4g-stack-xs); min-width: 0; }
+.contact-readonly-email > .ux4g-btn { justify-self: end; }
 .contact-editor { display: grid; gap: var(--ux4g-stack-m); }
 .contact-channel-choice { display: flex; flex-wrap: wrap; gap: var(--ux4g-stack-m); }
 .contact-channel-choice legend { font-weight: var(--ux4g-font-weight-semibold); margin-block-end: var(--ux4g-stack-s); width: 100%; }
@@ -672,7 +674,6 @@
   .service-catalogue-item .ux4g-btn,
   .service-danger-zone .ux4g-btn,
   .service-flow-actions .ux4g-btn,
-  .contact-readonly > button,
   .account-inline-state > .ux4g-btn { width: 100%; }
   .service-flow-body,
   .request-detail { padding: var(--ux4g-padding-m); }
