@@ -134,7 +134,7 @@ export function submitExit(account: AccountState, input: { submittedOn: string; 
   const reference = requestNumber(account, 'exit')
   const requestId = `request-exit-${reference}`
   return withRequest(account, {
-    id: requestId, type: 'exit', service: 'Exit from EPF Scheme', reference,
+    id: requestId, type: 'exit', service: 'Exit from EPFO Scheme', reference,
     title: `Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     employmentId: input.employmentId,
     nextExpectedStep: 'The exit details have been recorded for review. Check this request before making a withdrawal claim.',

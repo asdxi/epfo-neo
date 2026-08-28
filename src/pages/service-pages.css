@@ -412,6 +412,9 @@
 .exit-submission-panel .service-outcome { max-width: var(--ux4g-container-sm); text-align: center; width: 100%; }
 .exit-submission-panel .ux4g-alert-content { align-items: center; }
 .exit-submission-panel .service-outcome-reference { max-width: 22rem; width: 100%; }
+.service-pending-exit { max-width: var(--ux4g-container-md); }
+.service-pending-exit .ux4g-alert-content { display: grid; gap: var(--ux4g-stack-s); width: 100%; }
+.service-pending-exit-reference { color: var(--ux4g-text-neutral-secondary); }
 
 .request-view-tabs,
 .request-type-tabs { max-width: 100%; overflow-x: auto; }
