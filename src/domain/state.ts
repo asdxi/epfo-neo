@@ -1,7 +1,7 @@
 import type { AccountState, MemberRequest, Nominee, RequestState } from './types'
 
 const requestNumber = (account: AccountState, type: MemberRequest['type']): string => {
-  const prefix = { claim: 'CLM', transfer: 'TRF', correction: 'COR', grievance: 'GRV' }[type]
+  const prefix = { claim: 'CLM', transfer: 'TRF', correction: 'COR', grievance: 'GRV', exit: 'EXT' }[type]
   const number = account.requests.filter((request) => request.type === type).length + 1
   return `${prefix}-2026-${String(1000 + number).padStart(6, '0')}`
 }
@@ -121,6 +121,32 @@ export function updateContact(account: AccountState, input: { type: 'mobile' | '
       [input.type]: { value: input.value.trim(), verified: true, updatedOn: input.updatedOn },
     },
   }
+}
+
+export function updateMemberProfile(account: AccountState, input: Partial<AccountState['member']> & { updatedOn: string }): AccountState {
+  const { updatedOn, ...changes } = input
+  return { ...account, member: { ...account.member, ...changes, profileUpdatedOn: updatedOn } }
+}
+
+export function changePassword(account: AccountState, changedOn: string): AccountState {
+  return { ...account, member: { ...account.member, passwordChangedOn: changedOn } }
+}
+
+export function submitExit(account: AccountState, input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }): AccountState {
+  const employment = account.employments.find((item) => item.id === input.employmentId)
+  if (!employment) return account
+  const reference = requestNumber(account, 'exit')
+  const requestId = `request-exit-${reference}`
+  return withRequest(account, {
+    id: requestId, type: 'exit', service: 'Exit from EPF Scheme', reference,
+    title: `Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
+    employmentId: input.employmentId,
+    nextExpectedStep: 'The exit details have been recorded for review. Check this request before making a withdrawal claim.',
+    timeline: [
+      { id: `${requestId}-submitted`, label: 'Exit Details Submitted', date: input.submittedOn, state: 'completed', explanation: `Date of exit: ${input.exitedOn}. Reason: ${input.reason}.` },
+      { id: `${requestId}-recorded`, label: 'Record Updated', date: null, state: 'current' },
+    ],
+  })
 }
 
 export function saveNominees(account: AccountState, nominees: Nominee[]): AccountState {

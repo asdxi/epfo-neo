@@ -2,6 +2,7 @@ import { createInitialAccount } from './data'
 import type { AccountState } from './types'
 
 export const ACCOUNT_STORAGE_KEY = 'epfo-neo-account-v3'
+export const AUTHENTICATION_STORAGE_KEY = 'epfo-neo-authenticated-v1'
 
 function removeSyntheticCopy(value: unknown): unknown {
   if (typeof value === 'string') return value.replace(/\bsynthetic\s*/gi, '')
@@ -28,4 +29,16 @@ export function persistAccount(storage: Pick<Storage, 'setItem'>, account: Accou
 
 export function clearPersistedAccount(storage: Pick<Storage, 'removeItem'>): void {
   storage.removeItem(ACCOUNT_STORAGE_KEY)
+}
+
+export function loadPersistedAuthentication(storage: Pick<Storage, 'getItem'>): boolean {
+  return storage.getItem(AUTHENTICATION_STORAGE_KEY) === 'true'
+}
+
+export function persistAuthentication(storage: Pick<Storage, 'setItem'>): void {
+  storage.setItem(AUTHENTICATION_STORAGE_KEY, 'true')
+}
+
+export function clearPersistedAuthentication(storage: Pick<Storage, 'removeItem'>): void {
+  storage.removeItem(AUTHENTICATION_STORAGE_KEY)
 }

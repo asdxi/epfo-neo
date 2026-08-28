@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AppShell, type AppRoute } from './components/AppShell'
 import { LoginScreen } from './components/LoginScreen'
-import { clearPersistedAccount, loadPersistedAccount, persistAccount } from './domain/persistence'
+import { OnboardingScreen } from './components/OnboardingScreen'
+import { clearPersistedAccount, clearPersistedAuthentication, loadPersistedAccount, loadPersistedAuthentication, persistAccount, persistAuthentication } from './domain/persistence'
 import { createInitialAccount } from './domain/data'
 import { buildExcelStatement, buildPdfStatement, createReportRecord } from './domain/reports'
 import {
@@ -12,6 +13,9 @@ import {
   submitGrievance,
   submitPanVerification,
   submitTransfer,
+  submitExit,
+  updateMemberProfile,
+  changePassword,
   saveNominees,
   updateContact,
 } from './domain/state'
@@ -36,6 +40,14 @@ const safeInitialAccount = (): AccountState => {
   }
 }
 
+const safeInitialAuthentication = (): boolean => {
+  try {
+    return loadPersistedAuthentication(window.localStorage)
+  } catch {
+    return false
+  }
+}
+
 const fileSafe = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 function downloadReport(account: AccountState, report: GeneratedReport): void {
@@ -53,7 +65,8 @@ function downloadReport(account: AccountState, report: GeneratedReport): void {
 }
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(false)
+  const [authenticated, setAuthenticated] = useState(safeInitialAuthentication)
+  const [authView, setAuthView] = useState<'login' | 'register'>('login')
   const [surface, setSurface] = useState<Surface>('home')
   const [account, setAccount] = useState<AccountState>(safeInitialAccount)
   const [loadState, setLoadState] = useState<LoadState>('ready')
@@ -79,13 +92,17 @@ export default function App() {
   }, [account])
 
   const authenticate = () => {
+    try { persistAuthentication(window.localStorage) } catch { /* Browser storage is optional; in-memory state remains safe. */ }
     setAuthenticated(true)
     setLoadState('loading')
     window.setTimeout(() => setLoadState('ready'), 450)
   }
 
   const resetDemo = () => {
-    try { clearPersistedAccount(window.localStorage) } catch { /* Browser storage is optional. */ }
+    try {
+      clearPersistedAccount(window.localStorage)
+      clearPersistedAuthentication(window.localStorage)
+    } catch { /* Browser storage is optional. */ }
     skipNextPersistence.current = true
     setAccount(createInitialAccount())
     setAuthenticated(false)
@@ -179,7 +196,13 @@ export default function App() {
     }
   }
 
-  if (!authenticated) return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} />
+  if (!authenticated) {
+    if (authView === 'register') return <OnboardingScreen onBack={() => setAuthView('login')} onComplete={(profile) => {
+      setAccount((current) => updateMemberProfile(current, { ...profile, updatedOn: demoToday }))
+      authenticate()
+    }} />
+    return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => setAuthView('register')} />
+  }
 
   const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface
   const initialPassbookView = (passbookContext && ['overview', 'employers', 'transactions'].includes(passbookContext)) ? passbookContext as PassbookView : undefined
@@ -212,6 +235,7 @@ export default function App() {
                 onSubmitPanVerification={(submittedOn) => setAccount((current) => submitPanVerification(current, submittedOn))}
                 onSubmitCorrection={handleCorrection}
                 onSubmitGrievance={handleGrievance}
+                onSubmitExit={(input) => submitAndFind(submitExit(account, input), (request) => request.type === 'exit' && request.submittedOn === input.submittedOn)}
                 onViewRequests={(requestId) => { setRequestContext(requestId); setSurface('requests') }}
                 onManageNomination={() => { setAccountContext('nomination'); setSurface('account') }}
               />
@@ -222,6 +246,8 @@ export default function App() {
                     account={account}
                     focusSection={accountContext}
                     onUpdateContact={(input) => setAccount((current) => updateContact(current, input))}
+                    onUpdateProfile={(input) => setAccount((current) => updateMemberProfile(current, input))}
+                    onChangePassword={(changedOn) => setAccount((current) => changePassword(current, changedOn))}
                     onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
                     onDownloadReport={(report) => downloadReport(account, report)}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
@@ -234,7 +260,14 @@ export default function App() {
     activeRoute={activeRoute}
     onNavigate={navigate}
     memberName={account.member.name}
-    onSignOut={() => { setAuthenticated(false); setSurface('home'); setServiceContext({}); setPassbookContext(undefined); setRequestContext(undefined) }}
+    onSignOut={() => {
+      try { clearPersistedAuthentication(window.localStorage) } catch { /* Browser storage is optional. */ }
+      setAuthenticated(false)
+      setSurface('home')
+      setServiceContext({})
+      setPassbookContext(undefined)
+      setRequestContext(undefined)
+    }}
     onOpenTerms={() => setSurface('terms')}
     onOpenPrivacy={() => setSurface('privacy')}
     onResetDemo={resetDemo}

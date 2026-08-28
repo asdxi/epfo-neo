@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DEMO_OTP } from '../domain/demoCredentials'
 import { validateIndianMobile } from '../domain/validation'
 import './login-screen.css'
@@ -6,6 +6,7 @@ import './login-screen.css'
 interface LoginScreenProps {
   expectedMobile: string
   onAuthenticated: () => void
+  onRegister?: () => void
 }
 
 type Step = 'mobile' | 'otp'
@@ -14,13 +15,15 @@ const invalidMobileMessage = 'Please enter a valid 10-digit mobile number.'
 const mismatchedMobileMessage = 'This mobile number does not match the fictional account.'
 const invalidOtpMessage = 'We could not verify this OTP. Check the code and try again.'
 
-export function LoginScreen({ expectedMobile, onAuthenticated }: LoginScreenProps) {
+export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () => undefined }: LoginScreenProps) {
   const [step, setStep] = useState<Step>('mobile')
   const [mobile, setMobile] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
   const [verificationState, setVerificationState] = useState<'idle' | 'success' | 'error'>('idle')
+  const [verifying, setVerifying] = useState(false)
   const otpInputs = useRef<Array<HTMLInputElement | null>>([])
+  const verificationTimer = useRef<number | undefined>(undefined)
   const cleanMobile = mobile.replace(/\D/g, '').slice(0, 10)
   const otpValue = otp.join('')
 
@@ -75,15 +78,19 @@ export function LoginScreen({ expectedMobile, onAuthenticated }: LoginScreenProp
 
   const verifyOtp = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (otpValue.length !== DEMO_OTP.length) return
+    if (otpValue.length !== DEMO_OTP.length || verifying) return
     if (otpValue !== DEMO_OTP) {
       setVerificationState('error')
       setError(invalidOtpMessage)
       return
     }
     setError('')
+    setVerifying(true)
     setVerificationState('success')
-    window.setTimeout(onAuthenticated, 450)
+    verificationTimer.current = window.setTimeout(() => {
+      setVerifying(false)
+      onAuthenticated()
+    }, 900)
   }
 
   const resetToMobile = () => {
@@ -91,42 +98,47 @@ export function LoginScreen({ expectedMobile, onAuthenticated }: LoginScreenProp
     setOtp(['', '', '', '', '', ''])
     setError('')
     setVerificationState('idle')
+    setVerifying(false)
   }
+
+  useEffect(() => () => {
+    if (verificationTimer.current) window.clearTimeout(verificationTimer.current)
+  }, [])
 
   return (
     <main className="otp-login" aria-labelledby="login-title">
       <section className="otp-login__hero">
         <span className="brand-mark" aria-hidden="true">EPFO</span>
-        <p className="eyebrow">EPFO Member Services</p>
-        <h1 id="login-title">Sign In to Your Account</h1>
-        <p>Use the mobile number registered with your account to receive a one-time password.</p>
+        <h1 id="login-title">EPFO Member Services</h1>
+        <p>Secure access with an Aadhaar OTP sent to your Aadhaar-linked mobile number.</p>
       </section>
-      <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby="sign-in-title">
+      <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby={step === 'mobile' ? 'sign-in-mobile-title' : 'sign-in-otp-title'}>
         <div className="ux4g-card-body">
           {step === 'mobile' ? (
             <form className="otp-login__form" onSubmit={continueToOtp} noValidate>
-              <div className="otp-login__step-heading"><p className="eyebrow">Step 1 of 2</p><h2 id="sign-in-title">Enter your mobile number</h2><p className="otp-login__supporting">We will send a one-time password to the number linked to your account.</p></div>
+              <div className="otp-login__step-heading"><h2 id="sign-in-mobile-title">Sign in with Aadhaar OTP</h2><p className="otp-login__supporting">Use the mobile number linked to Aadhaar for this account.</p></div>
               <div className="otp-login__field">
                 <label htmlFor="mobile-number">Registered mobile number</label>
                 <input id="mobile-number" className="ux4g-input ux4g-input-md" type="tel" inputMode="numeric" autoComplete="tel" pattern="[6-9][0-9]{9}" maxLength={10} value={mobile} onChange={(event) => updateMobile(event.target.value)} placeholder="Enter 10-digit mobile number" aria-describedby={error ? 'mobile-error' : 'mobile-help'} aria-invalid={Boolean(error)} />
                 <p id={error ? 'mobile-error' : 'mobile-help'} className={error ? 'otp-login__error' : 'field-help'} role={error ? 'alert' : undefined}>{error || ''}</p>
               </div>
-              <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md otp-login__primary" type="submit">Send OTP</button>
+              <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md otp-login__primary" type="submit">Send Aadhaar OTP</button>
+              <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md otp-login__primary" type="button" onClick={onRegister}>Create account</button>
             </form>
           ) : (
             <form className="otp-login__form" onSubmit={verifyOtp} noValidate>
-              <div className="otp-login__step-heading"><p className="eyebrow">Step 2 of 2</p><h2 id="sign-in-title">Enter the OTP</h2><p className="otp-login__supporting">We sent a 6-digit OTP to <strong>+91 {cleanMobile.slice(-4).padStart(10, '•')}</strong>.</p></div>
+              <div className="otp-login__step-heading"><h2 id="sign-in-otp-title">Enter the Aadhaar OTP</h2><p className="otp-login__supporting">We sent a 6-digit Aadhaar OTP to <strong>+91 {cleanMobile.slice(-4).padStart(10, '•')}</strong>.</p></div>
               <div className={`ux4g-otp ${verificationState === 'success' ? 'ux4g-otp-success' : verificationState === 'error' ? 'ux4g-otp-error' : ''}`}>
-                <label className="ux4g-otp-label" id="otp-label">One-time password</label>
+                <label className="ux4g-otp-label" id="otp-label">Aadhaar OTP</label>
                 <div className="ux4g-otp-group" aria-labelledby="otp-label">
                   {otp.map((digit, index) => <input key={index} ref={(element) => { otpInputs.current[index] = element }} className="ux4g-input ux4g-input-md ux4g-otp-slot ux4g-otp-input" type="text" inputMode="numeric" autoComplete={index === 0 ? 'one-time-code' : 'off'} maxLength={1} value={digit} onChange={(event) => updateOtp(index, event.target.value)} onPaste={(event) => { event.preventDefault(); pasteOtp(index, event.clipboardData.getData('text')) }} onKeyDown={(event) => { if (event.key === 'Backspace' && !otp[index] && index > 0) otpInputs.current[index - 1]?.focus() }} aria-label={`OTP digit ${index + 1}`} aria-invalid={verificationState === 'error'} />)}
                 </div>
-                {verificationState === 'success' && <p className="ux4g-otp-status" role="status">OTP verified. Opening your account…</p>}
+                {verificationState === 'success' && <p className="ux4g-otp-status" role="status">Aadhaar OTP verified. Checking your details…</p>}
                 {verificationState === 'error' && <p className="ux4g-otp-status" role="alert">{error}</p>}
               </div>
               {error && verificationState !== 'error' && <p className="otp-login__error" role="alert">{error}</p>}
-              <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md otp-login__primary" type="submit" disabled={otpValue.length !== DEMO_OTP.length}>Verify and continue</button>
-              <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md otp-login__secondary" type="button" onClick={resetToMobile}>Change mobile number</button>
+              <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md otp-login__primary" type="submit" disabled={otpValue.length !== DEMO_OTP.length || verifying}>{verifying && <span className="otp-login__loader" aria-hidden="true" />}<span>{verifying ? 'Verifying…' : 'Verify Aadhaar OTP and continue'}</span></button>
+              <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md otp-login__secondary" type="button" onClick={resetToMobile} disabled={verifying}>Change mobile number</button>
             </form>
           )}
         </div>

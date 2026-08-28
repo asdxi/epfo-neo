@@ -92,12 +92,28 @@
 }
 
 .mobile-drawer-overlay {
-  z-index: var(--ux4g-z-index-modal-backdrop);
+  /* Keep the navigation layer above fixed in-app announcements and cards. */
+  z-index: calc(var(--ux4g-z-index-toast) + var(--ux4g-z-3));
 }
 
-.mobile-drawer {
+.mobile-drawer.ux4g-drawer {
+  block-size: 100dvh;
+  display: flex;
+  flex-direction: column;
   max-width: var(--ux4g-space-16);
+  max-height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
   z-index: var(--ux4g-z-index-modal);
+}
+
+.mobile-drawer.ux4g-drawer::-webkit-scrollbar {
+  display: none;
 }
 
 .mobile-drawer-close {
@@ -107,6 +123,11 @@
 .mobile-nav-list {
   display: grid;
   gap: var(--ux4g-space-2);
+}
+
+.mobile-drawer .ux4g-drawer-body {
+  flex: 1 0 auto;
+  overflow: visible;
 }
 
 .mobile-nav-link,
@@ -120,7 +141,9 @@
 .ux4g-drawer-footer {
   align-items: stretch;
   flex-direction: column;
+  flex-shrink: 0;
   gap: var(--ux4g-space-4);
+  padding-bottom: max(var(--ux4g-padding-l), env(safe-area-inset-bottom));
 }
 
 .ux4g-drawer-footer .drawer-sign-out {

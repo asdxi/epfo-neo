@@ -26,6 +26,11 @@
 .home-attention-inner, .compact-description-list, .balance-composition, .filter-stack, .employer-metrics { display: grid; gap: var(--ux4g-stack-m); }
 .attention-list, .employment-timeline, .activity-list, .service-shortcuts, .transaction-list, .contribution-summary-grid { list-style: none; margin: 0; padding: 0; }
 .attention-list { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
+.notice-board { border-block-start: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-subtle); display: grid; gap: var(--ux4g-stack-s); padding-block-start: var(--ux4g-padding-m); }
+.notice-board-list { display: grid; gap: var(--ux4g-stack-xs); max-block-size: calc(var(--ux4g-space-14) * 3); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.notice-board-list::-webkit-scrollbar { display: none; }
+.notice-board-list article { border-block-end: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-subtle); display: grid; gap: var(--ux4g-space-2); padding-block-end: var(--ux4g-padding-s); }
+.notice-board-list p, .notice-board-list small { color: var(--ux4g-text-neutral-secondary); }
 .service-shortcuts, .employer-selector { border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); overflow: hidden; }
 .attention-item { display: grid; gap: var(--ux4g-stack-xs); padding-block: var(--ux4g-padding-s); }
 .attention-item + .attention-item, .service-shortcuts li + li, .employer-selector button + button { border-top: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }

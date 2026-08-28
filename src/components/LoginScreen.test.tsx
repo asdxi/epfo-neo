@@ -43,7 +43,7 @@ const clickButton = async (name: string) => {
 
 const continueWithMobile = async (mobile = '9876543210') => {
   await setInput(container.querySelector<HTMLInputElement>('#mobile-number')!, mobile)
-  await clickButton('Send OTP')
+  await clickButton('Send Aadhaar OTP')
 }
 
 describe('LoginScreen credentials and validation', () => {
@@ -52,11 +52,11 @@ describe('LoginScreen credentials and validation', () => {
     const mobile = container.querySelector<HTMLInputElement>('#mobile-number')!
 
     await setInput(mobile, '51234')
-    await clickButton('Send OTP')
+    await clickButton('Send Aadhaar OTP')
     expect(container.textContent).toContain('Please enter a valid 10-digit mobile number.')
 
     await setInput(mobile, '9123456789')
-    await clickButton('Send OTP')
+    await clickButton('Send Aadhaar OTP')
     expect(container.textContent).toContain('This mobile number does not match the fictional account.')
   })
 
@@ -80,7 +80,7 @@ describe('LoginScreen credentials and validation', () => {
     for (let index = 0; index < digits.length; index += 1) await setInput(digits[index], '9')
     expect(container.querySelector('[role="alert"]')).toBeNull()
 
-    await clickButton('Verify and continue')
+    await clickButton('Verify Aadhaar OTP and continue')
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('We could not verify this OTP')
 
     await setInput(digits[0], DEMO_OTP[0])
@@ -99,7 +99,7 @@ describe('LoginScreen credentials and validation', () => {
     expect(container.textContent).toContain('does not match the fictional account')
 
     await continueWithMobile(expectedMobile)
-    expect(container.textContent).toContain('Step 2 of 2')
+    expect(container.textContent).toContain('Enter the Aadhaar OTP')
     expect(container.textContent).toContain('••••••2109')
   })
 
@@ -115,14 +115,14 @@ describe('LoginScreen credentials and validation', () => {
   it('disables verification until all six digits are entered and then shows incorrect OTP errors', async () => {
     await renderLogin()
     await continueWithMobile()
-    const verifyButton = [...container.querySelectorAll<HTMLButtonElement>('button')].find((item) => item.textContent?.trim() === 'Verify and continue')!
+    const verifyButton = [...container.querySelectorAll<HTMLButtonElement>('button')].find((item) => item.textContent?.trim() === 'Verify Aadhaar OTP and continue')!
     expect(verifyButton.disabled).toBe(true)
     expect(container.querySelector('[role="alert"]')).toBeNull()
 
     const digits = [...container.querySelectorAll<HTMLInputElement>('.ux4g-otp-input')]
     for (let index = 0; index < digits.length; index += 1) await setInput(digits[index], '9')
     expect(verifyButton.disabled).toBe(false)
-    await clickButton('Verify and continue')
+    await clickButton('Verify Aadhaar OTP and continue')
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('We could not verify this OTP')
     expect(digits.every((digit) => digit.getAttribute('aria-invalid') === 'true')).toBe(true)
   })
@@ -145,9 +145,9 @@ describe('LoginScreen credentials and validation', () => {
     })
     expect(digits.map((digit) => digit.value).join('')).toBe(DEMO_OTP)
 
-    await clickButton('Verify and continue')
+    await clickButton('Verify Aadhaar OTP and continue')
     expect(container.querySelector('[role="status"]')?.textContent).toContain('OTP verified')
-    await act(async () => vi.advanceTimersByTime(450))
+    await act(async () => vi.advanceTimersByTime(900))
     expect(authenticated).toHaveBeenCalledOnce()
   })
 })

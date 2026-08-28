@@ -5,6 +5,7 @@ import type {
   InterestCredit,
   Money,
 } from './types'
+import defaultProfilePhoto from '../assets/member-placeholder.svg'
 
 const monthsBetween = (first: string, last: string): string[] => {
   const [firstYear, firstMonth] = first.split('-').map(Number)
@@ -146,6 +147,17 @@ export const initialAccount: AccountState = {
     dateOfBirth: '1993-11-14',
     mobile: { value: '9876543210', verified: true, updatedOn: '2026-03-01' },
     email: { value: 'arjun.mehta@example.in', verified: true, updatedOn: '2026-03-01' },
+    fatherOrHusbandName: 'Ramesh Mehta',
+    relationship: 'father',
+    internationalWorker: false,
+    educationalQualification: 'graduate',
+    maritalStatus: 'married',
+    permanentAddress: '42 Lake View Road, Indiranagar, Bengaluru, Karnataka 560038',
+    currentAddress: '42 Lake View Road, Indiranagar, Bengaluru, Karnataka 560038',
+    differentlyAbled: false,
+    passportPhotoUrl: defaultProfilePhoto,
+    profileUpdatedOn: '2026-04-08',
+    passwordChangedOn: '2026-08-28',
     nominees: [],
     communicationPreferences: { contributionRecorded: true, requestUpdates: true, reportReady: true },
   },

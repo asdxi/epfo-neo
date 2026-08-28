@@ -78,6 +78,7 @@ export function HomePage({ account, onNavigate, onOpenService }: HomePageProps) 
             {attentionItems.length === 0 ? (
               <div className="ux4g-alert ux4g-alert-success" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-title">You’re All Caught Up</p><p className="ux4g-alert-message">No action is required from you.</p></div></div>
             ) : <ol className="attention-list">{attentionItems.map((item) => <li key={item.id} className="attention-item"><h3>{item.title}</h3><p>{item.explanation}</p><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm" type="button" onClick={() => openAttention(item)}>{item.actionLabel}</button></li>)}</ol>}
+            <NoticeBoard />
           </div>
         </aside>
 
@@ -114,4 +115,13 @@ function StatusTag({ status }: { status: AccountState['ledger']['contributions']
     'awaiting-record': ['Awaiting Record', 'ux4g-tag-filled-neutral'],
   }[status]
   return <span className={`ux4g-tag ${value[1]} ux4g-tag-s`}>{value[0]}</span>
+}
+
+function NoticeBoard() {
+  const notices = [
+    { title: 'Keep your Aadhaar-linked mobile number active', body: 'Aadhaar OTP verification is needed for selected member services.' },
+    { title: 'Check your profile before submitting a claim', body: 'Confirm your contact details and KYC status are up to date.' },
+    { title: 'Passbook updates may take time to appear', body: 'Recent contribution records can take time to be posted after processing.' },
+  ]
+  return <section className="notice-board" aria-labelledby="notice-board-title"><h3 id="notice-board-title">Notices</h3><div className="notice-board-list">{notices.map((notice) => <article key={notice.title}><strong>{notice.title}</strong><p>{notice.body}</p><small>Demo notice</small></article>)}</div></section>
 }

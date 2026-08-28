@@ -14,8 +14,8 @@ type RequestView = 'open' | 'completed'
 type RequestFilter = 'all' | RequestType
 
 const requestViews: RequestView[] = ['open', 'completed']
-const requestFilters: RequestFilter[] = ['all', 'claim', 'transfer', 'correction', 'grievance']
-const requestFilterLabel: Record<RequestFilter, string> = { all: 'All', claim: 'Claims', transfer: 'Transfers', correction: 'Corrections', grievance: 'Grievances' }
+const requestFilters: RequestFilter[] = ['all', 'claim', 'transfer', 'correction', 'grievance', 'exit']
+const requestFilterLabel: Record<RequestFilter, string> = { all: 'All', claim: 'Claims', transfer: 'Transfers', correction: 'Corrections', grievance: 'Grievances', exit: 'Exit updates' }
 
 const formatMoney = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`)) : 'Pending'

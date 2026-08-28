@@ -12,7 +12,7 @@ export type ContributionStatus =
   | 'missing-contribution'
   | 'awaiting-record'
 
-export type RequestType = 'claim' | 'transfer' | 'correction' | 'grievance'
+export type RequestType = 'claim' | 'transfer' | 'correction' | 'grievance' | 'exit'
 export type RequestState = 'submitted' | 'in-progress' | 'action-required' | 'completed'
 export type ReportFormat = 'pdf' | 'excel'
 export type ReportState = 'preparing' | 'ready' | 'failed' | 'expired'
@@ -42,6 +42,17 @@ export interface Member {
   dateOfBirth: string
   mobile: ContactChannel
   email: ContactChannel
+  fatherOrHusbandName: string
+  relationship: 'father' | 'husband'
+  internationalWorker: boolean
+  educationalQualification: 'na' | 'primary' | 'secondary' | 'senior-secondary' | 'diploma' | 'graduate' | 'postgraduate' | 'doctorate' | 'post-doctorate'
+  maritalStatus: 'married' | 'unmarried' | 'widow-widower' | 'divorcee'
+  permanentAddress: string
+  currentAddress: string
+  differentlyAbled: boolean
+  passportPhotoUrl: string
+  profileUpdatedOn: string
+  passwordChangedOn: string
   communicationPreferences: {
     contributionRecorded: boolean
     requestUpdates: boolean

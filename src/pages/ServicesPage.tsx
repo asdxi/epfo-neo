@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { AccountState, MemberRequest } from '../domain/types'
 import './service-pages.css'
 
-export type ServiceId = 'transfer' | 'claim' | 'kyc' | 'correction' | 'grievance'
+export type ServiceId = 'transfer' | 'claim' | 'kyc' | 'correction' | 'grievance' | 'exit'
 
 export interface ServicesPageProps {
   account: AccountState
@@ -14,18 +14,19 @@ export interface ServicesPageProps {
   onSubmitPanVerification: (submittedOn: string) => void
   onSubmitCorrection: (input: { submittedOn: string; employmentId: string; field: string; proposedValue: string }) => MemberRequest | void
   onSubmitGrievance: (input: { submittedOn: string; employmentId: string; contributionId?: string; category: string; description: string }) => MemberRequest | void
+  onSubmitExit?: (input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }) => MemberRequest | void
   onViewRequests?: (requestId?: string) => void
   onManageNomination?: () => void
 }
 
-type FlowStep = 'explain' | 'details' | 'review' | 'outcome'
+type FlowStep = 'explain' | 'details' | 'review' | 'verify' | 'outcome'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const formatMoney = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 const formatDate = (value: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${value}T00:00:00`))
 const serviceNames: Record<ServiceId, string> = {
   transfer: 'Transfer Previous PF', claim: 'Claims & Withdrawals', kyc: 'KYC & Verification',
-  correction: 'Correct Employment Records', grievance: 'Raise a Grievance',
+  correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Exit from EPF Scheme',
 }
 
 const serviceCopy: Record<ServiceId, { description: string; action: string }> = {
@@ -34,6 +35,7 @@ const serviceCopy: Record<ServiceId, { description: string; action: string }> = 
   kyc: { description: 'Review Aadhaar, PAN and bank verification used for online member services.', action: 'View service' },
   correction: { description: 'Request a correction when an employment record does not match your documents.', action: 'View service' },
   grievance: { description: 'Ask EPFO to review a contribution or service issue and track the response.', action: 'View service' },
+  exit: { description: 'Record the date and reason for leaving a previous EPF-covered employment.', action: 'View service' },
 }
 
 function StatusTag({ state }: { state: 'ready' | 'verified' | 'pending' | 'unverified' | 'available' }) {
@@ -49,8 +51,8 @@ function Field({ label, children, error, help, id, kind = 'select' }: { label: s
 }
 
 function FlowProgress({ service, step }: { service: ServiceId; step: FlowStep }) {
-  const active = { explain: 0, details: 1, review: 2, outcome: 3 }[step]
-  const labels = ['Understand', 'Your Details', 'Review', 'Outcome']
+  const labels = service === 'exit' ? ['Understand', 'Enter details', 'Review', 'Aadhaar OTP', 'Outcome'] : ['Understand', 'Your Details', 'Review', 'Outcome']
+  const active = service === 'exit' ? { explain: 0, details: 1, review: 2, verify: 3, outcome: 4 }[step] : { explain: 0, details: 1, review: 2, verify: 2, outcome: 3 }[step]
   return <div className="service-progress-wrap">
     <p className="service-progress-current">Step {active + 1} of {labels.length} · {labels[active]}</p>
     <ol className="service-progress" aria-label={`${serviceNames[service]} progress`}>
@@ -112,6 +114,7 @@ export function ServicesPage(props: ServicesPageProps) {
       {service === 'kyc' && <KycFlow {...props} step={step} setStep={setStep} />}
       {service === 'correction' && <CorrectionFlow {...props} step={step} setStep={setStep} />}
       {service === 'grievance' && <GrievanceFlow {...props} step={step} setStep={setStep} />}
+      {service === 'exit' && <ExitFlow {...props} step={step} setStep={setStep} />}
     </>}
   </section>
 }
@@ -120,7 +123,7 @@ type FlowProps = ServicesPageProps & { step: FlowStep; setStep: (step: FlowStep)
 
 function FlowActions({ step, setStep, onConfirm, confirmLabel = 'Confirm and Submit', disabled = false }: { step: FlowStep; setStep: (step: FlowStep) => void; onConfirm?: () => void; confirmLabel?: string; disabled?: boolean }) {
   if (step === 'outcome') return null
-  const previous: Record<Exclude<FlowStep, 'explain'>, FlowStep> = { details: 'explain', review: 'details', outcome: 'review' }
+  const previous: Record<Exclude<FlowStep, 'explain'>, FlowStep> = { details: 'explain', review: 'details', verify: 'review', outcome: 'verify' }
   return <div className="service-flow-actions">{step !== 'explain' && <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => setStep(previous[step])}>Back</button>}<button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" disabled={disabled} onClick={() => step === 'review' ? onConfirm?.() : setStep(step === 'explain' ? 'details' : 'review')}>{step === 'review' ? confirmLabel : 'Continue'}</button></div>
 }
 
@@ -209,4 +212,27 @@ function GrievanceFlow({ account, step, setStep, onSubmitGrievance, onViewReques
     {step === 'review' && <div className="service-flow-body"><h2>Review Grievance</h2><dl className="service-review-list"><div><dt>Employment</dt><dd>{employment?.employer}</dd></div><div><dt>Record</dt><dd>{contributionId || 'Employment record generally'}</dd></div><div><dt>Category</dt><dd>{category}</dd></div><div><dt>Description</dt><dd>{description}</dd></div>{support && <div><dt>Supporting Record</dt><dd>{support}</dd></div>}</dl><label className="ux4g-checkbox ux4g-checkbox-md"><input className="ux4g-checkbox-input" type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span className="ux4g-checkbox-control"><span className="ux4g-checkmark" /></span><span className="ux4g-checkbox-content">I confirm this complaint accurately describes the record shown.</span></label><FlowActions step={step} setStep={setStep} disabled={!confirmed} onConfirm={submit} confirmLabel="Submit Grievance" /></div>}
     {step === 'outcome' && <div className="service-flow-body"><Outcome request={request} title="Grievance Submitted" message="Your ticket has been created. EPFO review is the next expected step, and updates will appear in Requests." onViewRequests={onViewRequests} /></div>}
   </article>
+}
+
+function ExitFlow({ account, step, setStep, onSubmitExit, onViewRequests }: FlowProps) {
+  const [employmentId, setEmploymentId] = useState(account.employments.find((item) => item.status !== 'current')?.id ?? account.employments[0]?.id ?? '')
+  const [exitedOn, setExitedOn] = useState('')
+  const [reason, setReason] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [request, setRequest] = useState<MemberRequest>()
+  const employment = account.employments.find((item) => item.id === employmentId)
+  const validDetails = Boolean(employment && exitedOn && reason && consent)
+  const submit = () => {
+    const result = onSubmitExit?.({ submittedOn: today(), employmentId, exitedOn, reason })
+    if (result) setRequest(result)
+    setStep('outcome')
+  }
+  return <div className="service-flow service-flow--hero">
+    {step === 'explain' && <div className="service-flow-body"><h2>Before you record an exit</h2><p>Use this only for a previous employment after leaving. The date of exit can affect transfer and claim eligibility.</p><div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">This change is difficult to reverse</p><p className="ux4g-alert-message">Once submitted, the date of exit cannot be changed through this member flow. Confirm it with your employer before continuing.</p></div></div><FlowActions step={step} setStep={setStep} /></div>}
+    {step === 'details' && <div className="service-flow-body"><h2>Enter exit details</h2><Field id="exit-employment" label="Employment record"><select id="exit-employment" className="service-select" value={employmentId} onChange={(event) => setEmploymentId(event.target.value)}>{account.employments.filter((item) => item.status !== 'current').map((item) => <option key={item.id} value={item.id}>{item.employer} · {item.memberId}</option>)}</select></Field><div className="service-form-grid"><Field id="exit-date" label="Last working day / date of exit"><input id="exit-date" className="ux4g-input ux4g-input-md" type="date" value={exitedOn} onChange={(event) => setExitedOn(event.target.value)} /></Field><Field id="exit-reason" label="Reason for exit"><select id="exit-reason" className="service-select" value={reason} onChange={(event) => setReason(event.target.value)}><option value="">Select a reason</option><option>Retirement</option><option>Superannuation</option><option>Permanent disability</option><option>Cessation (short service) – any other reason</option></select></Field></div><label className="onboarding-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> I understand that this update may affect withdrawal and claim eligibility.</label><FlowActions step={step} setStep={setStep} disabled={!validDetails} /></div>}
+    {step === 'review' && <div className="service-flow-body"><h2>Review exit details</h2><dl className="service-review-list"><div><dt>Employment</dt><dd>{employment?.employer}</dd></div><div><dt>Date of exit</dt><dd>{exitedOn ? formatDate(exitedOn) : 'Not entered'}</dd></div><div><dt>Reason</dt><dd>{reason}</dd></div></dl><div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Check the date carefully</p><p className="ux4g-alert-message">The recorded date may be visible to your employer and can affect future online services.</p></div></div><div className="service-flow-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => setStep('details')}>Back</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => setStep('verify')}>Continue to Aadhaar OTP</button></div></div>}
+    {step === 'verify' && <form className="service-flow-body" onSubmit={(event) => { event.preventDefault(); if (otp === '123456') submit() }}><h2>Verify with Aadhaar OTP</h2><p>An Aadhaar OTP is sent to the Aadhaar-linked mobile number on your account.</p><Field id="exit-otp" label="Aadhaar OTP" error={otp && otp !== '123456' ? 'Enter the six-digit Aadhaar OTP to continue.' : undefined}><input id="exit-otp" className="ux4g-input ux4g-input-md" inputMode="numeric" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} /></Field><div className="service-flow-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => setStep('review')}>Back</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="submit" disabled={otp.length !== 6}>Verify and submit</button></div></form>}
+    {step === 'outcome' && <div className="service-flow-body"><Outcome request={request} title="Exit details submitted" message="Your exit request has been recorded. Review this before submitting a withdrawal claim." onViewRequests={onViewRequests} /></div>}
+  </div>
 }

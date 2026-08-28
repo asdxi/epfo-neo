@@ -10,9 +10,9 @@ import {
   totalEpsServiceMonths,
 } from './calculations'
 import { createInitialAccount } from './data'
-import { ACCOUNT_STORAGE_KEY, clearPersistedAccount, loadPersistedAccount, persistAccount } from './persistence'
+import { ACCOUNT_STORAGE_KEY, AUTHENTICATION_STORAGE_KEY, clearPersistedAccount, clearPersistedAuthentication, loadPersistedAccount, loadPersistedAuthentication, persistAccount, persistAuthentication } from './persistence'
 import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExpired } from './reports'
-import { markReportReady, submitGrievance, submitTransfer, transitionRequest } from './state'
+import { markReportReady, submitExit, submitGrievance, submitTransfer, transitionRequest } from './state'
 import { validateContribution, validateEmail, validateIndianMobile } from './validation'
 
 const createTransferEligibleAccount = () => {
@@ -179,6 +179,32 @@ describe('derived attention and connected request state', () => {
     const removed: string[] = []
     clearPersistedAccount({ removeItem: (key) => { removed.push(key) } })
     expect(removed).toEqual([ACCOUNT_STORAGE_KEY])
+  })
+
+  it('persists authentication across reloads and clears it on sign out', () => {
+    let authenticated: string | null = null
+    const storage = {
+      getItem: () => authenticated,
+      setItem: (_key: string, value: string) => { authenticated = value },
+      removeItem: (key: string) => { if (key === AUTHENTICATION_STORAGE_KEY) authenticated = null },
+    }
+
+    expect(loadPersistedAuthentication(storage)).toBe(false)
+    persistAuthentication(storage)
+    expect(loadPersistedAuthentication(storage)).toBe(true)
+    clearPersistedAuthentication(storage)
+    expect(loadPersistedAuthentication(storage)).toBe(false)
+    expect(AUTHENTICATION_STORAGE_KEY).not.toBe(ACCOUNT_STORAGE_KEY)
+  })
+
+  it('records an Aadhaar-verified exit request against the selected employment', () => {
+    const account = createInitialAccount()
+    const updated = submitExit(account, { submittedOn: '2026-08-28', employmentId: 'harbor', exitedOn: '2024-06-30', reason: 'Cessation (short service) – any other reason' })
+    const request = updated.requests[0]
+    expect(request.type).toBe('exit')
+    expect(request.employmentId).toBe('harbor')
+    expect(request.reference).toMatch(/^EXT-2026-/)
+    expect(request.timeline[0].explanation).toContain('2024-06-30')
   })
 
   it('removes stale synthetic wording from persisted member-facing copy', () => {

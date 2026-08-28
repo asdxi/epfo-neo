@@ -38,7 +38,7 @@ describe('Services page navigation', () => {
     expect(container.textContent).not.toContain('Balance ready to move')
     expect(container.textContent).not.toContain('Contribution support')
     expect(container.textContent).not.toContain('Report This Contribution')
-    expect(Array.from(container.querySelectorAll('.service-catalogue-item button')).filter((button) => button.textContent === 'View service')).toHaveLength(5)
+    expect(Array.from(container.querySelectorAll('.service-catalogue-item button')).filter((button) => button.textContent === 'View service')).toHaveLength(6)
     const nominationAction = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Add Nominee')
     await act(async () => nominationAction?.click())
     expect(manageNomination).toHaveBeenCalledOnce()
