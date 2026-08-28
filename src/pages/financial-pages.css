@@ -8,7 +8,7 @@
 .financial-balance { color: var(--ux4g-text-neutral-primary) !important; font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); line-height: var(--ux4g-line-height-44); }
 .financial-panel { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-m); padding: var(--ux4g-padding-m); }
 .financial-panel-heading { display: grid; gap: var(--ux4g-stack-xs); }
-.home-panel-action { justify-self: start; }
+.home-panel-action { align-self: start; box-sizing: border-box; inline-size: 100%; justify-self: stretch; min-block-size: var(--ux4g-line-height-44); }
 .financial-section-heading { align-items: start; display: flex; gap: var(--ux4g-stack-s); justify-content: space-between; }
 .financial-section-heading > div { display: grid; gap: var(--ux4g-stack-xs); }
 .home-workspace { display: grid; gap: var(--ux4g-stack-l); min-width: 0; }
@@ -27,16 +27,17 @@
 .attention-list, .employment-timeline, .activity-list, .service-shortcuts, .transaction-list, .contribution-summary-grid { list-style: none; margin: 0; padding: 0; }
 .attention-list { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .notice-board { display: grid; gap: var(--ux4g-stack-s); }
-.notice-board-list { block-size: 29rem; display: grid; gap: var(--ux4g-stack-xs); overflow-y: auto; overscroll-behavior: contain; padding-inline-end: var(--ux4g-space-2); scrollbar-color: var(--ux4g-border-color-neutral-strong) transparent; scrollbar-width: thin; }
+.notice-board-list { align-content: start; block-size: 35rem; display: grid; gap: var(--ux4g-stack-m); grid-auto-rows: max-content; overflow-y: auto; overscroll-behavior: contain; padding-inline-end: var(--ux4g-space-2); scrollbar-color: var(--ux4g-border-color-neutral-strong) transparent; scrollbar-width: thin; }
 .notice-board-list::-webkit-scrollbar { width: var(--ux4g-space-2); }
 .notice-board-list::-webkit-scrollbar-thumb { background: var(--ux4g-border-color-neutral-strong); border-radius: var(--ux4g-radius-full); }
 .notice-board-list:focus-visible { outline: var(--ux4g-border-width-md) solid var(--ux4g-outline-color-focus); outline-offset: var(--ux4g-space-2); }
-.notice-card { border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-xs); min-height: 7rem; padding: var(--ux4g-padding-s); }
+.notice-card { background: var(--ux4g-bg-neutral-soft); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-s); min-block-size: 11rem; min-width: 0; padding: var(--ux4g-padding-m); }
 .notice-card:hover { background: var(--ux4g-bg-primary); }
-.notice-card__meta { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-xs); }
+.notice-card__meta { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-m); }
 .notice-card__meta time, .notice-card p { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); }
+.notice-card h3, .notice-card p { min-width: 0; overflow-wrap: anywhere; }
 .notice-card h3 { font-size: var(--ux4g-size-16); line-height: var(--ux4g-line-height-20); }
-.notice-card .ux4g-btn { justify-self: start; }
+.notice-card .ux4g-btn { justify-self: start; max-inline-size: 100%; min-width: 0; overflow-wrap: anywhere; }
 .service-shortcuts, .employer-selector { border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); overflow: hidden; }
 .attention-item { display: grid; gap: var(--ux4g-stack-xs); padding-block: var(--ux4g-padding-s); }
 .attention-item + .attention-item, .service-shortcuts li + li, .employer-selector button + button { border-top: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
@@ -44,6 +45,7 @@
 .attention-item p { font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); }
 .attention-item .ux4g-btn, .transaction-summary .ux4g-tag { justify-self: start; }
 .home-current-grid, .overview-grid, .employer-layout, .custom-range, .transaction-filters, .date-distinction { display: grid; gap: var(--ux4g-stack-m); }
+.home-current-grid { align-items: start; }
 .compact-description-list div, .balance-composition > div, .employer-metrics div { align-items: baseline; display: flex; gap: var(--ux4g-inline-s); justify-content: space-between; }
 .compact-description-list dd, .balance-composition dd, .employer-metrics dd { font-weight: var(--ux4g-font-weight-semibold); text-align: end; }
 .employment-timeline { display: grid; padding-left: var(--ux4g-space-8); position: relative; }
