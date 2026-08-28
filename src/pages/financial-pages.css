@@ -13,13 +13,14 @@
 .home-balance-primary { display: grid; gap: var(--ux4g-stack-xs); }
 .home-balance-title { color: var(--ux4g-text-brand-primary-default); font-size: var(--ux4g-size-20); line-height: var(--ux4g-line-height-24); }
 .home-balance .financial-balance { font-size: clamp(var(--ux4g-size-40), 10vw, var(--ux4g-size-52)); letter-spacing: -0.02em; line-height: var(--ux4g-line-height-52); }
+.passbook-balance-card .financial-balance { color: var(--ux4g-text-neutral-primary) !important; font-size: clamp(var(--ux4g-size-40), 10vw, var(--ux4g-size-52)); letter-spacing: -0.02em; line-height: var(--ux4g-line-height-52); }
 .home-balance-actions, .range-buttons { display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-s); }
 .home-pension-summary { background: var(--ux4g-bg-neutral-soft); border-top: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); display: grid; gap: var(--ux4g-stack-s); padding: var(--ux4g-padding-m); }
 .home-pension-summary div, .timeline-identity, .activity-list li > div, .transaction-summary > div, .statement-panel > div:first-child { display: grid; gap: var(--ux4g-stack-xs); }
 .home-pension-summary span, .compact-description-list dt, .date-distinction span, .date-distinction small { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); }
 .home-pension-summary p { grid-column: 1 / -1; }
 .home-attention-inner, .compact-description-list, .balance-composition, .filter-stack, .employer-metrics { display: grid; gap: var(--ux4g-stack-m); }
-.attention-list, .employment-timeline, .activity-list, .service-shortcuts, .transaction-list { list-style: none; margin: 0; padding: 0; }
+.attention-list, .employment-timeline, .activity-list, .service-shortcuts, .transaction-list, .contribution-summary-grid { list-style: none; margin: 0; padding: 0; }
 .attention-list { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .service-shortcuts, .employer-selector { border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); overflow: hidden; }
 .attention-item { display: grid; gap: var(--ux4g-stack-xs); padding-block: var(--ux4g-padding-s); }
@@ -27,7 +28,7 @@
 .attention-item h3 { font-size: var(--ux4g-size-16); line-height: var(--ux4g-line-height-20); }
 .attention-item p { font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); }
 .attention-item .ux4g-btn, .transaction-summary .ux4g-tag { justify-self: start; }
-.home-current-grid, .overview-grid, .employer-layout, .custom-range, .transaction-filters, .statement-controls, .date-distinction { display: grid; gap: var(--ux4g-stack-m); }
+.home-current-grid, .overview-grid, .employer-layout, .custom-range, .transaction-filters, .date-distinction { display: grid; gap: var(--ux4g-stack-m); }
 .compact-description-list div, .balance-composition > div, .employer-metrics div { align-items: baseline; display: flex; gap: var(--ux4g-inline-s); justify-content: space-between; }
 .compact-description-list dd, .balance-composition dd, .employer-metrics dd { font-weight: var(--ux4g-font-weight-semibold); text-align: end; }
 .employment-timeline { display: grid; padding-left: var(--ux4g-space-8); position: relative; }
@@ -51,34 +52,44 @@
 .financial-tabs { max-width: 100%; overflow-x: auto; }
 .financial-tabs .ux4g-tab-list { min-width: max-content; }
 .financial-tabs .ux4g-tab-item { background: transparent; border-inline: 0; border-top: 0; cursor: pointer; }
+.contribution-summary-grid { display: grid; gap: var(--ux4g-stack-m); }
+.contribution-summary-grid li { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-xs); min-width: 0; padding: var(--ux4g-padding-m); }
+.contribution-summary-grid li.highlighted { border-color: var(--ux4g-border-color-primary-strong); box-shadow: inset 0 0 0 var(--ux4g-border-thin) var(--ux4g-border-color-primary-strong); }
+.contribution-summary-grid time, .contribution-summary-grid small { color: var(--ux4g-text-neutral-secondary); }
+.contribution-summary-grid strong { color: var(--ux4g-text-neutral-primary); font-size: var(--ux4g-size-24); font-variant-numeric: tabular-nums; line-height: var(--ux4g-line-height-28); }
+.contribution-summary-grid span { min-width: 0; overflow-wrap: anywhere; }
 .overview-grid { align-items: start; }
+.overview-eps { padding: var(--ux4g-padding-s); }
+.overview-eps .ux4g-alert-content { align-items: start; flex-direction: column; gap: var(--ux4g-stack-xs); }
 .balance-composition > div, .employer-metrics div { border-top: 0; border-bottom: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); padding-block: var(--ux4g-padding-s); }
 .balance-composition .balance-composition-total { background: var(--ux4g-bg-neutral-soft); border-bottom: 0; font-weight: var(--ux4g-font-weight-bold); margin-inline: calc(var(--ux4g-padding-m) * -1); padding-inline: var(--ux4g-padding-m); }
-.estimate-panel { align-items: start; }
-.estimate-panel > div { display: grid; gap: var(--ux4g-stack-xs); }
-.estimate-panel > strong { font-size: var(--ux4g-size-20); }
 .financial-explanation { border-top: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .financial-explanation summary { color: var(--ux4g-text-link-default-default); cursor: pointer; font-weight: var(--ux4g-font-weight-semibold); min-height: var(--ux4g-line-height-44); padding-block: var(--ux4g-padding-s); }
-.financial-explanation > p, .financial-explanation dl { color: var(--ux4g-text-neutral-secondary); padding-block: var(--ux4g-padding-s); }
+.financial-explanation > p, .financial-explanation dl, .financial-explanation ul { color: var(--ux4g-text-neutral-secondary); padding-block: var(--ux4g-padding-s); }
+.financial-explanation ul { display: grid; gap: var(--ux4g-stack-s); margin: 0; padding-inline-start: var(--ux4g-padding-l); }
 .financial-explanation dl { display: grid; gap: var(--ux4g-stack-s); }
 .financial-explanation dl div { display: grid; gap: var(--ux4g-stack-xs); }
 .financial-explanation dt { color: var(--ux4g-text-neutral-primary); font-weight: var(--ux4g-font-weight-semibold); }
-.custom-range label, .transaction-filters label, .statement-controls label { color: var(--ux4g-text-neutral-primary); display: grid; font-size: var(--ux4g-size-14); font-weight: var(--ux4g-font-weight-semibold); gap: var(--ux4g-stack-xs); }
-.responsive-table { max-width: 100%; overflow-x: auto; }
-.contribution-table { min-width: 70rem; }
-.contribution-table td:first-child, .contribution-table td:nth-child(2) { white-space: nowrap; }
-.selected-row, .employer-selector button.selected { background: var(--ux4g-bg-primary-soft); }
-.contribution-detail .ux4g-card-body { display: grid; gap: var(--ux4g-stack-m); }
+.custom-range label, .transaction-filters label { color: var(--ux4g-text-neutral-primary); display: grid; font-size: var(--ux4g-size-14); font-weight: var(--ux4g-font-weight-semibold); gap: var(--ux4g-stack-xs); }
+.employer-selector button.selected { background: var(--ux4g-bg-primary-soft); }
 .date-distinction div { background: var(--ux4g-bg-neutral-soft); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-xs); padding: var(--ux4g-padding-m); }
 .employer-selector { display: grid; }
 .employer-selector button.selected { box-shadow: inset var(--ux4g-border-width-md) 0 var(--ux4g-border-color-primary-strong); }
 .employer-detail { min-width: 0; }
+.employer-account-number { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); font-variant-numeric: tabular-nums; line-height: var(--ux4g-line-height-16); overflow-wrap: anywhere; }
 .transaction-list { border-top: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .transaction-list > li { padding-block: var(--ux4g-padding-m); }
 .transaction-summary { align-items: start; display: flex; gap: var(--ux4g-stack-s); justify-content: space-between; }
 .transaction-summary > strong { white-space: nowrap; }
-.statement-panel { margin-top: var(--ux4g-section-m); }
-.statement-controls .ux4g-btn { align-self: end; }
+.transaction-filter-panel { display: grid; gap: var(--ux4g-stack-m); }
+.transaction-actions, .download-format-actions { display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-s); }
+.transaction-download { align-items: center; display: inline-flex; gap: var(--ux4g-inline-xs); }
+.download-format-dialog { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); color: var(--ux4g-text-neutral-primary); max-width: min(32rem, calc(100% - var(--ux4g-padding-l))); padding: var(--ux4g-padding-l); }
+.download-format-dialog::backdrop { background: var(--ux4g-bg-overlay); }
+.download-format-dialog > div:first-child { display: grid; gap: var(--ux4g-stack-xs); margin-bottom: var(--ux4g-stack-l); }
+.download-format-dialog p { color: var(--ux4g-text-neutral-secondary); }
+.compact-transaction-list .transaction-summary { align-items: center; }
+.transaction-limit-note { color: var(--ux4g-text-neutral-secondary); }
 .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: var(--ux4g-space-1); overflow: hidden; position: absolute; white-space: nowrap; width: var(--ux4g-space-1); }
 
 @media (max-width: 47.99rem) {
@@ -87,23 +98,15 @@
   .home-balance-actions { align-items: stretch; flex-direction: column; }
   .activity-list li, .transaction-summary { align-items: stretch; flex-direction: column; }
   .activity-list li > strong, .transaction-summary > strong { text-align: start; }
-  .responsive-table { overflow: visible; }
-  .contribution-table { display: block; min-width: 0; }
-  .contribution-table thead { display: none; }
-  .contribution-table tbody, .contribution-table tr, .contribution-table td { display: block; }
-  .contribution-table tr { border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); margin-bottom: var(--ux4g-stack-m); overflow: hidden; }
-  .contribution-table td { align-items: start; border-bottom: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); display: flex; gap: var(--ux4g-stack-s); justify-content: space-between; text-align: end; white-space: normal !important; }
-  .contribution-table td::before { color: var(--ux4g-text-neutral-secondary); content: attr(data-label); font-weight: var(--ux4g-font-weight-semibold); text-align: start; }
-  .contribution-table td:last-child { border-bottom: 0; justify-content: flex-end; }
-  .contribution-table td:last-child::before { content: none; }
+  .transaction-actions, .transaction-actions .ux4g-btn, .download-format-actions, .download-format-actions .ux4g-btn { width: 100%; }
 }
 @media (min-width: 48rem) {
   .home-pension-summary, .home-current-grid, .date-distinction, .overview-grid, .custom-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timeline-employment { align-items: center; grid-template-columns: var(--ux4g-space-12) minmax(0, 1.25fr) minmax(0, 1fr) auto; }
   .timeline-period, .timeline-contribution { grid-column: auto; }
   .timeline-contribution { display: grid; gap: var(--ux4g-stack-xs); justify-items: end; }
-  .transaction-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .statement-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .contribution-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .transaction-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .employer-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .service-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .service-shortcuts li:nth-child(2) { border-top: 0; }
@@ -116,6 +119,6 @@
   .home-attention-inner { position: sticky; top: var(--ux4g-section-xl); }
   .home-main-sections { grid-area: main; }
   .overview-grid { grid-template-columns: minmax(0, 1.5fr) minmax(18rem, .5fr); }
-  .estimate-panel { align-items: center; grid-template-columns: minmax(0, 1fr) auto; }
+  .contribution-summary-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .employer-layout { align-items: start; grid-template-columns: minmax(16rem, .65fr) minmax(0, 1.35fr); }
 }

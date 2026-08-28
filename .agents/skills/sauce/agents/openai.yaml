@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sauce"
+  short_description: "Run the fixed four-step UI enhancement workflow"
+  default_prompt: "Use $sauce on this product page, applying my additional context without changing the fixed four-step workflow."

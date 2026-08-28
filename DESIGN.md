@@ -271,6 +271,24 @@ keeping UX4G components as the default whenever they genuinely fit.
   Desktop presents these fields on one compact line; mobile reflows them beneath
   the employer without changing DOM or focus order. Employment gaps remain
   explicit timeline entries and never infer their cause.
+- **Passbook Contribution Summary Grid:** UX4G's table is unsuitable for the
+  Passbook landing view because the member task is to scan recent credits, not
+  inspect the complete ledger. EPFO Neo therefore presents contribution records
+  from the current six-month ledger window as an application-owned responsive
+  list. Each item shows
+  wage month, EPF credited, employer and recorded date using semantic tokens and
+  tabular numerals. It renders one column on mobile, two on intermediate widths
+  and six compact columns on wide screens. Full synthetic ledger data remains available to
+  the explicitly requested transaction view and its filtered download.
+- **On-demand Transaction Results:** Detailed ledger rows remain hidden until a
+  member chooses filters and requests results. The application-owned compact
+  list shows at most twelve matching entries with employer, recorded date, type
+  and amount. Filter changes clear the prior result state so stale rows are never
+  presented as current. Period presets cover six months through all time; a
+  custom period reveals month inputs. One icon-and-text download action exports
+  every matching transaction after the member chooses PDF or Excel in a native,
+  keyboard-operable dialog. The on-page list remains capped to prevent excessive
+  scrolling, while the export is not truncated.
 - Status words use filled UX4G Tag variants, not icon badges. Icon badges are
   intentionally tiny indicators and are not suitable containers for text.
 

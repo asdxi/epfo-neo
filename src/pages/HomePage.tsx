@@ -60,7 +60,7 @@ export function HomePage({ account, onNavigate, onOpenService }: HomePageProps) 
               <h2 className="home-balance-title" id="home-balance-title">Current EPF Balance</h2>
               <p className="financial-balance">{formatMoney(balance)}</p>
             </div>
-            <p>Includes all recorded Member IDs. EPS is separate.</p>
+            <p>Includes all recorded PF accounts. EPS is separate.</p>
             <div className="home-balance-actions">
               <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => onNavigate('passbook', 'overview')}>View Passbook</button>
               <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => onNavigate('passbook', 'explain-balance')}>How This Is Calculated</button>

@@ -70,18 +70,54 @@ describe('v0.2 application surfaces', () => {
     const html = renderToStaticMarkup(
       <PassbookPage
         account={createInitialAccount()}
-        initialView="contributions"
+        initialView="overview"
         onGenerateStatement={noop}
         onRaiseContributionGrievance={noop}
         onStartTransfer={noop}
       />,
     )
 
-    expect(html).toContain('Wage Month')
-    expect(html).toContain('Recorded On')
+    expect(html).toContain('Recent Contributions')
+    expect(html).toContain('Recorded 8 July 2026')
+    expect(html).not.toContain('Harbor Foods India')
     expect(html).toContain('Employer EPF')
     expect(html).toContain('EPS')
-    expect(html).toContain('Generate a Passbook Statement')
+    expect(html).not.toContain('Generate Statement')
+    expect(html).not.toContain('Contributions</button>')
+    expect(html).not.toContain('Complete Ledger History')
+    expect(html).not.toContain('Estimated Interest Accrued')
+  })
+
+  it('shows PF account numbers for employers', () => {
+    const html = renderToStaticMarkup(
+      <PassbookPage account={createInitialAccount()} initialView="employers" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    )
+
+    expect(html).toContain('PF Account Number · KA/VTX/0048291')
+    expect(html).toContain('PF Account Number · DL/BLK/0019274')
+  })
+
+  it('disables transaction download only when a custom range is incomplete', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+
+    await act(async () => root.render(
+      <PassbookPage account={createInitialAccount()} initialView="transactions" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    ))
+    expect(buttonNamed('Download')?.disabled).toBe(false)
+    const period = Array.from(container.querySelectorAll<HTMLSelectElement>('.transaction-filters select')).find((select) => select.parentElement?.textContent?.startsWith('Period'))
+    await act(async () => {
+      if (period) {
+        period.value = 'custom'
+        period.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(buttonNamed('View Transactions')?.disabled).toBe(true)
+    expect(buttonNamed('Download')?.disabled).toBe(true)
+    await act(async () => root.unmount())
+    container.remove()
   })
 
   it('renders all five member services and request tracking', () => {

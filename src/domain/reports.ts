@@ -1,4 +1,4 @@
-import { formatDate, formatMoney, formatWageMonth } from './calculations'
+import { formatDate, formatMoney, formatWageMonth, ledgerTransactions } from './calculations'
 import type { AccountState, GeneratedReport, ReportFormat } from './types'
 
 const addDays = (isoDate: string, days: number): string => {
@@ -7,10 +7,10 @@ const addDays = (isoDate: string, days: number): string => {
   return date.toISOString().slice(0, 10)
 }
 
-export function createReportRecord(input: { id: string; periodLabel: string; startsOn: string; endsOn: string; format: ReportFormat; requestedOn: string; background: boolean; deliverToEmail: boolean }): GeneratedReport {
+export function createReportRecord(input: { id: string; periodLabel: string; startsOn: string; endsOn: string; format: ReportFormat; requestedOn: string; background: boolean; deliverToEmail: boolean; transactionIds?: string[] }): GeneratedReport {
   return {
     id: input.id,
-    name: `EPFO Passbook Statement - ${input.periodLabel}`,
+    name: input.transactionIds ? `EPFO Passbook Transactions - ${input.periodLabel}` : `EPFO Passbook Statement - ${input.periodLabel}`,
     periodLabel: input.periodLabel,
     startsOn: input.startsOn,
     endsOn: input.endsOn,
@@ -20,7 +20,19 @@ export function createReportRecord(input: { id: string; periodLabel: string; sta
     generatedOn: input.background ? null : input.requestedOn,
     expiresOn: addDays(input.requestedOn, 90),
     deliveryState: input.deliverToEmail ? 'mock-sent-to-verified-email' : 'not-requested',
+    transactionIds: input.transactionIds,
   }
+}
+
+const transactionRows = (account: AccountState, report: GeneratedReport) => {
+  const selected = new Set(report.transactionIds)
+  return ledgerTransactions(account)
+    .filter((item) => selected.has(item.id))
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+    .map((item) => {
+      const employer = account.employments.find((entry) => entry.id === item.employmentId)
+      return [formatDate(item.date), employer?.employer ?? 'Unavailable', item.type, item.title, item.amount ?? 'Unavailable', item.state]
+    })
 }
 
 export const isReportExpired = (report: GeneratedReport, today: string): boolean => report.expiresOn < today
@@ -45,7 +57,8 @@ const reportRows = (account: AccountState, startsOn: string, endsOn: string) => 
 const pdfEscape = (value: string): string => value.replace(/([\\()])/g, '\\$1').replace(/[^\x20-\x7E]/g, '?')
 
 export function buildPdfStatement(account: AccountState, report: GeneratedReport): Uint8Array {
-  const rows = reportRows(account, report.startsOn, report.endsOn)
+  const transactionExport = Boolean(report.transactionIds)
+  const rows = transactionExport ? transactionRows(account, report) : reportRows(account, report.startsOn, report.endsOn)
   const rowsPerPage = 24
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage))
   const officialBalance = account.ledger.contributions.reduce((total, item) => total + (item.employeeEpf ?? 0) + (item.employerEpf ?? 0), 0)
@@ -64,14 +77,16 @@ export function buildPdfStatement(account: AccountState, report: GeneratedReport
     const pageRows = rows.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage)
     const isLastPage = pageIndex === pageCount - 1
     const lines = [
-      'EPFO Member Services - Synthetic Passbook Statement',
+      transactionExport ? 'EPFO Member Services - Synthetic Transaction Export' : 'EPFO Member Services - Synthetic Passbook Statement',
       `Member: ${account.member.name}`,
       `UAN: ${account.member.uan}`,
       `Period: ${report.periodLabel} | Page ${pageIndex + 1} of ${pageCount}`,
       `Generated: ${formatDate(report.generatedOn ?? report.requestedOn)}`,
       '',
-      'Wage Month | Recorded On | Employer | Employee EPF | Employer EPF | EPS | Status',
-      ...pageRows.map((row) => `${row[0]} | ${row[1]} | ${String(row[2]).slice(0, 24)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]}`),
+      transactionExport ? 'Date | Employer | Type | Description | Amount | State' : 'Wage Month | Recorded On | Employer | Employee EPF | Employer EPF | EPS | Status',
+      ...pageRows.map((row) => transactionExport
+        ? `${row[0]} | ${String(row[1]).slice(0, 20)} | ${row[2]} | ${String(row[3]).slice(0, 24)} | ${row[4]} | ${row[5]}`
+        : `${row[0]} | ${row[1]} | ${String(row[2]).slice(0, 24)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]}`),
       ...(isLastPage ? [
         '',
         `Current official EPF balance: ${formatMoney(officialBalance).replace('₹', 'INR ')}`,
@@ -100,8 +115,8 @@ const xmlEscape = (value: unknown): string => String(value)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 export function buildExcelStatement(account: AccountState, report: GeneratedReport): string {
-  const headings = ['Wage Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'Employer EPF', 'EPS', 'Status']
-  const rows = reportRows(account, report.startsOn, report.endsOn)
+  const headings = report.transactionIds ? ['Date', 'Employer', 'Type', 'Description', 'Amount', 'State'] : ['Wage Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'Employer EPF', 'EPS', 'Status']
+  const rows = report.transactionIds ? transactionRows(account, report) : reportRows(account, report.startsOn, report.endsOn)
   const rowXml = [headings, ...rows].map((row) => `<Row>${row.map((cell) => `<Cell><Data ss:Type="${typeof cell === 'number' ? 'Number' : 'String'}">${xmlEscape(cell)}</Data></Cell>`).join('')}</Row>`).join('')
   return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>${xmlEscape(report.name)}</Title></DocumentProperties><Worksheet ss:Name="Passbook"><Table>${rowXml}</Table></Worksheet></Workbook>`
 }

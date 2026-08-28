@@ -155,6 +155,7 @@ export interface GeneratedReport {
   generatedOn: string | null
   expiresOn: string
   deliveryState: 'not-requested' | 'mock-sent-to-verified-email'
+  transactionIds?: string[]
 }
 
 export interface AccountException {

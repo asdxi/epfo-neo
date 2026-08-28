@@ -136,24 +136,25 @@ export default function App() {
       requestedOn: demoToday,
       background,
       deliverToEmail: background && account.member.email.verified,
+      transactionIds: request.transactionIds,
     })
     setAccount((current) => addGeneratedReport(current, report))
     if (background) {
-      setAnnouncement('Your statement is being prepared. It is available under Generated Reports in Account.')
+      setAnnouncement('Your transaction export is being prepared. It is available under Generated Reports in Account.')
       window.setTimeout(() => {
         setAccount((current) => markReportReady(current, report.id, demoToday))
-        setAnnouncement('Your statement is ready in Generated Reports.')
+        setAnnouncement('Your transaction export is ready in Generated Reports.')
       }, 1400)
     } else {
       downloadReport(account, report)
-      setAnnouncement(`${report.format === 'pdf' ? 'PDF' : 'Excel'} statement downloaded and added to Generated Reports.`)
+      setAnnouncement(`${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export downloaded and added to Generated Reports.`)
     }
   }
 
   if (!authenticated) return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} />
 
   const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface
-  const initialPassbookView = (passbookContext && ['overview', 'contributions', 'employers', 'transactions'].includes(passbookContext)) ? passbookContext as PassbookView : undefined
+  const initialPassbookView = (passbookContext && ['overview', 'employers', 'transactions'].includes(passbookContext)) ? passbookContext as PassbookView : undefined
 
   const page = loadState === 'loading'
     ? <div className="route-skeleton" aria-busy="true" aria-label="Loading account"><span /><span /><span /><span /></div>
