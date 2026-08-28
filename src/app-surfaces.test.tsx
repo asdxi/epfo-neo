@@ -220,7 +220,9 @@ describe('v0.2 application surfaces', () => {
     const requests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-claim-2022" />)
     const openRequests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-transfer-2026" />)
 
-    for (const label of ['Transfer Previous PF', 'Claims &amp; Withdrawals', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Exit from EPF Scheme']) expect(services).toContain(label)
+    for (const label of ['Transfer Previous PF', 'Claims &amp; Withdrawals', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Exit from EPFO Scheme']) expect(services).toContain(label)
+    expect(services).toContain('>View Service</button>')
+    expect(services).toContain('>Exit</button>')
     expect(requests).toContain('Requests')
     expect(requests).toContain('Open')
     expect(requests).toContain('Completed')

@@ -111,6 +111,8 @@
   padding-block: var(--ux4g-padding-l);
 }
 
+.service-catalogue-item:last-child { border-block-end: 0; }
+
 .service-catalogue-item > div {
   display: grid;
   gap: var(--ux4g-stack-xs);
@@ -120,6 +122,22 @@
   color: var(--ux4g-text-neutral-secondary);
   max-width: 68ch;
 }
+
+.service-danger-zone {
+  align-items: center;
+  border: var(--ux4g-border-width-sm) solid var(--ux4g-bg-secondary-strong);
+  border-radius: var(--ux4g-radius-md);
+  display: grid;
+  gap: var(--ux4g-stack-s);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-block-start: var(--ux4g-section-s);
+  padding: var(--ux4g-padding-l);
+}
+
+.service-danger-zone > div { display: grid; gap: var(--ux4g-stack-xs); }
+.service-danger-zone p { color: var(--ux4g-text-neutral-secondary); max-width: 68ch; }
+.service-exit-action { color: var(--ux4g-text-status-error); }
+.service-exit-action:hover:not(:disabled) { background: var(--ux4g-bg-error-subtle); color: var(--ux4g-text-status-error); }
 
 .service-breadcrumb-button {
   background: none;
@@ -390,6 +408,11 @@
 .service-outcome .ux4g-alert-content { display: grid; gap: var(--ux4g-stack-m); width: 100%; }
 .service-outcome-reference { max-width: 34rem; }
 
+.exit-submission-panel { display: grid; justify-items: center; }
+.exit-submission-panel .service-outcome { max-width: var(--ux4g-container-sm); text-align: center; width: 100%; }
+.exit-submission-panel .ux4g-alert-content { align-items: center; }
+.exit-submission-panel .service-outcome-reference { max-width: 22rem; width: 100%; }
+
 .request-view-tabs,
 .request-type-tabs { max-width: 100%; overflow-x: auto; }
 .request-view-tabs .ux4g-tab-list { min-width: max-content; width: fit-content; }
@@ -639,10 +662,12 @@
 @media (max-width: 36rem) {
   .service-page { gap: var(--ux4g-section-s); }
   .service-catalogue-item,
+  .service-danger-zone,
   .service-form-grid,
   .nominee-form-grid,
   .contact-readonly { grid-template-columns: minmax(0, 1fr); }
   .service-catalogue-item .ux4g-btn,
+  .service-danger-zone .ux4g-btn,
   .service-flow-actions .ux4g-btn,
   .contact-readonly > button,
   .account-inline-state > .ux4g-btn { width: 100%; }
