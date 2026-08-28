@@ -175,6 +175,15 @@ describe('derived attention and connected request state', () => {
     expect(loadPersistedAccount(storage).version).toBe(3)
   })
 
+  it('hydrates incomplete version 3 saved accounts before rendering', () => {
+    const account = createInitialAccount()
+    const incomplete = structuredClone(account) as Partial<typeof account>
+    delete (incomplete.member as Partial<typeof account.member>).email
+    const storage = { getItem: () => JSON.stringify(incomplete) }
+
+    expect(loadPersistedAccount(storage).member.email.value).toBe(account.member.email.value)
+  })
+
   it('clears only the persisted account key when resetting the demo', () => {
     const removed: string[] = []
     clearPersistedAccount({ removeItem: (key) => { removed.push(key) } })

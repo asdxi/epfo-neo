@@ -17,7 +17,24 @@ export function loadPersistedAccount(storage: Pick<Storage, 'getItem'>): Account
   try {
     const parsed = JSON.parse(stored) as Partial<AccountState>
     if (parsed.version !== 3 || !parsed.member || !parsed.ledger || !Array.isArray(parsed.requests) || !Array.isArray(parsed.member.nominees)) return createInitialAccount()
-    return removeSyntheticCopy(parsed) as AccountState
+    const defaults = createInitialAccount()
+    const member = parsed.member
+    return removeSyntheticCopy({
+      ...defaults,
+      ...parsed,
+      member: {
+        ...defaults.member,
+        ...member,
+        mobile: { ...defaults.member.mobile, ...member.mobile },
+        email: { ...defaults.member.email, ...member.email },
+        communicationPreferences: { ...defaults.member.communicationPreferences, ...member.communicationPreferences },
+      },
+      kyc: Array.isArray(parsed.kyc) ? parsed.kyc : defaults.kyc,
+      employments: Array.isArray(parsed.employments) ? parsed.employments : defaults.employments,
+      employmentGaps: Array.isArray(parsed.employmentGaps) ? parsed.employmentGaps : defaults.employmentGaps,
+      exceptions: Array.isArray(parsed.exceptions) ? parsed.exceptions : defaults.exceptions,
+      generatedReports: Array.isArray(parsed.generatedReports) ? parsed.generatedReports : defaults.generatedReports,
+    }) as AccountState
   } catch {
     return createInitialAccount()
   }
