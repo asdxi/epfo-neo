@@ -49,18 +49,23 @@ const safeInitialAuthentication = (): boolean => {
 
 const fileSafe = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-function downloadReport(account: AccountState, report: GeneratedReport): void {
-  const isPdf = report.format === 'pdf'
-  const contents = isPdf ? new TextDecoder().decode(buildPdfStatement(account, report)) : buildExcelStatement(account, report)
-  const blob = new Blob([contents], { type: isPdf ? 'application/pdf' : 'application/vnd.ms-excel;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = `${fileSafe(report.name)}.${isPdf ? 'pdf' : 'xls'}`
-  document.body.append(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+function downloadReport(account: AccountState, report: GeneratedReport): boolean {
+  try {
+    const isPdf = report.format === 'pdf'
+    const contents = isPdf ? new TextDecoder().decode(buildPdfStatement(account, report)) : buildExcelStatement(account, report)
+    const blob = new Blob([contents], { type: isPdf ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${fileSafe(report.name)}.${isPdf ? 'pdf' : 'xlsx'}`
+    document.body.append(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export default function App() {
@@ -73,7 +78,7 @@ export default function App() {
   const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({})
   const [requestContext, setRequestContext] = useState<string>()
   const [accountContext, setAccountContext] = useState<'nomination'>()
-  const [announcement, setAnnouncement] = useState<string>()
+  const [announcement, setAnnouncement] = useState<{ tone: 'success' | 'error'; message: string }>()
   const skipNextPersistence = useRef(false)
 
   useEffect(() => {
@@ -184,14 +189,16 @@ export default function App() {
     })
     setAccount((current) => addGeneratedReport(current, report))
     if (background) {
-      setAnnouncement('Your transaction export is being prepared. It is available under Generated Reports in Account.')
+      setAnnouncement({ tone: 'success', message: 'Your transaction export is being prepared. It is available under Generated Reports in Account.' })
       window.setTimeout(() => {
         setAccount((current) => markReportReady(current, report.id, demoToday))
-        setAnnouncement('Your transaction export is ready in Generated Reports.')
+        setAnnouncement({ tone: 'success', message: 'Your transaction export is ready in Generated Reports.' })
       }, 1400)
     } else {
-      downloadReport(account, report)
-      setAnnouncement(`${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export downloaded and added to Generated Reports.`)
+      const downloaded = downloadReport(account, report)
+      setAnnouncement(downloaded
+        ? { tone: 'success', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export downloaded and added to Generated Reports.` }
+        : { tone: 'error', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export. Please try again.` })
     }
   }
 
@@ -247,7 +254,12 @@ export default function App() {
                     onUpdateContact={(input) => setAccount((current) => updateContact(current, input))}
                     onUpdateProfile={(input) => setAccount((current) => updateMemberProfile(current, input))}
                     onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
-                    onDownloadReport={(report) => downloadReport(account, report)}
+                    onDownloadReport={(report) => {
+                      const downloaded = downloadReport(account, report)
+                      setAnnouncement(downloaded
+                        ? { tone: 'success', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} report downloaded.` }
+                        : { tone: 'error', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} report. Please try again.` })
+                    }}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
                     onStartPanVerification={() => { setServiceContext({ service: 'kyc' }); setSurface('services') }}
                     onNavigateLegal={setSurface}
@@ -270,7 +282,7 @@ export default function App() {
     onOpenPrivacy={() => setSurface('privacy')}
     onResetDemo={resetDemo}
   >
-    {announcement && <div className="ux4g-alert ux4g-alert-success app-announcement" role="status" aria-live="polite"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement}</p></div></div>}
+    {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
     {page}
   </AppShell>
 }

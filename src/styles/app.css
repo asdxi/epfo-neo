@@ -147,6 +147,18 @@ select.ux4g-table-select {
   z-index: var(--ux4g-z-index-toast);
 }
 
+.app-announcement.ux4g-alert-success {
+  border: var(--ux4g-border-width-md) solid var(--ux4g-text-status-success);
+}
+
+.app-announcement.ux4g-alert-error {
+  border: var(--ux4g-border-width-md) solid var(--ux4g-text-status-error);
+}
+
+.app-announcement .ux4g-alert-message {
+  font-weight: var(--ux4g-font-weight-semibold);
+}
+
 @media (max-width: 36rem) {
   .app-announcement {
     inset-block-start: var(--ux4g-space-6);
