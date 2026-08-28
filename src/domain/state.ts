@@ -1,4 +1,4 @@
-import type { AccountState, MemberRequest, RequestState } from './types'
+import type { AccountState, MemberRequest, Nominee, RequestState } from './types'
 
 const requestNumber = (account: AccountState, type: MemberRequest['type']): string => {
   const prefix = { claim: 'CLM', transfer: 'TRF', correction: 'COR', grievance: 'GRV' }[type]
@@ -108,7 +108,7 @@ export function submitCorrection(account: AccountState, input: { submittedOn: st
 export function submitPanVerification(account: AccountState, submittedOn: string): AccountState {
   return {
     ...account,
-    kyc: account.kyc.map((item) => item.type === 'pan' ? { ...item, state: 'pending', updatedOn: submittedOn, explanation: 'PAN verification is processing in this synthetic account.' } : item),
+    kyc: account.kyc.map((item) => item.type === 'pan' ? { ...item, state: 'pending', updatedOn: submittedOn, explanation: 'PAN verification is in progress.' } : item),
     exceptions: account.exceptions.map((item) => item.kind === 'kyc-review' && item.kycType === 'pan' ? { ...item, state: 'in-progress' } : item),
   }
 }
@@ -121,6 +121,10 @@ export function updateContact(account: AccountState, input: { type: 'mobile' | '
       [input.type]: { value: input.value.trim(), verified: true, updatedOn: input.updatedOn },
     },
   }
+}
+
+export function saveNominees(account: AccountState, nominees: Nominee[]): AccountState {
+  return { ...account, member: { ...account.member, nominees } }
 }
 
 export function updateCommunicationPreference(account: AccountState, preference: keyof AccountState['member']['communicationPreferences'], value: boolean): AccountState {

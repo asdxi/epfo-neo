@@ -11,6 +11,7 @@ import {
   submitGrievance,
   submitPanVerification,
   submitTransfer,
+  saveNominees,
   updateContact,
 } from './domain/state'
 import type { AccountState, GeneratedReport, Member, MemberRequest } from './domain/types'
@@ -58,6 +59,7 @@ export default function App() {
   const [passbookContext, setPassbookContext] = useState<string>()
   const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({})
   const [requestContext, setRequestContext] = useState<string>()
+  const [accountContext, setAccountContext] = useState<'nomination'>()
   const [announcement, setAnnouncement] = useState<string>()
 
   useEffect(() => {
@@ -76,6 +78,7 @@ export default function App() {
     if (route !== 'passbook') setPassbookContext(undefined)
     if (route !== 'services') setServiceContext({})
     if (route !== 'requests') setRequestContext(undefined)
+    if (route !== 'account') setAccountContext(undefined)
     window.scrollTo({ top: 0 })
   }
 
@@ -185,15 +188,18 @@ export default function App() {
                 onSubmitCorrection={handleCorrection}
                 onSubmitGrievance={handleGrievance}
                 onViewRequests={(requestId) => { setRequestContext(requestId); setSurface('requests') }}
+                onManageNomination={() => { setAccountContext('nomination'); setSurface('account') }}
               />
             : surface === 'requests'
               ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" />
               : surface === 'account'
                 ? <AccountPage
                     account={account}
+                    focusSection={accountContext}
                     onUpdateContact={(input) => setAccount((current) => updateContact(current, input))}
                     onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
                     onDownloadReport={(report) => downloadReport(account, report)}
+                    onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
                     onStartPanVerification={() => { setServiceContext({ service: 'kyc' }); setSurface('services') }}
                     onNavigateLegal={setSurface}
                   />

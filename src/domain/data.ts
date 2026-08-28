@@ -138,7 +138,7 @@ const officialInterestCredits: InterestCredit[] = [
 ]
 
 export const initialAccount: AccountState = {
-  version: 2,
+  version: 3,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -146,12 +146,13 @@ export const initialAccount: AccountState = {
     dateOfBirth: '1993-11-14',
     mobile: { value: '9876543210', verified: true, updatedOn: '2026-03-01' },
     email: { value: 'arjun.mehta@example.in', verified: true, updatedOn: '2026-03-01' },
+    nominees: [],
     communicationPreferences: { contributionRecorded: true, requestUpdates: true, reportReady: true },
   },
   kyc: [
-    { type: 'aadhaar', state: 'verified', maskedValue: '•••• •••• 4821', updatedOn: '2026-02-12', explanation: 'Aadhaar is verified for this synthetic account.' },
-    { type: 'pan', state: 'unverified', maskedValue: 'ARJ•••21K', updatedOn: '2026-02-12', explanation: 'PAN verification has not been completed in this synthetic account.' },
-    { type: 'bank', state: 'verified', maskedValue: '•••• 7314', updatedOn: '2026-03-02', explanation: 'The bank account is verified for online services in this synthetic account.' },
+    { type: 'aadhaar', state: 'verified', maskedValue: '•••• •••• 4821', updatedOn: '2026-02-12', explanation: 'Aadhaar is verified.' },
+    { type: 'pan', state: 'pending', maskedValue: 'ARJ•••21K', updatedOn: '2026-02-12', explanation: 'PAN verification is in progress.' },
+    { type: 'bank', state: 'verified', maskedValue: '•••• 7314', updatedOn: '2026-03-02', explanation: 'This bank account is verified for online services.' },
   ],
   employments,
   employmentGaps: [{ startsOn: '2024-07-01', endsOn: '2026-02-28', label: 'No EPF-covered employment recorded' }],
@@ -171,15 +172,34 @@ export const initialAccount: AccountState = {
       { id: 'transfer-northstar-bluekite', fromMemberId: northstar.memberId, toMemberId: bluekite.memberId, amount: 42_780, initiatedOn: '2019-07-05', completedOn: '2019-07-24', state: 'completed', source: 'exempted-pf-trust', explanation: 'The PF trust transferred the recorded closing balance to the EPFO-linked Member ID.' },
       { id: 'transfer-bluekite-harbor', fromMemberId: bluekite.memberId, toMemberId: harbor.memberId, amount: 243_920, initiatedOn: '2023-01-09', completedOn: '2023-01-28', state: 'completed', source: 'epfo', explanation: 'The previous EPF balance moved to the next Member ID. This did not create a new contribution.' },
       { id: 'transfer-harbor-vertex-partial', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 435_350, initiatedOn: '2026-03-08', completedOn: '2026-04-01', state: 'completed', source: 'epfo', explanation: 'Part of the Harbor Foods India balance was transferred to the current Member ID.' },
+      { id: 'transfer-harbor-vertex-2026-06-18', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 38_450, initiatedOn: '2026-06-18', state: 'processing', source: 'epfo', explanation: 'This transfer is being processed. The balance remains under the previous Member ID until completion.' },
     ],
     withdrawals: [{ id: 'withdrawal-bluekite-2022', memberId: bluekite.memberId, claimReference: 'CLM-2022-18421', processedOn: '2022-08-19', amount: 45_000, state: 'completed', explanation: 'A completed partial withdrawal reduced this Member ID balance.' }],
   },
   exceptions: [
-    { id: 'exception-previous-balance', kind: 'previous-balance', state: 'open', title: 'Previous PF Balance Has Not Been Fully Transferred', explanation: '₹38,450 remains under Harbor Foods India.', amount: 38_450, employmentId: harbor.id },
+    { id: 'exception-previous-balance', kind: 'previous-balance', state: 'in-progress', title: 'Previous PF Balance Transfer Is in Progress', explanation: '₹38,450 remains under Harbor Foods India while the transfer is processed.', amount: 38_450, employmentId: harbor.id, relatedRequestId: 'request-transfer-2026' },
     { id: 'exception-june-contribution', kind: 'contribution-review', state: 'open', title: 'June Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-06', employmentId: vertex.id },
     { id: 'exception-pan', kind: 'kyc-review', state: 'open', title: 'PAN Verification Is Incomplete', explanation: 'Complete PAN verification to keep your account information ready.', kycType: 'pan' },
   ],
   requests: [
+    {
+      id: 'request-transfer-2026', type: 'transfer', service: 'Transfer Previous PF', reference: 'TRF-2026-004512', title: 'Previous PF Balance Transfer', state: 'in-progress', submittedOn: '2026-06-18', updatedOn: '2026-06-24', amount: 38_450, employmentId: harbor.id,
+      nextExpectedStep: 'EPFO will verify the previous employment record and process the transfer.',
+      timeline: [
+        { id: 'transfer-submitted-2026', label: 'Submitted', date: '2026-06-18', state: 'completed' },
+        { id: 'transfer-verification-2026', label: 'Employment Record Verification', date: '2026-06-24', state: 'current' },
+        { id: 'transfer-processing-2026', label: 'Transfer Processing', date: null, state: 'upcoming' },
+      ],
+    },
+    {
+      id: 'request-correction-2026', type: 'correction', service: 'Correct Employment Records', reference: 'COR-2026-001173', title: 'Date of Exit Correction', state: 'submitted', submittedOn: '2026-06-22', updatedOn: '2026-06-22', employmentId: harbor.id,
+      nextExpectedStep: 'The employer will review the requested correction and supporting information.',
+      timeline: [
+        { id: 'correction-submitted-2026', label: 'Submitted', date: '2026-06-22', state: 'completed' },
+        { id: 'correction-employer-review-2026', label: 'Employer Review', date: null, state: 'upcoming' },
+        { id: 'correction-record-update-2026', label: 'Record Update', date: null, state: 'upcoming' },
+      ],
+    },
     {
       id: 'request-claim-2022', type: 'claim', service: 'Claims & Withdrawals', reference: 'CLM-2022-18421', title: 'Partial Withdrawal', state: 'completed', submittedOn: '2022-08-05', updatedOn: '2022-08-19', amount: 45_000,
       nextExpectedStep: 'No action is required. The request is complete.',

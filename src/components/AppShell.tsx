@@ -48,6 +48,7 @@ export function AppShell({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const signOutDialogRef = useRef<HTMLDialogElement>(null)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   useEffect(() => {
@@ -110,10 +111,12 @@ export function AppShell({
     onNavigate(route)
   }
 
-  const signOut = () => {
+  const requestSignOut = () => {
     closeDrawer()
-    onSignOut()
+    signOutDialogRef.current?.showModal()
   }
+
+  const confirmSignOut = () => { signOutDialogRef.current?.close(); onSignOut() }
 
   const hasFooterLinks = Boolean(onOpenTerms || onOpenPrivacy)
 
@@ -150,28 +153,30 @@ export function AppShell({
             <span className="brand-copy">EPFO Member Services</span>
           </button>
           <nav className="ux4g-navbar-right" aria-label="Primary navigation">
-            <ul className="ux4g-navbar-links">
-              {navigation.map((item) => {
-                const current = activeRoute === item.id
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className={`ux4g-btn ${current ? 'ux4g-btn-text-primary desktop-nav-link-current' : 'ux4g-btn-text-neutral'} ux4g-btn-md shell-action desktop-nav-link`}
-                      aria-current={current ? 'page' : undefined}
-                      onClick={() => navigate(item.id)}
-                    >
-                      {item.label}
-                    </button>
-                  </li>
-                )
-              })}
-              <li className="desktop-sign-out">
-                <button className="ux4g-btn ux4g-btn-text-neutral ux4g-btn-md shell-action" type="button" onClick={signOut}>
-                  Sign Out
-                </button>
-              </li>
-            </ul>
+            <div className="desktop-primary-navigation">
+              <ul className="ux4g-navbar-links">
+                {navigation.map((item) => {
+                  const current = activeRoute === item.id
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className={`ux4g-btn ${current ? 'ux4g-btn-text-primary desktop-nav-link-current' : 'ux4g-btn-text-neutral'} ux4g-btn-md shell-action desktop-nav-link`}
+                        aria-current={current ? 'page' : undefined}
+                        onClick={() => navigate(item.id)}
+                      >
+                        {item.label}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+            <div className="desktop-sign-out">
+              <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md shell-action shell-sign-out" type="button" onClick={requestSignOut}>
+                Sign Out
+              </button>
+            </div>
           </nav>
         </div>
       </header>
@@ -234,12 +239,17 @@ export function AppShell({
             </nav>
           </div>
           <div className="ux4g-drawer-footer">
-            <button className="ux4g-btn ux4g-btn-text-neutral ux4g-btn-md drawer-sign-out" type="button" onClick={signOut}>
+            <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md drawer-sign-out shell-sign-out" type="button" onClick={requestSignOut}>
               Sign Out
             </button>
           </div>
         </div>
       </div>
+
+      <dialog ref={signOutDialogRef} className="sign-out-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description">
+        <div><h2 id="sign-out-title">Sign out?</h2><p id="sign-out-description">Are you sure you want to sign out of EPFO Member Services?</p></div>
+        <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => signOutDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={confirmSignOut}>Sign Out</button></div>
+      </dialog>
 
       <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
 
@@ -249,10 +259,10 @@ export function AppShell({
             <span>EPFO Member Services</span>
             <nav className="app-footer-links" aria-label="Legal information">
               {onOpenTerms && (
-                <button className="ux4g-text-link-neutral-sm app-footer-link" type="button" onClick={onOpenTerms}>Terms of Use</button>
+                <button className="app-footer-link" type="button" onClick={onOpenTerms}>Terms of Use</button>
               )}
               {onOpenPrivacy && (
-                <button className="ux4g-text-link-neutral-sm app-footer-link" type="button" onClick={onOpenPrivacy}>Privacy Policy</button>
+                <button className="app-footer-link" type="button" onClick={onOpenPrivacy}>Privacy Policy</button>
               )}
             </nav>
           </div>

@@ -121,6 +121,20 @@ summary {
   margin-bottom: var(--ux4g-stack-l);
 }
 
+/* UX4G alerts default to a horizontal content row; application alerts use a consistent title-first stack. */
+.app-shell .ux4g-alert {
+  align-items: flex-start;
+  padding: var(--ux4g-padding-l);
+}
+
+.app-shell .ux4g-alert-content {
+  align-items: flex-start;
+  display: grid;
+  flex: 1;
+  gap: var(--ux4g-stack-xs);
+  width: 100%;
+}
+
 @keyframes skeleton-pulse {
   from { opacity: 0.55; }
   to { opacity: 1; }

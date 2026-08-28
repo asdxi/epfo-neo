@@ -15,6 +15,14 @@ import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExp
 import { markReportReady, submitGrievance, submitTransfer, transitionRequest } from './state'
 import { validateContribution, validateEmail, validateIndianMobile } from './validation'
 
+const createTransferEligibleAccount = () => {
+  const account = createInitialAccount()
+  account.requests = account.requests.filter((request) => request.type !== 'transfer')
+  account.ledger.transfers = account.ledger.transfers.filter((transfer) => transfer.id !== 'transfer-harbor-vertex-2026-06-18')
+  account.exceptions = account.exceptions.map((exception) => exception.kind === 'previous-balance' ? { ...exception, state: 'open', relatedRequestId: undefined } : exception)
+  return account
+}
+
 describe('v0.2 financial reconciliation', () => {
   it('reconciles the headline balance from the underlying ledger', () => {
     const account = createInitialAccount()
@@ -51,7 +59,7 @@ describe('v0.2 financial reconciliation', () => {
   })
 
   it('does not move money when the transfer request is only submitted', () => {
-    const account = createInitialAccount()
+    const account = createTransferEligibleAccount()
     const submitted = submitTransfer(account, '2026-08-28')
     expect(totalEpfBalance(submitted)).toBe(totalEpfBalance(account))
     expect(reconcileMemberId(submitted, 'KA/HFI/0031849').closingBalance).toBe(38_450)
@@ -99,12 +107,12 @@ describe('derived attention and connected request state', () => {
   it('derives attention items from account exceptions', () => {
     const attention = deriveAttentionItems(createInitialAccount())
     expect(attention).toHaveLength(3)
-    expect(attention.every((item) => item.priority === 'action-required')).toBe(true)
-    expect(attention.map((item) => item.title)).toContain('Previous PF balance')
+    expect(attention.filter((item) => item.priority === 'action-required')).toHaveLength(2)
+    expect(attention.map((item) => item.title)).toContain('Previous PF Transfer')
   })
 
   it('creates a transfer request and updates the related attention surface', () => {
-    const account = submitTransfer(createInitialAccount(), '2026-08-28')
+    const account = submitTransfer(createTransferEligibleAccount(), '2026-08-28')
     const request = account.requests.find((item) => item.type === 'transfer')!
     expect(request.reference).toMatch(/^TRF-/)
     expect(request.state).toBe('submitted')
@@ -159,10 +167,10 @@ describe('derived attention and connected request state', () => {
   it('persists and restores the connected account state safely', () => {
     let stored: string | null = null
     const storage = { getItem: () => stored, setItem: (_key: string, value: string) => { stored = value } }
-    const submitted = submitTransfer(createInitialAccount(), '2026-08-28')
+    const submitted = submitTransfer(createTransferEligibleAccount(), '2026-08-28')
     persistAccount(storage, submitted)
     expect(loadPersistedAccount(storage).requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
     stored = '{invalid json'
-    expect(loadPersistedAccount(storage).version).toBe(2)
+    expect(loadPersistedAccount(storage).version).toBe(3)
   })
 })

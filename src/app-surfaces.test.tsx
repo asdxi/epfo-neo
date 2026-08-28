@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShell } from './components/AppShell'
 import { createInitialAccount } from './domain/data'
-import { submitGrievance, submitTransfer } from './domain/state'
+import { saveNominees, submitGrievance, submitTransfer } from './domain/state'
 import { AccountPage } from './pages/AccountPage'
 import { HomePage } from './pages/HomePage'
 import { LegalPage } from './pages/LegalPage'
@@ -13,6 +13,14 @@ import { RequestsPage } from './pages/RequestsPage'
 import { ServicesPage } from './pages/ServicesPage'
 
 const noop = vi.fn()
+
+const createTransferEligibleAccount = () => {
+  const account = createInitialAccount()
+  account.requests = account.requests.filter((request) => request.type !== 'transfer')
+  account.ledger.transfers = account.ledger.transfers.filter((transfer) => transfer.id !== 'transfer-harbor-vertex-2026-06-18')
+  account.exceptions = account.exceptions.map((exception) => exception.kind === 'previous-balance' ? { ...exception, state: 'open', relatedRequestId: undefined } : exception)
+  return account
+}
 
 const buttonNamed = (name: string) => [...document.querySelectorAll<HTMLButtonElement>('button')]
   .find((button) => button.textContent?.trim() === name)
@@ -37,11 +45,35 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('Skip to main content')
   })
 
+  it('requires confirmation before signing out', async () => {
+    const onSignOut = vi.fn()
+    const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', '') })
+    const close = vi.fn(function (this: HTMLDialogElement) { this.removeAttribute('open') })
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: showModal })
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: close })
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<AppShell activeRoute="home" onNavigate={noop} onSignOut={onSignOut}><p>Content</p></AppShell>))
+
+    await act(async () => container.querySelector<HTMLButtonElement>('.desktop-sign-out button')?.click())
+    expect(onSignOut).not.toHaveBeenCalled()
+    expect(container.querySelector('dialog')?.hasAttribute('open')).toBe(true)
+    await act(async () => container.querySelector<HTMLButtonElement>('.sign-out-dialog-actions .ux4g-btn-primary')?.click())
+    expect(onSignOut).toHaveBeenCalledOnce()
+
+    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal
+    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).close
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('renders the decision-oriented home workspace from reconciled account data', () => {
     const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} />)
 
     expect(html).toContain('₹4,82,650')
     expect(html).toContain('EPS')
+    expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
     expect(html).toContain('Vertex Mobility')
     expect(html).toContain('June contribution')
     expect(html).toContain('EPF Contributions')
@@ -126,12 +158,29 @@ describe('v0.2 application surfaces', () => {
       <ServicesPage account={account} onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />,
     )
     const requests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-claim-2022" />)
+    const openRequests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-transfer-2026" />)
 
     for (const label of ['Transfer Previous PF', 'Claims &amp; Withdrawals', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance']) expect(services).toContain(label)
     expect(requests).toContain('Requests')
     expect(requests).toContain('Open')
     expect(requests).toContain('Completed')
+    expect(requests).toContain('Claims')
+    expect(requests).toContain('<span>Claims</span><span class="request-tab-count">1</span>')
+    expect(requests).toContain('<span>Grievances</span><span class="request-tab-count">1</span>')
+    expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
+    expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
     expect(requests).toContain('Next Expected Step')
+    expect(requests).not.toContain('Operational history')
+    expect(requests).not.toContain('Track services that take time')
+    expect(requests).not.toContain('<p class="service-eyebrow">')
+
+    const emptyRequests = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [] }} />)
+    expect(emptyRequests).toContain('No open requests')
+
+    const actionRequest = { ...account.requests[0], state: 'action-required' as const, citizenAction: 'Confirm the requested details.' }
+    const actionRequired = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [actionRequest] }} initialRequestId={actionRequest.id} />)
+    expect(actionRequired).toContain('Action required')
+    expect(actionRequired).not.toContain('Your Action Is Required')
   })
 
   it('shows a submitted transfer as in progress without offering a duplicate action', () => {
@@ -158,12 +207,88 @@ describe('v0.2 application surfaces', () => {
     expect(accountHtml).toContain('Edit Contact Details')
     expect(accountHtml).toContain('KYC and Verification')
     expect(accountHtml).toContain('Generated Reports')
+    expect(accountHtml).toContain('Add Nominee')
+    expect(accountHtml).toContain('Your name, UAN and date of birth are shown as recorded in your account.')
+    expect(accountHtml).toContain('Review the verification status of your identity and bank details.')
+    expect(accountHtml).toContain('Download reports within 90 days of generation.')
+    expect(accountHtml).toContain('PAN verification is in progress.')
+    expect(accountHtml).toContain('Pending Verification')
+    expect(accountHtml).not.toContain('read-only in this prototype')
+    expect(accountHtml).not.toContain('Mock delivery recorded')
+    expect(accountHtml).not.toContain('synthetic account')
+    expect(accountHtml).not.toContain('Member account')
+    expect(accountHtml).not.toContain('Login and Security Settings')
+    expect(accountHtml).not.toContain('Legal and Privacy')
+    expect(accountHtml).toContain('Save Preferences</button>')
+    expect(accountHtml).toContain('disabled=""')
     expect(terms).toContain('Terms of Use')
     expect(privacy).toContain('Privacy Policy')
   })
 
+  it('edits and verifies only one contact channel at a time', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<AccountPage account={createInitialAccount()} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />))
+
+    const edit = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Edit Contact Details')
+    await act(async () => edit?.click())
+    expect(container.querySelector('#account-mobile')).not.toBeNull()
+    expect(container.querySelector('#account-email')).toBeNull()
+
+    const mobileInput = container.querySelector<HTMLInputElement>('#account-mobile')
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+    await act(async () => {
+      valueSetter?.call(mobileInput, '123')
+      mobileInput?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Enter exactly 10 digits.')
+
+    const emailChoice = container.querySelectorAll<HTMLInputElement>('input[name="contact-channel"]')[1]
+    await act(async () => emailChoice.click())
+    expect(container.querySelector('#account-mobile')).toBeNull()
+    expect(container.querySelector('#account-email')).not.toBeNull()
+
+    const emailInput = container.querySelector<HTMLInputElement>('#account-email')
+    await act(async () => {
+      valueSetter?.call(emailInput, 'not-an-email')
+      emailInput?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Enter a valid email address.')
+    await act(async () => {
+      valueSetter?.call(emailInput, 'member@example.in')
+      emailInput?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Use an email address you can access. We will send the verification code there.')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('stores and renders multiple synthetic nominees whose shares total 100%', () => {
+    const account = saveNominees(createInitialAccount(), [
+      { id: 'nominee-kavya', name: 'Kavya Mehta', relationship: 'spouse', address: '12 Lake View Road, Bengaluru', bankAccountNumber: '123456789012', ifscCode: 'HDFC0001234', sharePercentage: 60, updatedOn: '2026-08-28' },
+      { id: 'nominee-rohan', name: 'Rohan Mehta', relationship: 'child', address: '12 Lake View Road, Bengaluru', bankAccountNumber: '987654321098', ifscCode: 'SBIN0005678', sharePercentage: 40, updatedOn: '2026-08-28' },
+    ])
+    const html = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />)
+
+    expect(account.member.nominees[0]?.name).toBe('Kavya Mehta')
+    expect(html).toContain('Kavya Mehta')
+    expect(account.member.nominees.reduce((sum, nominee) => sum + nominee.sharePercentage, 0)).toBe(100)
+    expect(html).toContain('60% share')
+    expect(html).toContain('40% share')
+  })
+
+  it('labels a pending PAN record as pending verification', () => {
+    const account = createInitialAccount()
+    account.kyc = account.kyc.map((record) => record.type === 'pan' ? { ...record, state: 'pending' as const } : record)
+    const html = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />)
+
+    expect(html).toContain('Pending Verification')
+  })
+
   it('completes the transfer service flow and returns a trackable request', async () => {
-    let account = createInitialAccount()
+    let account = createTransferEligibleAccount()
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)

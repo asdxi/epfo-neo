@@ -24,6 +24,17 @@ export interface ContactChannel {
   updatedOn: string
 }
 
+export interface Nominee {
+  id: string
+  name: string
+  relationship: 'parent' | 'spouse' | 'child' | 'other'
+  address: string
+  bankAccountNumber: string
+  ifscCode: string
+  sharePercentage: number
+  updatedOn: string
+}
+
 export interface Member {
   id: string
   name: string
@@ -36,6 +47,7 @@ export interface Member {
     requestUpdates: boolean
     reportReady: boolean
   }
+  nominees: Nominee[]
 }
 
 export interface KycRecord {
@@ -180,7 +192,7 @@ export interface Ledger {
 }
 
 export interface AccountState {
-  version: 2
+  version: 3
   member: Member
   kyc: KycRecord[]
   employments: Employment[]

@@ -130,6 +130,7 @@
 
 .app-footer-content {
   align-items: center;
+  color: var(--ux4g-text-neutral-inverse);
   display: flex;
   flex-wrap: wrap;
   font-size: var(--ux4g-size-14);
@@ -148,9 +149,32 @@
 }
 
 .app-footer-link {
-  color: var(--ux4g-text-neutral-inverse);
+  align-items: center;
+  color: var(--ux4g-text-neutral-inverse) !important;
+  display: inline-flex;
+  font-size: var(--ux4g-size-14);
+  font-weight: var(--ux4g-font-weight-medium);
   min-height: var(--ux4g-space-11);
 }
+
+.app-footer .app-footer-link,
+.app-footer .app-footer-link:hover,
+.app-footer .app-footer-link:visited { color: var(--ux4g-text-neutral-inverse) !important; }
+.app-footer .app-footer-link:hover { text-decoration: underline; text-underline-offset: var(--ux4g-space-2); }
+
+.sign-out-dialog {
+  background: var(--ux4g-bg-neutral);
+  border: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-subtle);
+  border-radius: var(--ux4g-radius-md);
+  color: var(--ux4g-text-neutral-primary);
+  max-width: min(28rem, calc(100% - var(--ux4g-padding-l)));
+  padding: var(--ux4g-padding-l);
+}
+
+.sign-out-dialog::backdrop { background: var(--ux4g-bg-overlay); }
+.sign-out-dialog > div:first-child { display: grid; gap: var(--ux4g-stack-xs); margin-block-end: var(--ux4g-stack-l); }
+.sign-out-dialog p { color: var(--ux4g-text-neutral-secondary); }
+.sign-out-dialog-actions { display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-s); justify-content: flex-end; }
 
 @media (min-width: 1024px) {
   .mobile-header,
@@ -173,13 +197,24 @@
     column-gap: var(--ux4g-space-2);
   }
 
+  .desktop-header .ux4g-navbar-right {
+    align-items: center;
+    display: flex;
+    gap: 0;
+  }
+
+  .desktop-primary-navigation {
+    display: flex;
+    margin-inline-end: var(--ux4g-space-12);
+  }
+
   .shell-action {
     min-height: var(--ux4g-space-11);
   }
 
   .desktop-nav-link {
     border-bottom: var(--ux4g-border-width-md) solid transparent;
-    border-radius: var(--ux4g-radius-none);
+    border-radius: var(--ux4g-radius-md);
   }
 
   .desktop-nav-link-current {
@@ -187,10 +222,10 @@
   }
 
   .desktop-sign-out {
-    border-left: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-default);
-    margin-left: var(--ux4g-space-2);
-    padding-left: var(--ux4g-space-2);
+    flex: 0 0 auto;
   }
+
+  .shell-sign-out:hover { background: var(--ux4g-bg-secondary); color: var(--ux4g-text-brand-secondary-default); }
 
   .app-main {
     padding: var(--ux4g-space-9) var(--ux4g-space-8) var(--ux4g-space-14);

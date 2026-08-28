@@ -1,10 +1,14 @@
 .financial-page { display: grid; gap: var(--ux4g-section-m); min-width: 0; }
+.financial-page .ux4g-alert { align-items: flex-start; padding: var(--ux4g-padding-l); }
+.financial-page .ux4g-alert-content { align-items: flex-start; display: flex; flex-direction: column; gap: var(--ux4g-stack-xs); width: 100%; }
 .financial-heading, .financial-section, .passbook-panel, .home-main-sections { display: grid; gap: var(--ux4g-stack-l); }
 .financial-heading { gap: var(--ux4g-stack-xs); max-width: var(--ux4g-container-md); }
 .financial-heading > p:last-child, .financial-section-heading p, .financial-panel > p, .home-balance p, .attention-item p { color: var(--ux4g-text-neutral-secondary); }
-.financial-eyebrow { color: var(--ux4g-text-brand-primary-default); font-size: var(--ux4g-size-12); font-weight: var(--ux4g-font-weight-semibold); letter-spacing: var(--ux4g-space-1); text-transform: uppercase; }
+.financial-panel .financial-eyebrow { color: var(--ux4g-text-brand-primary-default); font-size: var(--ux4g-size-12); font-weight: var(--ux4g-font-weight-semibold); letter-spacing: var(--ux4g-space-1); text-transform: uppercase; }
 .financial-balance { color: var(--ux4g-text-neutral-primary) !important; font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); line-height: var(--ux4g-line-height-44); }
 .financial-panel { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-m); padding: var(--ux4g-padding-m); }
+.financial-panel-heading { display: grid; gap: var(--ux4g-stack-xs); }
+.home-panel-action { justify-self: start; }
 .financial-section-heading { align-items: start; display: flex; gap: var(--ux4g-stack-s); justify-content: space-between; }
 .financial-section-heading > div { display: grid; gap: var(--ux4g-stack-xs); }
 .home-workspace { display: grid; gap: var(--ux4g-stack-l); min-width: 0; }

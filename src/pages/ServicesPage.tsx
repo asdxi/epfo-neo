@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { AccountState, MemberRequest } from '../domain/types'
 import './service-pages.css'
 
@@ -15,6 +15,7 @@ export interface ServicesPageProps {
   onSubmitCorrection: (input: { submittedOn: string; employmentId: string; field: string; proposedValue: string }) => MemberRequest | void
   onSubmitGrievance: (input: { submittedOn: string; employmentId: string; contributionId?: string; category: string; description: string }) => MemberRequest | void
   onViewRequests?: (requestId?: string) => void
+  onManageNomination?: () => void
 }
 
 type FlowStep = 'explain' | 'details' | 'review' | 'outcome'
@@ -29,11 +30,11 @@ const serviceNames: Record<ServiceId, string> = {
 }
 
 const serviceCopy: Record<ServiceId, { description: string; action: string }> = {
-  transfer: { description: 'Move an eligible balance from a previous Member ID to your current PF account.', action: 'Start Transfer' },
-  claim: { description: 'Choose a claim intent, check what this account can establish, and submit for review.', action: 'Check Claim Options' },
-  kyc: { description: 'Review Aadhaar, PAN and bank verification used for online member services.', action: 'Review KYC' },
-  correction: { description: 'Request a correction when an employment record does not match your documents.', action: 'Request Correction' },
-  grievance: { description: 'Report a contribution or service issue and receive a trackable ticket number.', action: 'Raise a Grievance' },
+  transfer: { description: 'Move an eligible balance from a previous Member ID to your current PF account.', action: 'View service' },
+  claim: { description: 'Choose a claim type, check the information available, and submit it for review.', action: 'View service' },
+  kyc: { description: 'Review Aadhaar, PAN and bank verification used for online member services.', action: 'View service' },
+  correction: { description: 'Request a correction when an employment record does not match your documents.', action: 'View service' },
+  grievance: { description: 'Ask EPFO to review a contribution or service issue and track the response.', action: 'View service' },
 }
 
 function StatusTag({ state }: { state: 'ready' | 'verified' | 'pending' | 'unverified' | 'available' }) {
@@ -68,27 +69,41 @@ function Outcome({ request, title, message, onViewRequests }: { request?: Member
 export function ServicesPage(props: ServicesPageProps) {
   const [service, setService] = useState<ServiceId | null>(props.initialService ?? null)
   const [step, setStep] = useState<FlowStep>('explain')
-  const choose = (next: ServiceId) => { setService(next); setStep('explain') }
-  const previousBalance = props.account.exceptions.find((item) => item.kind === 'previous-balance')
-  const previousEmployer = props.account.employments.find((item) => item.id === previousBalance?.employmentId)
-  const currentEmployer = props.account.employments.find((item) => item.status === 'current')
-  const contributionException = props.account.exceptions.find((item) => item.kind === 'contribution-review')
-  const contributionRecord = props.account.ledger.contributions.find((item) => item.id === contributionException?.contributionId)
+  const initialHistoryEntryCreated = useRef(false)
+  const choose = (next: ServiceId) => {
+    window.history.pushState({ ...window.history.state, epfoService: next }, '')
+    setService(next)
+    setStep('explain')
+    window.scrollTo({ top: 0 })
+  }
+  const returnToCatalogue = () => window.history.back()
 
-  return <section className="service-page" aria-labelledby="services-title">
+  useEffect(() => {
+    if (props.initialService && !initialHistoryEntryCreated.current) {
+      window.history.pushState({ ...window.history.state, epfoService: props.initialService }, '')
+      initialHistoryEntryCreated.current = true
+    }
+
+    const restoreServiceView = (event: PopStateEvent) => {
+      const nextService = event.state?.epfoService
+      setService((Object.keys(serviceNames) as ServiceId[]).includes(nextService) ? nextService : null)
+      setStep('explain')
+      window.scrollTo({ top: 0 })
+    }
+
+    window.addEventListener('popstate', restoreServiceView)
+    return () => window.removeEventListener('popstate', restoreServiceView)
+  }, [props.initialService])
+  return <section className="service-page services-page" aria-labelledby="services-title">
     {!service ? <>
-      <header className="service-page-heading"><p className="service-eyebrow">Member services</p><h1 id="services-title">Services</h1><p>Understand what each service does before you share or confirm information.</p></header>
-      <div className="service-hero-grid">
-        <article className="ux4g-card ux4g-card-solid ux4g-card-vertical service-hero-card service-hero-card--transfer"><div className="ux4g-card-body"><p className="service-eyebrow">{previousBalance?.state === 'in-progress' ? 'Transfer in progress' : 'Balance ready to move'}</p><h2>{previousBalance?.state === 'in-progress' ? `${formatMoney(previousBalance.amount ?? 0)} Transfer Is Being Processed` : `Move ${formatMoney(previousBalance?.amount ?? 0)} to Your Current PF Account`}</h2><p>{previousBalance?.state === 'in-progress' ? `The balance remains under ${previousEmployer?.employer ?? 'your previous employment'} until processing completes.` : `Consolidate the remaining balance from ${previousEmployer?.employer ?? 'your previous employment'} under your current ${currentEmployer?.employer ?? 'employment'} Member ID.`}</p></div><div className="ux4g-card-footer">{previousBalance?.state === 'in-progress' ? <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={() => props.onViewRequests?.(previousBalance.relatedRequestId)}>Track Transfer</button> : <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => choose('transfer')}>Start Transfer</button>}</div></article>
-        <article className="ux4g-card ux4g-card-outline ux4g-card-vertical service-hero-card service-hero-card--grievance"><div className="ux4g-card-body"><p className="service-eyebrow">Contribution support</p><h2>{contributionRecord ? formatWageMonth(contributionRecord.wageMonth) : 'A Contribution'} Needs Review</h2><p>{contributionException?.explanation ?? 'A contribution record needs review.'} Raise a trackable grievance without guessing the cause.</p></div><div className="ux4g-card-footer"><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={() => choose('grievance')}>Report This Contribution</button></div></article>
-      </div>
+      <header className="service-page-heading"><h1 id="services-title">Services</h1><p>Choose a service to see what you need and what happens next.</p></header>
+      <aside className="ux4g-alert ux4g-alert-info service-nomination-panel"><div className="ux4g-alert-content"><div className="service-nomination-copy"><p className="ux4g-alert-title">Manage nomination in Account</p><p className="ux4g-alert-message">Add or update nominee details and confirm how the total share is divided.</p></div><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={props.onManageNomination}>{props.account.member.nominees.length > 0 ? 'Update Nominees' : 'Add Nominee'}</button></div></aside>
       <div className="service-catalogue">
         {(Object.keys(serviceNames) as ServiceId[]).map((id) => <article className="service-catalogue-item" key={id}><div><h2>{serviceNames[id]}</h2><p>{serviceCopy[id].description}</p></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => choose(id)}>{serviceCopy[id].action}</button></article>)}
       </div>
-      <aside className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Nomination is managed in Account</p><p className="ux4g-alert-message">It is an account capability and remains separate from these five service journeys.</p></div></aside>
     </> : <>
-      <nav className="ux4g-breadcrumb ux4g-breadcrumb-divider" aria-label="Breadcrumb"><button className="service-breadcrumb-button" type="button" onClick={() => setService(null)}>Services</button><span>{serviceNames[service]}</span></nav>
-      <header className="service-page-heading"><p className="service-eyebrow">Member service</p><h1 id="services-title">{serviceNames[service]}</h1><p>{serviceCopy[service].description}</p></header>
+      <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm service-back-button" type="button" onClick={returnToCatalogue}>← Back to Services</button>
+      <header className="service-page-heading"><h1 id="services-title">{serviceNames[service]}</h1><p>{serviceCopy[service].description}</p></header>
       <FlowProgress service={service} step={step} />
       {service === 'transfer' && <TransferFlow {...props} step={step} setStep={setStep} />}
       {service === 'claim' && <ClaimFlow {...props} step={step} setStep={setStep} />}
