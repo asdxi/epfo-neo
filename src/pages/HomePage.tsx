@@ -2,7 +2,6 @@ import {
   currentEmployment,
   deriveAttentionItems,
   employerSummaries,
-  epfAmountForContribution,
   formatDate,
   formatMoney,
   formatWageMonth,
@@ -91,7 +90,7 @@ export function HomePage({ account, onNavigate, onOpenService }: HomePageProps) 
             </article>
             <article className="financial-panel" aria-labelledby="latest-contribution-title">
               <p className="financial-eyebrow">Latest Contribution</p>
-              {latestContribution ? <><h2 id="latest-contribution-title">{formatMoney(totalDepositedForContribution(latestContribution))}</h2><StatusTag status={latestContribution.status} /><dl className="compact-description-list"><div><dt>Wage Month</dt><dd>{formatWageMonth(latestContribution.wageMonth)}</dd></div><div><dt>Recorded On</dt><dd>{formatDate(latestContribution.recordedOn)}</dd></div><div><dt>EPF Credited</dt><dd>{formatMoney(epfAmountForContribution(latestContribution))}</dd></div><div><dt>EPS Recorded</dt><dd>{formatMoney(latestContribution.eps ?? 0)}</dd></div></dl><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md home-panel-action" type="button" onClick={() => onNavigate('passbook', latestContribution.id)}>View Contribution</button></> : <div className="financial-empty" id="latest-contribution-title"><h2>No Contribution Recorded</h2></div>}
+              {latestContribution ? <><h2 id="latest-contribution-title">{formatMoney(totalDepositedForContribution(latestContribution))}</h2><p className="latest-contribution-total">Total currently recorded for this wage month</p><StatusTag status={latestContribution.status} /><dl className="compact-description-list"><div><dt>Wage Month</dt><dd>{formatWageMonth(latestContribution.wageMonth)}</dd></div><div><dt>Recorded On</dt><dd>{formatDate(latestContribution.recordedOn)}</dd></div><div><dt>Employee EPF</dt><dd>{formatMoney(latestContribution.employeeEpf ?? 0)}</dd></div><div><dt>Employer EPF</dt><dd>{latestContribution.employerEpf === null ? 'Not recorded' : formatMoney(latestContribution.employerEpf)}</dd></div><div><dt>EPS Recorded</dt><dd>{formatMoney(latestContribution.eps ?? 0)}</dd></div></dl><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md home-panel-action" type="button" onClick={() => onNavigate('passbook', latestContribution.id)}>View Contribution</button></> : <div className="financial-empty" id="latest-contribution-title"><h2>No Contribution Recorded</h2></div>}
             </article>
           </div>
 

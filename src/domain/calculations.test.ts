@@ -10,7 +10,7 @@ import {
   totalEpsServiceMonths,
 } from './calculations'
 import { createInitialAccount } from './data'
-import { loadPersistedAccount, persistAccount } from './persistence'
+import { ACCOUNT_STORAGE_KEY, clearPersistedAccount, loadPersistedAccount, persistAccount } from './persistence'
 import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExpired } from './reports'
 import { markReportReady, submitGrievance, submitTransfer, transitionRequest } from './state'
 import { validateContribution, validateEmail, validateIndianMobile } from './validation'
@@ -109,6 +109,7 @@ describe('derived attention and connected request state', () => {
     expect(attention).toHaveLength(3)
     expect(attention.filter((item) => item.priority === 'action-required')).toHaveLength(2)
     expect(attention.map((item) => item.title)).toContain('Previous PF Transfer')
+    expect(attention).toContainEqual(expect.objectContaining({ title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.' }))
   })
 
   it('creates a transfer request and updates the related attention surface', () => {
@@ -172,5 +173,18 @@ describe('derived attention and connected request state', () => {
     expect(loadPersistedAccount(storage).requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
     stored = '{invalid json'
     expect(loadPersistedAccount(storage).version).toBe(3)
+  })
+
+  it('clears only the persisted account key when resetting the demo', () => {
+    const removed: string[] = []
+    clearPersistedAccount({ removeItem: (key) => { removed.push(key) } })
+    expect(removed).toEqual([ACCOUNT_STORAGE_KEY])
+  })
+
+  it('removes stale synthetic wording from persisted member-facing copy', () => {
+    const account = createInitialAccount()
+    account.kyc[0] = { ...account.kyc[0], explanation: 'Aadhaar is verified for this synthetic account.' }
+    const storage = { getItem: () => JSON.stringify(account) }
+    expect(loadPersistedAccount(storage).kyc[0].explanation).toBe('Aadhaar is verified for this account.')
   })
 })

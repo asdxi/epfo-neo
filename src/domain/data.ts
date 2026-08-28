@@ -113,7 +113,7 @@ const vertexContributions: ContributionRecord[] = [
   {
     id: 'vertex-2026-04', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-04', recordedOn: '2026-05-12',
     pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-late',
-    explanation: 'This contribution is complete. It was recorded later than the usual date for this synthetic account.',
+    explanation: 'This contribution is complete. It was recorded later than the usual date for this account.',
   },
   {
     id: 'vertex-2026-05', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-05', recordedOn: '2026-06-08',
@@ -166,7 +166,7 @@ export const initialAccount: AccountState = {
     officialInterestCredits,
     estimatedInterestAccruals: [{
       id: 'estimate-vertex-2026', memberId: vertex.memberId, calculatedThrough: '2026-07-31', amount: 6_480, kind: 'estimate',
-      explanation: 'This is a synthetic estimate for explanation only. It is not included in the official EPF balance until credited.',
+      explanation: 'This is an estimate for explanation only. It is not included in the official EPF balance until credited.',
     }],
     transfers: [
       { id: 'transfer-northstar-bluekite', fromMemberId: northstar.memberId, toMemberId: bluekite.memberId, amount: 42_780, initiatedOn: '2019-07-05', completedOn: '2019-07-24', state: 'completed', source: 'exempted-pf-trust', explanation: 'The PF trust transferred the recorded closing balance to the EPFO-linked Member ID.' },

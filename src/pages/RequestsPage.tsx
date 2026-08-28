@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from 'react'
+import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { AccountState, MemberRequest, RequestState, RequestType } from '../domain/types'
 import './service-pages.css'
 
@@ -31,6 +31,8 @@ export function RequestsPage({ account, initialRequestId, status = 'ready', onRe
   const [view, setView] = useState<RequestView>(() => account.requests.find((item) => item.id === initialRequestId)?.state === 'completed' ? 'completed' : 'open')
   const [filter, setFilter] = useState<RequestFilter>('all')
   const [selectedId, setSelectedId] = useState(initialRequestId ?? '')
+  const [requestIdQuery, setRequestIdQuery] = useState('')
+  const [searchMessage, setSearchMessage] = useState('')
   const requests = useMemo(() => account.requests
     .filter((request) => view === 'completed' ? request.state === 'completed' : request.state !== 'completed')
     .filter((request) => filter === 'all' || request.type === filter)
@@ -39,6 +41,28 @@ export function RequestsPage({ account, initialRequestId, status = 'ready', onRe
   const requestsInView = useMemo(() => account.requests.filter((request) => view === 'completed' ? request.state === 'completed' : request.state !== 'completed'), [account.requests, view])
   const selectView = (nextView: RequestView) => { setView(nextView); setSelectedId('') }
   const selectFilter = (nextFilter: RequestFilter) => { setFilter(nextFilter); setSelectedId('') }
+  const searchByRequestId = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const normalizedQuery = requestIdQuery.trim().toLocaleUpperCase('en-IN')
+    if (!normalizedQuery) {
+      setSearchMessage('Enter a request ID to search.')
+      return
+    }
+
+    const match = account.requests.find((request) =>
+      request.reference.toLocaleUpperCase('en-IN') === normalizedQuery
+      || request.id.toLocaleUpperCase('en-IN') === normalizedQuery,
+    )
+    if (!match) {
+      setSearchMessage(`No request found for ${requestIdQuery.trim()}. Check the ID and try again.`)
+      return
+    }
+
+    setView(match.state === 'completed' ? 'completed' : 'open')
+    setFilter('all')
+    setSelectedId(match.id)
+    setSearchMessage(`Showing ${match.reference}.`)
+  }
   const handleTabKey = <T extends string>(event: KeyboardEvent<HTMLButtonElement>, items: T[], selectedItem: T, selectItem: (item: T) => void) => {
     const currentIndex = items.indexOf(selectedItem)
     const nextIndex = event.key === 'ArrowRight' ? (currentIndex + 1) % items.length : event.key === 'ArrowLeft' ? (currentIndex - 1 + items.length) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1
@@ -53,7 +77,12 @@ export function RequestsPage({ account, initialRequestId, status = 'ready', onRe
   if (status === 'error') return <section className="service-page" aria-labelledby="requests-title"><header className="service-page-heading"><h1 id="requests-title">Requests</h1></header><div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Requests Could Not Be Loaded</p><p className="ux4g-alert-message">Your account data is safe. Try loading this page again.</p>{onRetry && <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={onRetry}>Try Again</button>}</div></div></section>
 
   return <section className="service-page" aria-labelledby="requests-title">
-    <header className="service-page-heading"><h1 id="requests-title">Requests</h1></header>
+    <header className="service-page-heading request-page-heading"><h1 id="requests-title">Requests</h1><form className="request-search" role="search" onSubmit={searchByRequestId} noValidate>
+      <label className="visually-hidden" htmlFor="request-id-search">Search by request ID</label>
+      <input id="request-id-search" className="ux4g-input ux4g-input-md" type="search" value={requestIdQuery} onChange={(event) => { setRequestIdQuery(event.target.value); setSearchMessage('') }} placeholder="Enter request ID" autoComplete="off" aria-describedby="request-search-status" />
+      <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="submit">Search</button>
+      <p id="request-search-status" className="request-search-status" role="status">{searchMessage}</p>
+    </form></header>
     <nav className="ux4g-tab ux4g-tab-underline ux4g-tab-md request-view-tabs" aria-label="Request status"><ul className="ux4g-tab-list" role="tablist">
       {requestViews.map((item) => <li key={item} role="presentation"><button id={`request-view-${item}`} className={`ux4g-tab-item ${view === item ? 'active' : ''}`} type="button" role="tab" tabIndex={view === item ? 0 : -1} aria-selected={view === item} aria-controls="requests-panel" onKeyDown={(event) => handleTabKey(event, requestViews, view, selectView)} onClick={() => selectView(item)}><span>{titleCase(item)}</span><span className="request-tab-count">{account.requests.filter((request) => item === 'completed' ? request.state === 'completed' : request.state !== 'completed').length}</span></button></li>)}
     </ul></nav>

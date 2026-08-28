@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppShell, type AppRoute } from './components/AppShell'
 import { LoginScreen } from './components/LoginScreen'
-import { loadPersistedAccount, persistAccount } from './domain/persistence'
+import { clearPersistedAccount, loadPersistedAccount, persistAccount } from './domain/persistence'
+import { createInitialAccount } from './domain/data'
 import { buildExcelStatement, buildPdfStatement, createReportRecord } from './domain/reports'
 import {
   addGeneratedReport,
@@ -61,8 +62,19 @@ export default function App() {
   const [requestContext, setRequestContext] = useState<string>()
   const [accountContext, setAccountContext] = useState<'nomination'>()
   const [announcement, setAnnouncement] = useState<string>()
+  const skipNextPersistence = useRef(false)
 
   useEffect(() => {
+    if (!announcement) return
+    const timeout = window.setTimeout(() => setAnnouncement(undefined), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [announcement])
+
+  useEffect(() => {
+    if (skipNextPersistence.current) {
+      skipNextPersistence.current = false
+      return
+    }
     try { persistAccount(window.localStorage, account) } catch { /* Browser storage is optional; in-memory state remains safe. */ }
   }, [account])
 
@@ -70,6 +82,19 @@ export default function App() {
     setAuthenticated(true)
     setLoadState('loading')
     window.setTimeout(() => setLoadState('ready'), 450)
+  }
+
+  const resetDemo = () => {
+    try { clearPersistedAccount(window.localStorage) } catch { /* Browser storage is optional. */ }
+    skipNextPersistence.current = true
+    setAccount(createInitialAccount())
+    setAuthenticated(false)
+    setSurface('home')
+    setServiceContext({})
+    setPassbookContext(undefined)
+    setRequestContext(undefined)
+    setAccountContext(undefined)
+    setAnnouncement(undefined)
   }
 
   const navigate = (route: AppRoute) => {
@@ -212,8 +237,9 @@ export default function App() {
     onSignOut={() => { setAuthenticated(false); setSurface('home'); setServiceContext({}); setPassbookContext(undefined); setRequestContext(undefined) }}
     onOpenTerms={() => setSurface('terms')}
     onOpenPrivacy={() => setSurface('privacy')}
+    onResetDemo={resetDemo}
   >
-    {announcement && <div className="ux4g-alert ux4g-alert-success app-announcement" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement}</p></div><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm" type="button" onClick={() => setAnnouncement(undefined)}>Dismiss</button></div>}
+    {announcement && <div className="ux4g-alert ux4g-alert-success app-announcement" role="status" aria-live="polite"><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement}</p></div></div>}
     {page}
   </AppShell>
 }

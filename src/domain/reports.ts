@@ -77,7 +77,7 @@ export function buildPdfStatement(account: AccountState, report: GeneratedReport
     const pageRows = rows.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage)
     const isLastPage = pageIndex === pageCount - 1
     const lines = [
-      transactionExport ? 'EPFO Member Services - Synthetic Transaction Export' : 'EPFO Member Services - Synthetic Passbook Statement',
+      transactionExport ? 'EPFO Member Services - Transaction Export' : 'EPFO Member Services - Passbook Statement',
       `Member: ${account.member.name}`,
       `UAN: ${account.member.uan}`,
       `Period: ${report.periodLabel} | Page ${pageIndex + 1} of ${pageCount}`,

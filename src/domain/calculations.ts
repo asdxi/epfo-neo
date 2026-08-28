@@ -85,7 +85,7 @@ export function employerSummaries(account: AccountState): EmployerSummary[] {
 
 export function currentEmployment(account: AccountState): Employment {
   const employment = account.employments.find((item) => item.status === 'current')
-  if (!employment) throw new Error('Synthetic account must contain one current employment.')
+  if (!employment) throw new Error('Account must contain one current employment.')
   return employment
 }
 
@@ -116,7 +116,7 @@ export function deriveAttentionItems(account: AccountState): AttentionItem[] {
           : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${formatMoney(exception.amount ?? 0)} remains with Harbor Foods.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
       }
       if (exception.kind === 'contribution-review') {
-        return { id: exception.id, priority: 'action-required', title: 'June contribution', explanation: 'Employer EPF amount is missing.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
+        return { id: exception.id, priority: 'action-required', title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
       }
       const kycLabel = (exception.kycType ?? 'pan').toUpperCase()
       return { id: exception.id, priority: exception.state === 'in-progress' ? 'in-progress' : 'action-required', title: `${kycLabel} verification`, explanation: 'Not yet complete.', actionLabel: exception.state === 'in-progress' ? 'View Status' : `Verify ${kycLabel}`, route: 'account', contextId: exception.kycType }
@@ -167,7 +167,7 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
 
   for (const credit of account.ledger.officialInterestCredits) {
     const employment = employmentForMemberId(account, credit.memberId)
-    transactions.push({ id: credit.id, date: credit.creditedOn, memberId: credit.memberId, employmentId: employment.id, type: 'official-interest', amount: credit.amount, state: 'officially-credited', title: `Official Interest Credit ${credit.financialYear}`, explanation: 'This amount is an official ledger credit and is included in the EPF balance.', recordedDateExplanation: 'The date shown is the date of the official interest credit in this synthetic ledger.', needsAttention: false })
+    transactions.push({ id: credit.id, date: credit.creditedOn, memberId: credit.memberId, employmentId: employment.id, type: 'official-interest', amount: credit.amount, state: 'officially-credited', title: `Official Interest Credit ${credit.financialYear}`, explanation: 'This amount is an official ledger credit and is included in the EPF balance.', recordedDateExplanation: 'The date shown is the date of the official interest credit in this ledger.', needsAttention: false })
   }
 
   for (const estimate of account.ledger.estimatedInterestAccruals) {

@@ -34,6 +34,7 @@ export interface AppShellProps {
   onSignOut: () => void
   onOpenTerms?: () => void
   onOpenPrivacy?: () => void
+  onResetDemo?: () => void
 }
 
 export function AppShell({
@@ -44,11 +45,13 @@ export function AppShell({
   onSignOut,
   onOpenTerms,
   onOpenPrivacy,
+  onResetDemo,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const signOutDialogRef = useRef<HTMLDialogElement>(null)
+  const resetDemoDialogRef = useRef<HTMLDialogElement>(null)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   useEffect(() => {
@@ -117,6 +120,7 @@ export function AppShell({
   }
 
   const confirmSignOut = () => { signOutDialogRef.current?.close(); onSignOut() }
+  const confirmResetDemo = () => { resetDemoDialogRef.current?.close(); closeDrawer(); onResetDemo?.() }
 
   const hasFooterLinks = Boolean(onOpenTerms || onOpenPrivacy)
 
@@ -239,6 +243,7 @@ export function AppShell({
             </nav>
           </div>
           <div className="ux4g-drawer-footer">
+            {onResetDemo && <button className="ux4g-btn ux4g-btn-outline-danger ux4g-btn-md drawer-reset-demo" type="button" onClick={() => resetDemoDialogRef.current?.showModal()}>Reset Demo</button>}
             <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md drawer-sign-out shell-sign-out" type="button" onClick={requestSignOut}>
               Sign Out
             </button>
@@ -251,6 +256,11 @@ export function AppShell({
         <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => signOutDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={confirmSignOut}>Sign Out</button></div>
       </dialog>
 
+      <dialog ref={resetDemoDialogRef} className="sign-out-dialog reset-demo-dialog" aria-labelledby="reset-demo-title" aria-describedby="reset-demo-description">
+        <div><h2 id="reset-demo-title">Reset demo?</h2><p id="reset-demo-description">This will discard all saved demo changes and sign you out. You will start again with the original account data.</p></div>
+        <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => resetDemoDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-danger ux4g-btn-md" type="button" onClick={confirmResetDemo}>Reset Demo</button></div>
+      </dialog>
+
       <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
 
       {hasFooterLinks && (
@@ -258,6 +268,7 @@ export function AppShell({
           <div className="ux4g-footer-content app-footer-content">
             <span>EPFO Member Services</span>
             <nav className="app-footer-links" aria-label="Legal information">
+              {onResetDemo && <button className="ux4g-btn ux4g-btn-outline-danger ux4g-btn-md footer-reset-demo" type="button" onClick={() => resetDemoDialogRef.current?.showModal()}>Reset Demo</button>}
               {onOpenTerms && (
                 <button className="app-footer-link" type="button" onClick={onOpenTerms}>Terms of Use</button>
               )}

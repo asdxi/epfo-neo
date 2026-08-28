@@ -45,6 +45,16 @@
 
 .service-nomination-copy { display: grid; gap: var(--ux4g-stack-xs); }
 
+.services-page .service-transfer-progress-alert .ux4g-alert-content {
+  align-items: center;
+  display: grid;
+  gap: var(--ux4g-stack-l);
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.service-transfer-progress-copy { display: grid; gap: var(--ux4g-stack-xs); }
+
 .service-eyebrow {
   color: var(--ux4g-text-brand-primary-default);
   font-size: var(--ux4g-size-12);
@@ -135,6 +145,15 @@
   outline-offset: var(--ux4g-space-2);
 }
 
+.service-progress-wrap {
+  display: grid;
+  gap: var(--ux4g-stack-s);
+}
+
+.service-progress-current {
+  display: none;
+}
+
 .service-progress {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -152,14 +171,21 @@
   padding: var(--ux4g-padding-s);
 }
 
-.service-progress li span {
+.service-progress-step-number {
   align-items: center;
+  aspect-ratio: 1;
   background: var(--ux4g-bg-neutral-soft);
   border-radius: var(--ux4g-radius-circular);
+  block-size: var(--ux4g-size-28);
   display: inline-flex;
   flex: 0 0 var(--ux4g-size-28);
-  height: var(--ux4g-size-28);
+  inline-size: var(--ux4g-size-28);
   justify-content: center;
+  min-inline-size: var(--ux4g-size-28);
+}
+
+.service-progress-label {
+  min-inline-size: 0;
 }
 
 .service-progress li.is-complete,
@@ -169,8 +195,8 @@
   font-weight: var(--ux4g-font-weight-semibold);
 }
 
-.service-progress li.is-complete span,
-.service-progress li.is-current span {
+.service-progress li.is-complete .service-progress-step-number,
+.service-progress li.is-current .service-progress-step-number {
   background: var(--ux4g-bg-primary-strong);
   color: var(--ux4g-text-neutral-inverse);
 }
@@ -238,17 +264,36 @@
 
 .service-select,
 .service-textarea {
-  background: var(--ux4g-bg-neutral-default);
+  background-color: var(--ux4g-bg-neutral-default);
   border: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-default);
   border-radius: var(--ux4g-radius-sm);
   color: var(--ux4g-text-neutral-primary);
   font: inherit;
-  min-height: var(--ux4g-line-height-44);
-  padding: var(--ux4g-padding-s);
   width: 100%;
 }
 
-.service-textarea { resize: vertical; }
+.service-select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - var(--ux4g-space-6)) 50%,
+    calc(100% - var(--ux4g-space-5)) 50%;
+  background-repeat: no-repeat;
+  background-size: var(--ux4g-space-3) var(--ux4g-space-3);
+  border-radius: var(--ux4g-radius-md);
+  height: var(--ux4g-line-height-44);
+  line-height: var(--ux4g-line-height-20);
+  padding-block: 0;
+  padding-inline: var(--ux4g-padding-s) var(--ux4g-padding-xl);
+}
+
+.service-textarea {
+  min-height: var(--ux4g-line-height-44);
+  padding: var(--ux4g-padding-s);
+  resize: vertical;
+}
 
 .service-check-list,
 .service-kyc-grid {
@@ -334,6 +379,28 @@
 .request-type-tab.is-selected { background: var(--ux4g-bg-primary-soft); box-shadow: inset 0 0 0 var(--ux4g-border-width-md) var(--ux4g-border-color-primary-strong); color: var(--ux4g-text-brand-primary-default); }
 .request-tab-count { font-variant-numeric: tabular-nums; font-weight: var(--ux4g-font-weight-semibold); }
 .request-view-tabs .request-tab-count { color: var(--ux4g-text-neutral-secondary); }
+
+.request-page-heading {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: none;
+}
+
+.request-search {
+  align-items: center;
+  display: grid;
+  gap: var(--ux4g-space-4);
+  grid-template-columns: minmax(14rem, 20rem) auto;
+  position: relative;
+}
+
+.request-search-status {
+  color: var(--ux4g-text-neutral-secondary);
+  font-size: var(--ux4g-size-14);
+  inset-block-start: calc(100% + var(--ux4g-space-2));
+  inset-inline-start: 0;
+  position: absolute;
+}
 
 .request-layout {
   align-items: start;
@@ -448,7 +515,7 @@
 .nominee-form-grid { display: grid; gap: var(--ux4g-stack-m); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .nominee-form-grid .service-field { align-content: start; grid-template-rows: auto var(--ux4g-line-height-44); }
 .nominee-form-grid .nominee-address-field { grid-column: 1 / -1; grid-template-rows: auto auto; }
-.nominee-select { min-height: var(--ux4g-line-height-44); width: 100%; }
+.nominee-select { width: 100%; }
 .nominee-summary-list article,
 .nominee-review-list article { border-block-end: var(--ux4g-border-width-sm) solid var(--ux4g-border-color-neutral-subtle); padding-block-end: var(--ux4g-padding-m); }
 .nominee-summary-list article > div { display: grid; gap: var(--ux4g-stack-xs); }
@@ -502,9 +569,47 @@
 @media (max-width: 48rem) {
   .service-hero-grid,
   .request-layout { grid-template-columns: minmax(0, 1fr); }
+  .request-page-heading { grid-template-columns: minmax(0, 1fr); }
+  .request-search { justify-self: stretch; }
   .request-list-item.is-selected { box-shadow: inset 0 calc(-1 * var(--ux4g-border-width-md)) var(--ux4g-border-color-primary-strong); }
-  .service-progress li { align-items: flex-start; flex-direction: column; }
+  .service-progress-current {
+    color: var(--ux4g-text-neutral-primary);
+    display: block;
+    font-size: var(--ux4g-size-16);
+    font-weight: var(--ux4g-font-weight-semibold);
+  }
+  .service-progress {
+    position: relative;
+  }
+  .service-progress::before {
+    background: var(--ux4g-border-color-neutral-subtle);
+    block-size: var(--ux4g-border-width-md);
+    content: '';
+    inset-inline: 12.5%;
+    position: absolute;
+    top: calc(var(--ux4g-size-28) / 2);
+    z-index: 0;
+  }
+  .service-progress li {
+    align-items: center;
+    border-block-end: 0;
+    flex-direction: column;
+    font-size: var(--ux4g-size-12);
+    gap: var(--ux4g-space-2);
+    padding: 0;
+    position: relative;
+    text-align: center;
+    z-index: 1;
+  }
+  .service-progress-step-number {
+    position: relative;
+    z-index: 1;
+  }
+  .service-progress-label {
+    line-height: var(--ux4g-line-height-20);
+  }
   .app-shell .service-nomination-panel .ux4g-alert-content { align-items: stretch; grid-template-columns: minmax(0, 1fr); }
+  .services-page .service-transfer-progress-alert .ux4g-alert-content { align-items: stretch; grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 36rem) {
@@ -519,7 +624,7 @@
   .account-inline-state > .ux4g-btn { width: 100%; }
   .service-flow-body,
   .request-detail { padding: var(--ux4g-padding-m); }
-  .service-progress li { font-size: var(--ux4g-size-12); padding-inline: var(--ux4g-padding-xs); }
+  .service-progress-label { font-size: var(--ux4g-size-12); }
   .service-review-list > div,
   .service-outcome-reference > div,
   .account-detail-list > div,
@@ -532,4 +637,6 @@
   .account-report-list article,
   .account-inline-state { align-items: flex-start; flex-direction: column; }
   .service-flow-actions { flex-direction: column-reverse; }
+  .request-search { grid-template-columns: minmax(0, 1fr) auto; }
+  .request-search .ux4g-btn { width: 100%; }
 }

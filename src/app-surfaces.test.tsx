@@ -68,6 +68,31 @@ describe('v0.2 application surfaces', () => {
     container.remove()
   })
 
+  it('places Reset Demo in desktop and mobile navigation and requires confirmation', async () => {
+    const onResetDemo = vi.fn()
+    const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', '') })
+    const close = vi.fn(function (this: HTMLDialogElement) { this.removeAttribute('open') })
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: showModal })
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: close })
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<AppShell activeRoute="home" onNavigate={noop} onSignOut={noop} onResetDemo={onResetDemo} onOpenTerms={noop} onOpenPrivacy={noop}><p>Content</p></AppShell>))
+
+    expect(container.querySelector('.drawer-reset-demo')?.textContent).toBe('Reset Demo')
+    expect(container.querySelector('.footer-reset-demo')?.textContent).toBe('Reset Demo')
+    await act(async () => container.querySelector<HTMLButtonElement>('.footer-reset-demo')?.click())
+    expect(onResetDemo).not.toHaveBeenCalled()
+    expect(container.querySelector('.reset-demo-dialog')?.hasAttribute('open')).toBe(true)
+    await act(async () => container.querySelector<HTMLButtonElement>('.reset-demo-dialog .ux4g-btn-danger')?.click())
+    expect(onResetDemo).toHaveBeenCalledOnce()
+
+    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal
+    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).close
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('renders the decision-oriented home workspace from reconciled account data', () => {
     const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} />)
 
@@ -76,6 +101,8 @@ describe('v0.2 application surfaces', () => {
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
     expect(html).toContain('Vertex Mobility')
     expect(html).toContain('June contribution')
+    expect(html).toContain('Employee EPF and EPS are recorded. Employer EPF is not recorded.')
+    expect(html).toContain('Employer EPF</dt><dd>Not recorded')
     expect(html).toContain('EPF Contributions')
     expect(html).toContain('₹35,250')
     expect(html).toContain('No EPF-covered employment recorded')
@@ -113,6 +140,8 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('Recorded 8 July 2026')
     expect(html).not.toContain('Harbor Foods India')
     expect(html).toContain('Employer EPF')
+    expect(html).toContain('Employee EPF')
+    expect(html).toContain('Employer EPF: Not recorded')
     expect(html).toContain('EPS')
     expect(html).not.toContain('Generate Statement')
     expect(html).not.toContain('Contributions</button>')
@@ -152,6 +181,32 @@ describe('v0.2 application surfaces', () => {
     container.remove()
   })
 
+  it('shows transactions in a paginated table with ten rows per page', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(
+      <PassbookPage account={createInitialAccount()} initialView="transactions" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    ))
+
+    const period = Array.from(container.querySelectorAll<HTMLSelectElement>('.transaction-filters select')).find((select) => select.parentElement?.textContent?.startsWith('Period'))
+    await act(async () => {
+      if (period) {
+        period.value = 'all-time'
+        period.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+    await act(async () => container.querySelector<HTMLButtonElement>('.transaction-actions .ux4g-btn-primary')?.click())
+
+    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Amount'])
+    expect(container.querySelectorAll('.transaction-table tbody tr')).toHaveLength(10)
+    expect(container.querySelector('.transaction-pagination')?.textContent).toContain('Next')
+    expect(container.querySelector('.transaction-pagination-summary')?.textContent).toContain('Showing 1–10')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('renders all five member services and request tracking', () => {
     const account = createInitialAccount()
     const services = renderToStaticMarkup(
@@ -170,6 +225,9 @@ describe('v0.2 application surfaces', () => {
     expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
     expect(requests).toContain('Next Expected Step')
+    expect(requests).toContain('Search by request ID')
+    expect(requests).toContain('Enter request ID')
+    expect(requests).toContain('class="ux4g-input ux4g-input-md"')
     expect(requests).not.toContain('Operational history')
     expect(requests).not.toContain('Track services that take time')
     expect(requests).not.toContain('<p class="service-eyebrow">')
@@ -183,6 +241,48 @@ describe('v0.2 application surfaces', () => {
     expect(actionRequired).not.toContain('Your Action Is Required')
   })
 
+  it('uses service guidance and readable progress markup for a grievance', () => {
+    const grievance = renderToStaticMarkup(
+      <ServicesPage account={createInitialAccount()} initialService="grievance" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />,
+    )
+
+    expect(grievance).toContain('Step 1 of 4 · Understand')
+    expect(grievance).toContain('service-progress-step-number')
+    expect(grievance).toContain('choose the employment or transaction you want EPFO to review')
+    expect(grievance).not.toContain('Record selected')
+    expect(grievance).not.toContain('The Record Does Not Explain the Cause')
+    expect(grievance).not.toContain('ux4g-alert-warning')
+  })
+
+  it('retrieves open and completed requests by reference number', async () => {
+    const account = createInitialAccount()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<RequestsPage account={account} />))
+
+    const search = container.querySelector<HTMLInputElement>('#request-id-search')!
+    const submitSearch = async (requestId: string) => {
+      await act(async () => {
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+        valueSetter?.call(search, requestId)
+        search.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      await act(async () => container.querySelector<HTMLButtonElement>('.request-search button[type="submit"]')?.click())
+    }
+
+    await submitSearch('clm-2022-18421')
+    expect(container.querySelector('#request-view-completed')?.getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('.request-detail')?.textContent).toContain('CLM-2022-18421')
+
+    await submitSearch('  TRF-2026-004512  ')
+    expect(container.querySelector('#request-view-open')?.getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('.request-detail')?.textContent).toContain('TRF-2026-004512')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('shows a submitted transfer as in progress without offering a duplicate action', () => {
     const account = submitTransfer(createInitialAccount(), '2026-08-28')
     const services = renderToStaticMarkup(
@@ -194,6 +294,7 @@ describe('v0.2 application surfaces', () => {
 
     expect(services).toContain('Transfer Is Already in Progress')
     expect(services).toContain('Track Transfer')
+    expect(services).toContain('service-transfer-progress-alert')
     expect(passbook).toContain('Transfer Is in Progress')
     expect(passbook).not.toContain('>Transfer Previous PF</button>')
   })
