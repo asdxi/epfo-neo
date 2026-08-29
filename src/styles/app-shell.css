@@ -178,6 +178,13 @@
   gap: var(--ux4g-space-6);
 }
 
+.app-footer-brand { align-items: center; display: flex; gap: var(--ux4g-space-4); }
+.app-footer-github { color: var(--ux4g-text-neutral-inverse); flex: 0 0 auto; }
+.app-footer-github:hover,
+.app-footer-github:visited { color: var(--ux4g-text-neutral-inverse); }
+.app-footer-github:focus-visible { outline: var(--ux4g-border-width-sm) solid var(--ux4g-text-neutral-inverse); outline-offset: var(--ux4g-space-1); }
+.app-footer-github svg { height: var(--ux4g-size-24); width: var(--ux4g-size-24); }
+
 .app-footer-link {
   align-items: center;
   color: var(--ux4g-text-neutral-inverse) !important;

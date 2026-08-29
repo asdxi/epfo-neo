@@ -81,6 +81,10 @@ describe('v0.2 application surfaces', () => {
 
     expect(container.querySelector('.drawer-reset-demo')?.textContent).toBe('Reset Demo')
     expect(container.querySelector('.footer-reset-demo')?.textContent).toBe('Reset Demo')
+    const githubLink = container.querySelector<HTMLAnchorElement>('.app-footer-github')
+    expect(githubLink?.href).toBe('https://github.com/asdxi/epfo-neo')
+    expect(githubLink?.target).toBe('_blank')
+    expect(githubLink?.getAttribute('aria-label')).toContain('opens in a new tab')
     await act(async () => container.querySelector<HTMLButtonElement>('.footer-reset-demo')?.click())
     expect(onResetDemo).not.toHaveBeenCalled()
     expect(container.querySelector('.reset-demo-dialog')?.hasAttribute('open')).toBe(true)

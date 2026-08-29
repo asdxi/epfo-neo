@@ -112,6 +112,17 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
         <h1 id="login-title">EPFO Neo</h1>
         <p>Secure access with an Aadhaar OTP sent to your Aadhaar-linked mobile number.</p>
       </section>
+      <aside className="ux4g-alert ux4g-alert-info otp-login__demo-credentials" aria-labelledby="demo-credentials-title">
+        <div className="ux4g-alert-content">
+          <p className="ux4g-alert-title" id="demo-credentials-title">Demo login credentials</p>
+          <dl className="otp-login__credential-list">
+            <div><dt>Mobile number</dt><dd>{expectedMobile}</dd></div>
+            <div><dt>OTP</dt><dd>{DEMO_OTP}</dd></div>
+          </dl>
+          <p className="ux4g-alert-message">Enter this same OTP wherever an OTP field appears in the demo.</p>
+          <p className="ux4g-alert-message">If you run into an issue, use <strong>Reset Demo</strong> in the page footer on desktop or at the bottom of the <strong>Menu</strong> on mobile.</p>
+        </div>
+      </aside>
       <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby={step === 'mobile' ? 'sign-in-mobile-title' : 'sign-in-otp-title'}>
         <div className="ux4g-card-body">
           {step === 'mobile' ? (

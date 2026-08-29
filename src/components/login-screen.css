@@ -1,11 +1,19 @@
 /* App-specific login composition: UX4G supplies the controls, card, OTP states and tokens. */
-.otp-login { display: grid; gap: var(--ux4g-section-m); margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
+.otp-login { display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
 .otp-login__hero { display: grid; align-content: end; gap: var(--ux4g-stack-s); padding-top: var(--ux4g-section-m); }
+.otp-login__hero { grid-area: hero; }
 .otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-xs); }
 .otp-login h1 { color: var(--ux4g-text-brand-primary-default); font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); letter-spacing: -0.02em; line-height: 1.08; margin: 0; }
 .otp-login h2 { font-size: var(--ux4g-size-24); line-height: var(--ux4g-line-height-28); margin: 0; }
 .otp-login__hero > p:last-child, .otp-login__supporting { color: var(--ux4g-text-neutral-secondary); line-height: var(--ux4g-line-height-24); margin: 0; }
-.otp-login__card { align-self: start; overflow: visible; width: 100%; }
+.otp-login__card { align-self: start; grid-area: form; overflow: visible; width: 100%; }
+.otp-login__demo-credentials { align-self: start; grid-area: credentials; }
+.otp-login__demo-credentials .ux4g-alert-content { display: grid; gap: var(--ux4g-stack-m); width: 100%; }
+.otp-login__demo-credentials .ux4g-alert-message { margin: 0; }
+.otp-login__credential-list { display: grid; gap: var(--ux4g-stack-s); margin: 0; }
+.otp-login__credential-list > div { align-items: baseline; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2) var(--ux4g-space-4); justify-content: space-between; }
+.otp-login__credential-list dt { color: var(--ux4g-text-neutral-secondary); }
+.otp-login__credential-list dd { color: var(--ux4g-text-neutral-primary); font-variant-numeric: tabular-nums; font-weight: var(--ux4g-font-weight-semibold); margin: 0; }
 .onboarding-stepper { display: grid; gap: var(--ux4g-stack-xs); margin-block-end: var(--ux4g-section-s); }
 .onboarding-stepper__summary { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); margin: 0; }
 .onboarding-success { align-items: center; display: grid; gap: var(--ux4g-stack-l); justify-items: center; padding-block: var(--ux4g-section-m); text-align: center; }
@@ -28,7 +36,10 @@
 .otp-login__primary { align-items: center; gap: var(--ux4g-space-3); }
 .otp-login__loader { animation: otp-loader-spin 700ms linear infinite; border: var(--ux4g-border-width-sm) solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; height: var(--ux4g-size-16); width: var(--ux4g-size-16); }
 @keyframes otp-loader-spin { to { transform: rotate(360deg); } }
-@media (min-width: 48rem) { .otp-login { max-width: 36rem; padding-top: var(--ux4g-section-xl); } }
+@media (min-width: 48rem) {
+  .otp-login { align-content: start; column-gap: var(--ux4g-section-l); grid-template-areas: "hero hero" "form credentials"; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr); max-width: 64rem; padding-top: var(--ux4g-section-xl); }
+  .otp-login__hero { max-width: 36rem; }
+}
 @media (prefers-reduced-motion: reduce) { .otp-login__loader { animation: none; } }
 
 /* Onboarding is an open page composition, not a card inside another card.

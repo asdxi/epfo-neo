@@ -103,11 +103,15 @@ describe('LoginScreen credentials and validation', () => {
     expect(container.textContent).toContain('••••••2109')
   })
 
-  it('does not reveal the OTP or expose a demo outcome control', async () => {
-    await renderLogin()
-    await continueWithMobile()
+  it('shows the synthetic login credentials and guidance without a demo outcome control', async () => {
+    await renderLogin('9876543210')
 
-    expect(container.textContent).not.toContain(DEMO_OTP)
+    expect(container.textContent).toContain('Demo login credentials')
+    expect(container.textContent).toContain('9876543210')
+    expect(container.textContent).toContain(DEMO_OTP)
+    expect(container.textContent).toContain('Enter this same OTP wherever an OTP field appears in the demo.')
+    expect(container.textContent).toContain('page footer on desktop')
+    expect(container.textContent).toContain('Menu')
     expect(container.textContent).not.toContain('Demo verification outcome')
     expect(container.querySelector('[role="radiogroup"]')).toBeNull()
   })
