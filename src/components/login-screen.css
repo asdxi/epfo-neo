@@ -47,6 +47,8 @@
    primitive for this multi-field activation flow. */
 .otp-login.onboarding {
   gap: var(--ux4g-section-s);
+  grid-template-areas: "hero" "form";
+  grid-template-columns: minmax(0, 1fr);
   max-width: 58rem;
   padding-block: var(--ux4g-section-m) var(--ux4g-section-xl);
 }

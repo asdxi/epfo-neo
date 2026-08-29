@@ -110,7 +110,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
       <section className="otp-login__hero">
         <span className="brand-mark" aria-hidden="true">EPFO</span>
         <h1 id="login-title">EPFO Neo</h1>
-        <p>Secure access with an Aadhaar OTP sent to your Aadhaar-linked mobile number.</p>
+        <p>Sign in to view your EPF balance, contribution history and requests in one place.</p>
       </section>
       <aside className="ux4g-alert ux4g-alert-info otp-login__demo-credentials" aria-labelledby="demo-credentials-title">
         <div className="ux4g-alert-content">

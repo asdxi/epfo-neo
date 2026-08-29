@@ -47,6 +47,13 @@ const continueWithMobile = async (mobile = '9876543210') => {
 }
 
 describe('LoginScreen credentials and validation', () => {
+  it('explains what members can access after signing in', async () => {
+    await renderLogin()
+
+    expect(container.textContent).toContain('Sign in to view your EPF balance, contribution history and requests in one place.')
+    expect(container.textContent).not.toContain('Secure access with an Aadhaar OTP')
+  })
+
   it('rejects malformed and non-matching mobile numbers', async () => {
     await renderLogin()
     const mobile = container.querySelector<HTMLInputElement>('#mobile-number')!
