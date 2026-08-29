@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { AppShell, type AppRoute } from './components/AppShell'
 import { LoginScreen } from './components/LoginScreen'
 import { OnboardingScreen } from './components/OnboardingScreen'
@@ -266,23 +267,26 @@ export default function App() {
                   />
                 : <LegalPage page={surface} onBack={() => setSurface('account')} onNavigate={setSurface} />
 
-  return <AppShell
-    activeRoute={activeRoute}
-    onNavigate={navigate}
-    memberName={account.member.name}
-    onSignOut={() => {
-      try { clearPersistedAuthentication(window.localStorage) } catch { /* Browser storage is optional. */ }
-      setAuthenticated(false)
-      setSurface('home')
-      setServiceContext({})
-      setPassbookContext(undefined)
-      setRequestContext(undefined)
-    }}
-    onOpenTerms={() => setSurface('terms')}
-    onOpenPrivacy={() => setSurface('privacy')}
-    onResetDemo={resetDemo}
-  >
-    {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
-    {page}
-  </AppShell>
+  return <>
+    <Analytics />
+    <AppShell
+      activeRoute={activeRoute}
+      onNavigate={navigate}
+      memberName={account.member.name}
+      onSignOut={() => {
+        try { clearPersistedAuthentication(window.localStorage) } catch { /* Browser storage is optional. */ }
+        setAuthenticated(false)
+        setSurface('home')
+        setServiceContext({})
+        setPassbookContext(undefined)
+        setRequestContext(undefined)
+      }}
+      onOpenTerms={() => setSurface('terms')}
+      onOpenPrivacy={() => setSurface('privacy')}
+      onResetDemo={resetDemo}
+    >
+      {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
+      {page}
+    </AppShell>
+  </>
 }
