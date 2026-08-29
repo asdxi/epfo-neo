@@ -1,6 +1,6 @@
 # EPFO Neo
 
-EPFO Neo is a working prototype of a clearer, more dependable EPFO member experience, created for the **Build What Moves India** hackathon. It is built around a simple idea: EPFO may hold a member's employment and retirement records, but the member should not have to decode those records to understand their own money.
+EPFO Neo is a working prototype of a clearer, more dependable EPFO member experience, created for the [**Build What Moves India**](https://buildwhatmovesindia.com/) hackathon. It is built around a simple idea: EPFO may hold a member's employment and retirement records, but the member should not have to decode those records to understand their own money.
 
 The current experience can make routine questions surprisingly difficult to answer. The passbook sits apart from the member portal, grievances have their own path, and a person may have to move between systems just to understand a contribution and act on it. Even inside the passbook, the wage month and the date an entry was recorded can be easy to confuse. The result is a balance that looks authoritative without making its history easy to follow.
 
