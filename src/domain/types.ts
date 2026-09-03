@@ -192,6 +192,56 @@ export interface AccountException {
   contributionId?: string
   kycType?: KycRecord['type']
   relatedRequestId?: string
+  currentResponsibleParty?: RecordIssueResponsibleParty
+  pensionServiceImpact?: string
+}
+
+export type RecordIssueType = 'pending-transfer' | 'contribution-record'
+export type RecordIssueStatus = 'action-required' | 'in-progress' | 'resolved' | 'unavailable'
+export type RecordIssueResponsibleParty = 'member' | 'source-employer' | 'destination-employer' | 'epfo' | 'none'
+
+export interface RecordIssueReference {
+  kind: 'employment' | 'contribution' | 'transfer' | 'request'
+  id: string
+  label: string
+  value: string
+}
+
+export interface RecordIssueEvent {
+  id: string
+  label: string
+  date: string | null
+  detail?: string
+}
+
+export type RecordIssueAction =
+  | { availability: 'available'; kind: 'start-transfer' | 'track-request' | 'raise-grievance'; label: string; contextId: string }
+  | { availability: 'unavailable'; label: string; reason: string }
+  | { availability: 'not-required'; label: string }
+
+export interface RecordIssueCalculationLine {
+  label: string
+  amount: Money
+}
+
+export interface RecordIssue {
+  id: string
+  type: RecordIssueType
+  status: RecordIssueStatus
+  finding: string
+  supportingRecords: RecordIssueReference[]
+  affectedAmount?: Money
+  affectedService: string
+  financialImpact: string
+  pensionServiceImpact: string
+  responsibleParty: RecordIssueResponsibleParty
+  responsiblePartyLabel: string
+  currentStage: string
+  lastConfirmedEvent: RecordIssueEvent
+  recommendedNextAction: string
+  resolutionAction: RecordIssueAction
+  chronology: RecordIssueEvent[]
+  calculationTrail: RecordIssueCalculationLine[]
 }
 
 export interface Ledger {

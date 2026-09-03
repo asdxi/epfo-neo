@@ -10,6 +10,7 @@ import { HomePage } from './pages/HomePage'
 import { LegalPage } from './pages/LegalPage'
 import { PassbookPage } from './pages/PassbookPage'
 import { RequestsPage } from './pages/RequestsPage'
+import { RecordReviewPage } from './pages/RecordReviewPage'
 import { ServicesPage } from './pages/ServicesPage'
 
 const noop = vi.fn()
@@ -98,14 +99,14 @@ describe('v0.2 application surfaces', () => {
   })
 
   it('renders the decision-oriented home workspace from reconciled account data', () => {
-    const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} />)
+    const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
     expect(html).toContain('₹4,82,650')
     expect(html).toContain('EPS')
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
     expect(html).toContain('Vertex Mobility')
-    expect(html).toContain('June contribution')
-    expect(html).toContain('Employee EPF and EPS are recorded. Employer EPF is not recorded.')
+    expect(html).toContain('2 PF record issues')
+    expect(html).toContain('Review 2 issues')
     expect(html).toContain('Employer EPF</dt><dd>Not recorded')
     expect(html).toContain('EPF Contributions')
     expect(html).toContain('₹35,250')
@@ -128,10 +129,41 @@ describe('v0.2 application surfaces', () => {
       exceptions: [],
       ledger: { ...account.ledger, contributions: [] },
     }
-    const html = renderToStaticMarkup(<HomePage account={emptyAccount} onNavigate={noop} onOpenService={noop} />)
+    const html = renderToStaticMarkup(<HomePage account={emptyAccount} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
     expect(html).toContain('You’re All Caught Up')
     expect(html).toContain('No Contribution Recorded')
+  })
+
+  it('renders the evidence-first PF record review and routes both issue actions', async () => {
+    const account = createInitialAccount()
+    const trackRequest = vi.fn()
+    const raiseGrievance = vi.fn()
+    const back = vi.fn()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<RecordReviewPage account={account} onBack={back} onTrackRequest={trackRequest} onStartTransfer={noop} onRaiseContributionGrievance={raiseGrievance} />))
+
+    expect(container.textContent).toContain('PF Record Review')
+    expect(container.textContent).toContain('₹38,450 is still recorded under Harbor Foods India')
+    expect(container.textContent).toContain('It has not also been added to Vertex Mobility')
+    expect(container.textContent).toContain('Employment Record Verification')
+    expect(container.textContent).toContain('Who must actEPFO')
+    expect(container.textContent).toContain('Wage MonthJune 2026')
+    expect(container.textContent).toContain('Recorded On8 July 2026')
+    expect(container.textContent).toContain('Employer EPFNot recorded')
+    expect(document.activeElement).toBe(container.querySelector('#record-review-title'))
+
+    await clickButton('← Back to Home')
+    expect(back).toHaveBeenCalledOnce()
+    await clickButton('Track transfer')
+    expect(trackRequest).toHaveBeenCalledWith('request-transfer-2026')
+    await clickButton('Ask EPFO to review')
+    expect(raiseGrievance).toHaveBeenCalledWith(expect.objectContaining({ id: 'vertex-2026-06' }))
+
+    await act(async () => root.unmount())
+    container.remove()
   })
 
   it('renders passbook dates, EPF and EPS as distinct concepts', () => {

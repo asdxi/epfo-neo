@@ -25,9 +25,10 @@ import { HomePage, type CoreServiceId, type FinancialRoute } from './pages/HomeP
 import { LegalPage } from './pages/LegalPage'
 import { PassbookPage, type PassbookView, type StatementRequest } from './pages/PassbookPage'
 import { RequestsPage } from './pages/RequestsPage'
+import { RecordReviewPage } from './pages/RecordReviewPage'
 import { ServicesPage, type ServiceId } from './pages/ServicesPage'
 
-type Surface = AppRoute | 'terms' | 'privacy'
+type Surface = AppRoute | 'record-review' | 'terms' | 'privacy'
 type LoadState = 'loading' | 'ready' | 'error'
 
 const demoToday = '2026-08-28'
@@ -211,7 +212,7 @@ export default function App() {
     return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => setAuthView('register')} />
   }
 
-  const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface
+  const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface === 'record-review' ? 'home' : surface
   const initialPassbookView = (passbookContext && ['overview', 'employers', 'transactions'].includes(passbookContext)) ? passbookContext as PassbookView : undefined
 
   const page = loadState === 'loading'
@@ -219,7 +220,15 @@ export default function App() {
     : loadState === 'error'
       ? <div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Account Could Not Be Loaded</p><p className="ux4g-alert-message">Your saved account data is safe. Try loading it again.</p><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => { setLoadState('loading'); window.setTimeout(() => setLoadState('ready'), 350) }}>Try Again</button></div></div>
       : surface === 'home'
-        ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} />
+        ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} onReviewIssues={() => { setSurface('record-review'); window.scrollTo({ top: 0 }) }} />
+        : surface === 'record-review'
+          ? <RecordReviewPage
+              account={account}
+              onBack={() => { setSurface('home'); window.scrollTo({ top: 0 }) }}
+              onTrackRequest={(requestId) => { setRequestContext(requestId); setSurface('requests'); window.scrollTo({ top: 0 }) }}
+              onStartTransfer={(employmentId) => { setServiceContext({ service: 'transfer', employmentId }); setSurface('services'); window.scrollTo({ top: 0 }) }}
+              onRaiseContributionGrievance={openContributionGrievance}
+            />
         : surface === 'passbook'
           ? <PassbookPage
               key={passbookContext ?? 'overview'}

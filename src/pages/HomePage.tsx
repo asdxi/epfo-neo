@@ -1,6 +1,5 @@
 import {
   currentEmployment,
-  deriveAttentionItems,
   employerSummaries,
   formatDate,
   formatMoney,
@@ -11,8 +10,9 @@ import {
   totalEpsContributions,
   totalEpsServiceMonths,
 } from '../domain/calculations'
+import { activeRecordIssues } from '../domain/issues'
 import { demoNotices } from '../domain/notices'
-import type { AccountState, AttentionItem, Employment } from '../domain/types'
+import type { AccountState, Employment } from '../domain/types'
 import './financial-pages.css'
 
 export type FinancialRoute = 'passbook' | 'services' | 'requests' | 'account'
@@ -22,6 +22,7 @@ export interface HomePageProps {
   account: AccountState
   onNavigate: (route: FinancialRoute, contextId?: string) => void
   onOpenService: (service: CoreServiceId, contextId?: string) => void
+  onReviewIssues: () => void
 }
 
 const providerLabel = (employment: Employment): string =>
@@ -31,21 +32,16 @@ const statusLabel = (status: Employment['status']): string => ({
   current: 'Current', closed: 'Closed', transferred: 'Transferred', 'balance-remaining': 'Balance Remaining',
 })[status]
 
-export function HomePage({ account, onNavigate, onOpenService }: HomePageProps) {
+export function HomePage({ account, onNavigate, onReviewIssues }: HomePageProps) {
   const balance = totalEpfBalance(account)
   const employment = currentEmployment(account)
   const latestContribution = latestRecordedContribution(account)
-  const attentionItems = deriveAttentionItems(account)
+  const recordIssues = activeRecordIssues(account)
   const employmentHistory = employerSummaries(account)
   const employmentTimeline = [...employmentHistory].reverse()
   const serviceMonths = totalEpsServiceMonths(account)
   const epsYears = Math.floor(serviceMonths / 12)
   const remainingMonths = serviceMonths % 12
-
-  const openAttention = (item: AttentionItem) => {
-    if (item.route === 'services') onOpenService((item.contextId as CoreServiceId | undefined) ?? 'transfer')
-    else onNavigate(item.route, item.contextId)
-  }
 
   return (
     <section className="financial-page home-page" aria-labelledby="home-title">
@@ -76,9 +72,9 @@ export function HomePage({ account, onNavigate, onOpenService }: HomePageProps) 
         <aside className="home-attention" aria-labelledby="attention-title">
           <div className="home-attention-inner">
             <div className="financial-section-heading"><h2 id="attention-title">Needs Attention</h2></div>
-            {attentionItems.length === 0 ? (
+            {recordIssues.length === 0 ? (
               <div className="ux4g-alert ux4g-alert-success" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-title">You’re All Caught Up</p><p className="ux4g-alert-message">No action is required from you.</p></div></div>
-            ) : <ol className="attention-list">{attentionItems.map((item) => <li key={item.id} className="attention-item"><h3>{item.title}</h3><p>{item.explanation}</p><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm" type="button" onClick={() => openAttention(item)}>{item.actionLabel}</button></li>)}</ol>}
+            ) : <div className="attention-list"><div className="attention-item"><h3>{recordIssues.length} PF record {recordIssues.length === 1 ? 'issue' : 'issues'}</h3><p>See what is recorded, what each issue affects, and who must act next.</p><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-lg" type="button" onClick={onReviewIssues}>Review {recordIssues.length} {recordIssues.length === 1 ? 'issue' : 'issues'}</button></div></div>}
             <NoticeBoard />
           </div>
         </aside>

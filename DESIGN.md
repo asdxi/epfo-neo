@@ -299,6 +299,18 @@ keeping UX4G components as the default whenever they genuinely fit.
   hover, with no internal dividers, so the feed remains distinct from the
   action-oriented divided list above it. Mobile keeps the same DOM and scroll
   behavior; the visible height remains sufficient for three compact entries.
+- **PF Record Review:** UX4G has no single component that presents a domain
+  finding, supporting financial records, member impact, responsible party and
+  resolution action in that evidence-first order. EPFO Neo therefore uses an
+  application-owned, unboxed divided issue list. Each issue exposes its finding,
+  impact and action owner first; native semantic disclosure reveals record
+  references, calculation lines and a dated chronology without changing focus
+  order. The pending transfer is first and initially expanded. On mobile all
+  facts and actions stack in one column with 48px UX4G large buttons; wider
+  layouts use two columns only for compact facts and evidence. Empty, resolved
+  and unavailable-action states retain explicit text and semantics. Financial
+  values and explanations are derived from domain records rather than copied
+  into the component.
 - **Editable Profile Layout:** UX4G has no member-record editor with a
   persistent supporting rail. EPFO Neo uses an application-owned two-column
   composition: member details and the edit form are primary content, while a

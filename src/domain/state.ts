@@ -47,7 +47,7 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
         explanation: 'This transfer request is submitted. The balance remains under the previous Member ID until the transfer completes.',
       }],
     },
-    exceptions: account.exceptions.map((item) => item.id === exception.id ? { ...item, state: 'in-progress', relatedRequestId: requestId } : item),
+    exceptions: account.exceptions.map((item) => item.id === exception.id ? { ...item, state: 'in-progress', relatedRequestId: requestId, currentResponsibleParty: 'source-employer' } : item),
   }, request)
 }
 
@@ -68,7 +68,7 @@ export function submitGrievance(account: AccountState, input: { submittedOn: str
   const next = withRequest(account, request)
   return {
     ...next,
-    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? { ...item, state: 'in-progress', relatedRequestId: requestId } : item),
+    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? { ...item, state: 'in-progress', relatedRequestId: requestId, currentResponsibleParty: 'epfo' } : item),
   }
 }
 

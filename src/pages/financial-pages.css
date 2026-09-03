@@ -44,6 +44,41 @@
 .attention-item h3 { font-size: var(--ux4g-size-16); line-height: var(--ux4g-line-height-20); }
 .attention-item p { font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); }
 .attention-item .ux4g-btn, .transaction-summary .ux4g-tag { justify-self: start; }
+.record-review-page { max-width: var(--ux4g-container-xl); }
+.record-review-back { justify-self: start; }
+.record-issue-list { display: grid; gap: var(--ux4g-section-s); list-style: none; margin: 0; padding: 0; }
+.record-issue { border-block-start: var(--ux4g-border-width-md) solid var(--ux4g-border-color-neutral-strong); display: grid; gap: var(--ux4g-stack-l); padding-block: var(--ux4g-padding-xl); }
+.record-issue--principal { border-block-start-color: var(--ux4g-border-color-primary-strong); }
+.record-issue-heading, .record-issue-action > div, .record-action-unavailable { display: grid; gap: var(--ux4g-stack-xs); }
+.record-issue-labels { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-inline-s); }
+.record-issue-principal { color: var(--ux4g-text-brand-primary-default); font-size: var(--ux4g-size-12); font-weight: var(--ux4g-font-weight-semibold); text-transform: uppercase; }
+.record-issue-facts { display: grid; gap: var(--ux4g-stack-s); }
+.record-issue-facts > div { border-block-end: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); display: grid; gap: var(--ux4g-stack-xs); padding-block-end: var(--ux4g-padding-s); }
+.record-issue-facts dt, .record-reference-list dt, .record-calculation dt { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); }
+.record-issue-facts dd { display: grid; gap: var(--ux4g-stack-xs); }
+.record-issue-facts dd strong { font-size: var(--ux4g-size-20); font-variant-numeric: tabular-nums; }
+.record-issue-facts time, .record-chronology time { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
+.record-impact { max-width: var(--ux4g-container-lg); }
+.record-evidence { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
+.record-evidence > summary { color: var(--ux4g-text-link-default-default); font-weight: var(--ux4g-font-weight-semibold); min-block-size: var(--ux4g-line-height-44); padding-block: var(--ux4g-padding-s); }
+.record-evidence-content { display: grid; gap: var(--ux4g-stack-l); padding-block: var(--ux4g-padding-m) var(--ux4g-padding-l); }
+.record-evidence-content > section { display: grid; gap: var(--ux4g-stack-m); }
+.record-reference-list, .record-calculation { display: grid; gap: var(--ux4g-stack-s); }
+.record-reference-list > div, .record-calculation > div { align-items: baseline; display: flex; gap: var(--ux4g-inline-m); justify-content: space-between; }
+.record-reference-list dd, .record-calculation dd { font-weight: var(--ux4g-font-weight-semibold); overflow-wrap: anywhere; text-align: end; }
+.record-calculation dd { font-variant-numeric: tabular-nums; }
+.record-chronology { display: grid; list-style: none; margin: 0; padding: 0 0 0 var(--ux4g-padding-l); }
+.record-chronology li { display: grid; gap: var(--ux4g-inline-m); grid-template-columns: var(--ux4g-space-5) minmax(0, 1fr); padding-block-end: var(--ux4g-padding-m); position: relative; }
+.record-chronology li::before { background: var(--ux4g-border-color-neutral-default); content: ''; inline-size: var(--ux4g-border-width-sm); inset-block: var(--ux4g-space-5) 0; inset-inline-start: var(--ux4g-space-3); position: absolute; }
+.record-chronology li:last-child::before { display: none; }
+.record-chronology li > span { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-width-md) solid var(--ux4g-border-color-primary-strong); border-radius: var(--ux4g-radius-full); block-size: var(--ux4g-space-5); inline-size: var(--ux4g-space-5); position: relative; z-index: var(--ux4g-z-1); }
+.record-chronology li > div { display: grid; gap: var(--ux4g-stack-xs); }
+.record-chronology p, .record-issue-action p, .record-action-unavailable span { color: var(--ux4g-text-neutral-secondary); }
+.record-issue-action { align-items: start; display: flex; flex-wrap: wrap; gap: var(--ux4g-stack-m); justify-content: space-between; }
+.record-issue-action .ux4g-btn { flex: 0 0 auto; }
+.record-action-unavailable { border-inline-start: var(--ux4g-border-width-md) solid var(--ux4g-border-color-warning-strong); max-width: var(--ux4g-container-sm); padding-inline-start: var(--ux4g-padding-m); }
+.record-review-empty { min-block-size: var(--ux4g-size-120); }
+.contribution-review-action { justify-self: stretch; margin-block-start: var(--ux4g-stack-xs); }
 .home-current-grid, .overview-grid, .employer-layout, .custom-range, .transaction-filters, .date-distinction { display: grid; gap: var(--ux4g-stack-m); }
 .home-current-grid { align-items: start; }
 .compact-description-list div, .balance-composition > div, .employer-metrics div { align-items: baseline; display: flex; gap: var(--ux4g-inline-s); justify-content: space-between; }
@@ -122,6 +157,9 @@
   .activity-list li > strong { text-align: start; }
   .transaction-actions, .transaction-actions .ux4g-btn, .download-format-actions, .download-format-actions .ux4g-btn { width: 100%; }
   .transaction-pagination { justify-content: flex-start; overflow-x: auto; }
+  .record-issue-action, .record-issue-action .ux4g-btn { width: 100%; }
+  .record-reference-list > div, .record-calculation > div { align-items: start; display: grid; gap: var(--ux4g-stack-xs); }
+  .record-reference-list dd, .record-calculation dd { text-align: start; }
 }
 @media (min-width: 48rem) {
   .home-pension-summary, .home-current-grid, .date-distinction, .overview-grid, .custom-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -134,6 +172,9 @@
   .service-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .service-shortcuts li:nth-child(2) { border-top: 0; }
   .service-shortcuts li:nth-child(even) { border-left: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
+  .record-issue-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-evidence-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-evidence-content > section:last-child:nth-child(3) { grid-column: 1 / -1; }
 }
 @media (min-width: 64rem) {
   .home-workspace { align-items: start; column-gap: var(--ux4g-section-s); grid-template-areas: 'balance attention' 'main attention'; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); }
