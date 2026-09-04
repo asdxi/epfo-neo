@@ -4,6 +4,7 @@ import {
   contributionIsReconciled,
   deriveAttentionItems,
   employerSummaries,
+  ledgerTransactions,
   reconcileMemberId,
   totalEpfBalance,
   totalEpsContributions,
@@ -12,7 +13,7 @@ import {
 import { createInitialAccount } from './data'
 import { ACCOUNT_STORAGE_KEY, AUTHENTICATION_STORAGE_KEY, clearPersistedAccount, clearPersistedAuthentication, loadPersistedAccount, loadPersistedAuthentication, persistAccount, persistAuthentication } from './persistence'
 import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExpired } from './reports'
-import { markReportReady, submitExit, submitGrievance, submitTransfer, transitionRequest } from './state'
+import { completeTransferResolution, markReportReady, submitExit, submitGrievance, submitTransfer, transitionRequest } from './state'
 import { validateContribution, validateEmail, validateIndianMobile } from './validation'
 
 const createTransferEligibleAccount = () => {
@@ -64,6 +65,19 @@ describe('v0.2 financial reconciliation', () => {
     expect(totalEpfBalance(submitted)).toBe(totalEpfBalance(account))
     expect(reconcileMemberId(submitted, 'KA/HFI/0031849').closingBalance).toBe(38_450)
     expect(submitted.ledger.transfers.at(-1)?.state).toBe('submitted')
+    const pendingEntries = ledgerTransactions(submitted).filter((item) => item.id.includes('transfer-harbor-vertex-2026-08-28'))
+    expect(pendingEntries.map((item) => item.amount)).toEqual([0, 0])
+    expect(pendingEntries[0].recordedDateExplanation).toContain('posted amount is zero')
+  })
+
+  it('posts a completed pending transfer only to the destination without changing the total', () => {
+    const before = createInitialAccount()
+    const completed = completeTransferResolution(before, 'transfer-harbor-vertex-2026-06-18', '2026-09-04')
+
+    expect(reconcileMemberId(completed, 'KA/HFI/0031849').closingBalance).toBe(0)
+    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(482_650)
+    expect(totalEpfBalance(completed)).toBe(482_650)
+    expect(completed.requests.find((request) => request.id === 'request-transfer-2026')?.state).toBe('completed')
   })
 
   it('subtracts completed withdrawals and includes only official interest credits', () => {

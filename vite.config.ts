@@ -17,4 +17,5 @@ export default defineConfig({
     react(),
   ],
   test: { environment: 'jsdom' },
+  server: { port: 3000, host: true },
 })

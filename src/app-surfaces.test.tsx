@@ -267,7 +267,7 @@ describe('v0.2 application surfaces', () => {
     expect(requests).toContain('<span>Grievances</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
-    expect(requests).toContain('Next Expected Step')
+    expect(requests).toContain('Recommended next step')
     expect(requests).toContain('Search by request ID')
     expect(requests).toContain('Enter request ID')
     expect(requests).toContain('class="ux4g-input ux4g-input-md"')
@@ -321,6 +321,42 @@ describe('v0.2 application surfaces', () => {
     await submitSearch('  TRF-2026-004512  ')
     expect(container.querySelector('#request-view-open')?.getAttribute('aria-selected')).toBe('true')
     expect(container.querySelector('.request-detail')?.textContent).toContain('TRF-2026-004512')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('renders acknowledgement evidence and recoverable rejection in the existing Requests detail', () => {
+    const account = createInitialAccount()
+    const missing = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-correction-2026" onCitizenAction={noop} />)
+    expect(missing).toContain('Submitted · receipt not confirmed')
+    expect(missing).toContain('Member portal receipt not confirmed')
+    expect(missing).toContain('Check existing request')
+
+    const rejected = {
+      ...account.requests[0], id: 'request-rejected', state: 'rejected' as const,
+      rejection: { originalRemark: 'Supporting wage month does not match selected contribution.', plainLanguageMeaning: 'The evidence points to a different month.', mismatch: 'Evidence says May 2026; request says June 2026.', correctableBy: 'Member', evidenceNeeded: ['June 2026 wage record'], recoveryAction: 'prepare' as const, requiresFreshSubmission: false },
+    }
+    const rejection = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [rejected] }} initialRequestId={rejected.id} onCitizenAction={noop} />)
+    expect(rejection).toContain('Original rejection remark')
+    expect(rejection).toContain('Evidence says May 2026; request says June 2026.')
+    expect(rejection).toContain('A fresh submission is not required')
+    expect(rejection).toContain('Prepare correction')
+  })
+
+  it('prefills the contextual contribution review without unrelated categories or re-entry', async () => {
+    const account = createInitialAccount()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-06" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
+
+    await clickButton('Continue')
+    expect(container.textContent).toContain('Neo prepared this review')
+    expect(container.textContent).toContain('EPF or EPS component is incomplete')
+    expect(container.textContent).toContain('TXN-VTX-2026-06-0708')
+    expect(container.textContent).not.toContain('Transfer Delay')
+    expect(container.querySelector<HTMLSelectElement>('#grievance-category')?.disabled).toBe(true)
 
     await act(async () => root.unmount())
     container.remove()
@@ -538,8 +574,8 @@ describe('v0.2 application surfaces', () => {
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Confirm and Submit Transfer')
 
-    expect(container.textContent).toContain('Transfer Request Submitted')
-    expect(container.textContent).toContain('Reference Number')
+    expect(container.textContent).toContain('Transfer attempt saved')
+    expect(container.textContent).toContain('Neo case ID')
     expect(account.requests.find((request) => request.type === 'transfer')?.state).toBe('submitted')
     await act(async () => root.unmount())
     container.remove()
@@ -575,8 +611,8 @@ describe('v0.2 application surfaces', () => {
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Submit Grievance')
 
-    expect(container.textContent).toContain('Grievance Submitted')
-    expect(container.textContent).toContain('Reference Number')
+    expect(container.textContent).toContain('Grievance attempt saved')
+    expect(container.textContent).toContain('Neo case ID')
     expect(account.requests.find((request) => request.contributionId === 'vertex-2026-06')?.reference).toMatch(/^GRV-/)
     await act(async () => root.unmount())
     container.remove()

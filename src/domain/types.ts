@@ -14,6 +14,7 @@ export type ContributionStatus =
 
 export type RequestType = 'claim' | 'transfer' | 'correction' | 'grievance' | 'exit'
 export type RequestState = 'submitted' | 'in-progress' | 'action-required' | 'completed'
+  | 'submission-attempted' | 'received' | 'rejected'
 export type ReportFormat = 'pdf' | 'excel'
 export type ReportState = 'preparing' | 'ready' | 'failed' | 'expired'
 export type AttentionPriority = 'action-required' | 'in-progress' | 'good-to-know'
@@ -99,6 +100,29 @@ export interface ContributionRecord {
   eps: Money | null
   status: ContributionStatus
   explanation: string
+  transactionReference?: string
+  expectedRecord?: ContributionExpectation
+}
+
+export type ContributionDiscrepancyCategory =
+  | 'missing-contribution'
+  | 'incorrect-amount'
+  | 'wrong-employer'
+  | 'incorrect-wage-month'
+  | 'late-recording'
+  | 'inconsistent-epf-eps-component'
+
+export interface ContributionExpectation {
+  employmentId: string
+  wageMonth: string
+  pfWage: Money | null
+  employeeEpf: Money | null
+  employerEpf: Money | null
+  eps: Money | null
+  basis: string
+  reference: string
+  evidenceHeld: string[]
+  evidenceMemberMayNeed: string[]
 }
 
 export interface InterestCredit {
@@ -129,6 +153,13 @@ export interface TransferRecord {
   state: 'pending' | 'submitted' | 'processing' | 'completed'
   source: EstablishmentType
   explanation: string
+  relatedRequestId?: string
+  uanEvidence?: {
+    sourceUan: string
+    destinationUan: string
+    confirmation: 'confirmed' | 'unconfirmed'
+    explanation: string
+  }
 }
 
 export interface WithdrawalRecord {
@@ -147,6 +178,21 @@ export interface RequestEvent {
   date: string | null
   state: 'completed' | 'current' | 'upcoming'
   explanation?: string
+  kind?: 'member-submission-attempt' | 'channel-receipt' | 'epfo-acknowledgement' | 'responsible-party-assignment' | 'bank-handoff' | 'resolution'
+  confirmation?: 'confirmed' | 'missing' | 'expected'
+  party?: RecordIssueResponsibleParty | 'bank' | 'portal'
+  channel?: string
+  reference?: string
+}
+
+export interface RequestRejection {
+  originalRemark: string
+  plainLanguageMeaning: string
+  mismatch: string
+  correctableBy: string
+  evidenceNeeded: string[]
+  recoveryAction: 'correct' | 'prepare' | 'resume' | 'escalate'
+  requiresFreshSubmission: boolean
 }
 
 export interface MemberRequest {
@@ -164,6 +210,11 @@ export interface MemberRequest {
   nextExpectedStep: string
   citizenAction?: string
   timeline: RequestEvent[]
+  channel?: string
+  externalReference?: string
+  currentResponsibleParty?: RecordIssueResponsibleParty
+  rejection?: RequestRejection
+  recoveryPreparedOn?: string
 }
 
 export interface GeneratedReport {
@@ -242,6 +293,28 @@ export interface RecordIssue {
   resolutionAction: RecordIssueAction
   chronology: RecordIssueEvent[]
   calculationTrail: RecordIssueCalculationLine[]
+  identityRisk?: {
+    label: string
+    explanation: string
+  }
+  discrepancy?: ContributionResolution
+}
+
+export interface ContributionResolution {
+  category: ContributionDiscrepancyCategory
+  validCategories: ContributionDiscrepancyCategory[]
+  categoryLabel: string
+  expectedComponents: Array<{ label: string; amount: Money | null }>
+  recordedComponents: Array<{ label: string; amount: Money | null }>
+  expectedEmployer: string
+  expectedWageMonth: string
+  expectationBasis: string
+  references: string[]
+  evidenceHeld: string[]
+  evidenceMemberMayNeed: string[]
+  preparedDescription: string
+  responsibleParty: RecordIssueResponsibleParty
+  memberImpact: string
 }
 
 export interface Ledger {

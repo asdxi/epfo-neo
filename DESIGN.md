@@ -310,7 +310,22 @@ keeping UX4G components as the default whenever they genuinely fit.
   layouts use two columns only for compact facts and evidence. Empty, resolved
   and unavailable-action states retain explicit text and semantics. Financial
   values and explanations are derived from domain records rather than copied
-  into the component.
+  into the component. Contribution discrepancies extend this composition with
+  a two-column expected-versus-recorded comparison sourced from an explicit
+  expectation record; it stacks on mobile and renders missing values as “Not
+  recorded” or “Not confirmed,” never zero. A warning Alert appears for a
+  possible multiple-UAN record only when explicit synthetic UAN evidence is
+  attached to the transfer.
+- **Request Evidence Chain:** UX4G has no request-chain component that separates
+  a member attempt, channel receipt, EPFO acknowledgement, assignment and bank
+  hand-off. EPFO Neo extends the existing application-owned Requests timeline
+  instead of adding another tracker. Semantic event kinds and confirmation
+  states drive the labels; a UX4G warning Alert names the first missing
+  acknowledgement. Rejection recovery stays inside the same request detail and
+  uses an error Alert for the original remark, plain-language mismatch and one
+  large primary recovery action. Alternative wait or escalation guidance remains
+  secondary copy. Mobile preserves the same evidence order and stacks facts and
+  actions without horizontal scrolling.
 - **Editable Profile Layout:** UX4G has no member-record editor with a
   persistent supporting rail. EPFO Neo uses an application-owned two-column
   composition: member details and the edit form are primary content, while a

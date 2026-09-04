@@ -59,6 +59,16 @@
 .record-issue-facts dd strong { font-size: var(--ux4g-size-20); font-variant-numeric: tabular-nums; }
 .record-issue-facts time, .record-chronology time { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
 .record-impact { max-width: var(--ux4g-container-lg); }
+.record-component-comparison { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); display: grid; gap: var(--ux4g-stack-m); padding-block: var(--ux4g-padding-l); }
+.record-section-heading { align-items: start; display: flex; flex-wrap: wrap; gap: var(--ux4g-stack-m); justify-content: space-between; }
+.record-section-heading > div, .record-component-grid > div { display: grid; gap: var(--ux4g-stack-xs); }
+.record-section-heading p, .record-member-impact { color: var(--ux4g-text-neutral-secondary); }
+.record-component-grid { display: grid; gap: var(--ux4g-stack-m); }
+.record-component-grid > div { background: var(--ux4g-bg-neutral-soft); padding: var(--ux4g-padding-m); }
+.record-component-grid dl { display: grid; gap: var(--ux4g-stack-xs); }
+.record-component-grid dl > div { display: flex; gap: var(--ux4g-inline-m); justify-content: space-between; }
+.record-component-grid dd { font-weight: var(--ux4g-font-weight-semibold); font-variant-numeric: tabular-nums; text-align: end; }
+.record-evidence-list { display: grid; gap: var(--ux4g-stack-s); margin: 0; padding-inline-start: var(--ux4g-padding-l); }
 .record-evidence { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .record-evidence > summary { color: var(--ux4g-text-link-default-default); font-weight: var(--ux4g-font-weight-semibold); min-block-size: var(--ux4g-line-height-44); padding-block: var(--ux4g-padding-s); }
 .record-evidence-content { display: grid; gap: var(--ux4g-stack-l); padding-block: var(--ux4g-padding-m) var(--ux4g-padding-l); }
@@ -173,6 +183,7 @@
   .service-shortcuts li:nth-child(2) { border-top: 0; }
   .service-shortcuts li:nth-child(even) { border-left: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
   .record-issue-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-component-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .record-evidence-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .record-evidence-content > section:last-child:nth-child(3) { grid-column: 1 / -1; }
 }

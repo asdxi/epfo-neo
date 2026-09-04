@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { totalEpfBalance, totalEpsServiceMonths } from './calculations'
 import { createInitialAccount } from './data'
 import { activeRecordIssues, deriveRecordIssues } from './issues'
-import { submitGrievance } from './state'
+import { completeTransferResolution, submitGrievance } from './state'
 
 describe('PF record issue derivation', () => {
   it('derives the two record issues in principal order without including KYC', () => {
@@ -28,6 +28,7 @@ describe('PF record issue derivation', () => {
     expect(issue.financialImpact).toContain('included once')
     expect(issue.calculationTrail.map((line) => line.amount)).toEqual([38_450, 444_200, 482_650])
     expect(issue.pensionServiceImpact).toContain('not transferred or added as cash')
+    expect(issue.identityRisk).toBeUndefined()
   })
 
   it('keeps the June missing amount unavailable and EPS separate', () => {
@@ -48,8 +49,9 @@ describe('PF record issue derivation', () => {
     const issue = deriveRecordIssues(after)[1]
 
     expect(issue.status).toBe('in-progress')
-    expect(issue.responsibleParty).toBe('epfo')
+    expect(issue.responsibleParty).toBe('member')
     expect(issue.resolutionAction).toMatchObject({ availability: 'available', kind: 'track-request' })
+    expect(issue.currentStage).toBe('Grievance portal receipt')
     expect(totalEpfBalance(after)).toBe(482_650)
     expect(totalEpsServiceMonths(after)).toBe(serviceMonths)
   })
@@ -81,5 +83,25 @@ describe('PF record issue derivation', () => {
     const empty = createInitialAccount()
     empty.exceptions = empty.exceptions.filter((exception) => exception.kind === 'kyc-review')
     expect(deriveRecordIssues(empty)).toEqual([])
+  })
+
+  it('shows a multiple-UAN risk only when an explicit confirmed record supports it', () => {
+    const account = createInitialAccount()
+    const transfer = account.ledger.transfers.find((item) => item.id === 'transfer-harbor-vertex-2026-06-18')!
+    transfer.uanEvidence = { sourceUan: '100000654321', destinationUan: account.member.uan, confirmation: 'confirmed', explanation: 'The source employment is linked to a second confirmed synthetic UAN reference.' }
+
+    expect(deriveRecordIssues(account)[0].identityRisk).toMatchObject({ label: 'Possible multiple-UAN record' })
+    transfer.uanEvidence.confirmation = 'unconfirmed'
+    expect(deriveRecordIssues(account)[0].identityRisk).toBeUndefined()
+  })
+
+  it('keeps a completed transfer in issue history while removing it from active review', () => {
+    const completed = completeTransferResolution(createInitialAccount(), 'transfer-harbor-vertex-2026-06-18', '2026-09-04')
+    const historical = deriveRecordIssues(completed)[0]
+
+    expect(activeRecordIssues(completed).map((issue) => issue.id)).not.toContain(historical.id)
+    expect(historical).toMatchObject({ status: 'resolved', responsibleParty: 'none', currentStage: 'Completed' })
+    expect(historical.finding).toContain('posted once')
+    expect(historical.financialImpact).toContain('no longer included')
   })
 })

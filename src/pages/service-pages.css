@@ -508,8 +508,18 @@
 
 .request-detail-header > div { display: grid; gap: var(--ux4g-stack-xs); }
 .request-next-step,
-.request-timeline-section { display: grid; gap: var(--ux4g-stack-s); }
+.request-timeline-section,
+.request-rejection { display: grid; gap: var(--ux4g-stack-s); }
 .request-next-step > p { color: var(--ux4g-text-neutral-secondary); }
+.request-evidence-alert { max-width: var(--ux4g-container-md); }
+.request-latest-event { color: var(--ux4g-text-neutral-secondary); }
+.request-rejection { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); padding-block: var(--ux4g-padding-l); }
+.request-rejection dl { display: grid; gap: var(--ux4g-stack-s); }
+.request-rejection dl > div { display: grid; gap: var(--ux4g-stack-xs); }
+.request-rejection dt { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); }
+.request-rejection dd { font-weight: var(--ux4g-font-weight-semibold); }
+.request-rejection ul { display: grid; gap: var(--ux4g-stack-xs); margin: 0; padding-inline-start: var(--ux4g-padding-l); }
+.request-rejection > .ux4g-btn { justify-self: start; }
 
 .request-timeline { display: grid; list-style: none; }
 .request-timeline li { display: grid; gap: var(--ux4g-space-5); grid-template-columns: var(--ux4g-size-24) minmax(0, 1fr); min-height: var(--ux4g-size-80); position: relative; }
@@ -518,6 +528,7 @@
 .request-timeline-marker { background: var(--ux4g-bg-neutral-default); border: var(--ux4g-border-width-md) solid var(--ux4g-border-color-neutral-default); border-radius: var(--ux4g-radius-circular); height: var(--ux4g-size-24); position: relative; width: var(--ux4g-size-24); z-index: 1; }
 .request-timeline li.is-completed .request-timeline-marker { background: var(--ux4g-bg-primary-strong); border-color: var(--ux4g-border-color-primary-strong); }
 .request-timeline li.is-current .request-timeline-marker { border-color: var(--ux4g-border-color-primary-strong); }
+.request-timeline li.is-missing .request-timeline-marker { background: var(--ux4g-bg-neutral); border-color: var(--ux4g-border-color-warning-strong); }
 .request-timeline-heading time { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
 .request-timeline li p { color: var(--ux4g-text-neutral-secondary); margin-block-start: var(--ux4g-space-4); }
 

@@ -17,6 +17,7 @@ import {
   submitExit,
   updateMemberProfile,
   saveNominees,
+  prepareOrCheckExistingRequest,
   updateContact,
 } from './domain/state'
 import type { AccountState, GeneratedReport, Member, MemberRequest } from './domain/types'
@@ -256,7 +257,7 @@ export default function App() {
                 onManageNomination={() => { setAccountContext('nomination'); setSurface('account') }}
               />
             : surface === 'requests'
-              ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" />
+              ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" onCitizenAction={(request) => { setAccount((current) => prepareOrCheckExistingRequest(current, request.id, demoToday)); setAnnouncement({ tone: 'success', message: request.rejection ? 'Known details and evidence are prepared on this request.' : 'Existing request checked. No duplicate request was created.' }) }} />
               : surface === 'account'
                 ? <AccountPage
                     account={account}

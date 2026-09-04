@@ -1,4 +1,5 @@
 import { formatDate, formatMoney, formatWageMonth, reconcileMemberId, totalEpfBalance } from './calculations'
+import { deriveContributionResolution } from './contributionResolution'
 import type {
   AccountException,
   AccountState,
@@ -29,7 +30,7 @@ const requestEvents = (account: AccountState, requestId?: string): RecordIssueEv
 }
 
 const lastConfirmedRequestEvent = (events: RecordIssueEvent[]): RecordIssueEvent | undefined =>
-  [...events].reverse().find((event) => event.date !== null)
+  [...events].filter((event) => event.date !== null).sort((first, second) => (second.date ?? '').localeCompare(first.date ?? ''))[0]
 
 function unavailableIssue(exception: AccountException, type: RecordIssue['type'], missingRecord: string): RecordIssue {
   return {
@@ -56,7 +57,7 @@ function unavailableIssue(exception: AccountException, type: RecordIssue['type']
 function deriveTransferIssue(account: AccountState, exception: AccountException): RecordIssue {
   const source = account.employments.find((item) => item.id === exception.employmentId)
   const transfer = account.ledger.transfers
-    .filter((item) => item.fromMemberId === source?.memberId && item.amount === exception.amount)
+    .filter((item) => item.relatedRequestId === exception.relatedRequestId || (item.fromMemberId === source?.memberId && item.amount === exception.amount))
     .sort((first, second) => second.initiatedOn.localeCompare(first.initiatedOn))[0]
   const destination = account.employments.find((item) => item.memberId === transfer?.toMemberId)
     ?? account.employments.find((item) => item.status === 'current')
@@ -73,6 +74,7 @@ function deriveTransferIssue(account: AccountState, exception: AccountException)
     detail: transfer?.explanation ?? exception.explanation,
   }
   const status = issueStatus(exception, true)
+  const completed = transfer?.state === 'completed' || status === 'resolved'
   const responsibleParty = status === 'resolved' ? 'none' : (exception.currentResponsibleParty ?? 'epfo')
   const sourceBalance = reconcileMemberId(account, source.memberId).closingBalance
   const destinationBalance = reconcileMemberId(account, destination.memberId).closingBalance
@@ -88,7 +90,9 @@ function deriveTransferIssue(account: AccountState, exception: AccountException)
     id: exception.id,
     type: 'pending-transfer',
     status,
-    finding: exception.state === 'open'
+    finding: completed
+      ? `${formatMoney(amount)} was transferred from ${source.employer} and posted once to ${destination.employer}.`
+      : exception.state === 'open'
       ? `${formatMoney(amount)} is still recorded under ${source.employer} and is ready to transfer to ${destination.employer}.`
       : `${formatMoney(amount)} is still recorded under ${source.employer} while its transfer to ${destination.employer} is in progress.`,
     supportingRecords: [
@@ -99,7 +103,9 @@ function deriveTransferIssue(account: AccountState, exception: AccountException)
     ],
     affectedAmount: amount,
     affectedService: 'EPF transfer and pension-service continuity',
-    financialImpact: `${formatMoney(amount)} is included once in the recorded EPF balance under ${source.employer}. It has not also been added to ${destination.employer}.`,
+    financialImpact: completed
+      ? `${formatMoney(amount)} is no longer included under ${source.employer}; it is posted once under ${destination.employer}.`
+      : `${formatMoney(amount)} is included once in the recorded EPF balance under ${source.employer}. It has not also been added to ${destination.employer}.`,
     pensionServiceImpact: exception.pensionServiceImpact ?? 'The linked pension-service consequence is not available.',
     responsibleParty,
     responsiblePartyLabel: partyLabels[responsibleParty],
@@ -113,6 +119,9 @@ function deriveTransferIssue(account: AccountState, exception: AccountException)
       { label: `${destination.employer} recorded EPF`, amount: destinationBalance },
       { label: 'Total recorded EPF', amount: totalEpfBalance(account) },
     ],
+    identityRisk: transfer?.uanEvidence?.confirmation === 'confirmed' && transfer.uanEvidence.sourceUan !== transfer.uanEvidence.destinationUan
+      ? { label: 'Possible multiple-UAN record', explanation: transfer.uanEvidence.explanation }
+      : undefined,
   }
 }
 
@@ -122,6 +131,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
   if (!contribution || !employment) return unavailableIssue(exception, 'contribution-record', 'the linked contribution record')
 
   const request = account.requests.find((item) => item.id === exception.relatedRequestId)
+  const discrepancy = deriveContributionResolution(account, contribution.id)
   const status = issueStatus(exception, true)
   const responsibleParty = status === 'resolved' ? 'none' : (exception.currentResponsibleParty ?? (status === 'in-progress' ? 'epfo' : 'member'))
   const chronology = [
@@ -140,7 +150,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
     id: exception.id,
     type: 'contribution-record',
     status,
-    finding: `The employer EPF amount for ${formatWageMonth(contribution.wageMonth)} is not currently recorded.`,
+    finding: discrepancy?.categoryLabel ?? `The contribution for ${formatWageMonth(contribution.wageMonth)} needs review.`,
     supportingRecords: [
       { kind: 'employment', id: employment.id, label: 'Employer', value: `${employment.employer} · ${employment.memberId}` },
       { kind: 'contribution', id: contribution.id, label: 'Wage Month', value: formatWageMonth(contribution.wageMonth) },
@@ -148,6 +158,8 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
       { kind: 'contribution', id: contribution.id, label: 'Employee EPF', value: contribution.employeeEpf === null ? 'Not recorded' : formatMoney(contribution.employeeEpf) },
       { kind: 'contribution', id: contribution.id, label: 'Employer EPF', value: contribution.employerEpf === null ? 'Not recorded' : formatMoney(contribution.employerEpf) },
       { kind: 'contribution', id: contribution.id, label: 'EPS', value: contribution.eps === null ? 'Not recorded' : formatMoney(contribution.eps) },
+      ...(contribution.transactionReference ? [{ kind: 'contribution' as const, id: contribution.id, label: 'Transaction reference', value: contribution.transactionReference }] : []),
+      ...(contribution.expectedRecord ? [{ kind: 'contribution' as const, id: contribution.id, label: 'Expectation reference', value: contribution.expectedRecord.reference }] : []),
       ...(request ? [{ kind: 'request' as const, id: request.id, label: 'Review request', value: request.reference }] : []),
     ],
     affectedService: 'Monthly EPF contribution record',
@@ -167,6 +179,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
       ...(contribution.employerEpf === null ? [] : [{ label: 'Employer EPF recorded', amount: contribution.employerEpf }]),
       { label: 'EPF recorded for this wage month', amount: recordedEpf },
     ],
+    discrepancy,
   }
 }
 
