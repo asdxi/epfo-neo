@@ -118,7 +118,9 @@ export function deriveAttentionItems(account: AccountState): AttentionItem[] {
           : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${amount} remains under ${source?.employer ?? 'the previous Member ID'}.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
       }
       if (exception.kind === 'contribution-review') {
-        return { id: exception.id, priority: 'action-required', title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
+        const contribution = account.ledger.contributions.find((item) => item.id === exception.contributionId)
+        const month = contribution ? formatWageMonth(contribution.wageMonth).split(' ')[0] : ''
+        return { id: exception.id, priority: 'action-required', title: `${month} Contribution`.trim(), explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
       }
       const kycLabel = (exception.kycType ?? 'pan').toUpperCase()
       return { id: exception.id, priority: exception.state === 'in-progress' ? 'in-progress' : 'action-required', title: `${kycLabel} verification`, explanation: 'Not yet complete.', actionLabel: exception.state === 'in-progress' ? 'View Status' : `Verify ${kycLabel}`, route: 'account', contextId: exception.kycType }
@@ -160,6 +162,8 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
     employmentId: record.employmentId,
     type: 'contribution',
     amount: epfAmountForContribution(record),
+    employeeEpf: record.employeeEpf,
+    employerEpf: record.employerEpf,
     state: record.status,
     title: `Contribution for ${formatWageMonth(record.wageMonth)}`,
     explanation: record.explanation,
@@ -170,11 +174,6 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
   for (const credit of account.ledger.officialInterestCredits) {
     const employment = employmentForMemberId(account, credit.memberId)
     transactions.push({ id: credit.id, date: credit.creditedOn, memberId: credit.memberId, employmentId: employment.id, type: 'official-interest', amount: credit.amount, state: 'officially-credited', title: `Official Interest Credit ${credit.financialYear}`, explanation: 'This amount is an official ledger credit and is included in the EPF balance.', recordedDateExplanation: 'The date shown is the date of the official interest credit in this ledger.', needsAttention: false })
-  }
-
-  for (const estimate of account.ledger.estimatedInterestAccruals) {
-    const employment = employmentForMemberId(account, estimate.memberId)
-    transactions.push({ id: estimate.id, date: estimate.calculatedThrough, memberId: estimate.memberId, employmentId: employment.id, type: 'estimated-interest', amount: estimate.amount, state: 'estimate-not-credited', title: 'Estimated Interest Accrued', explanation: estimate.explanation, recordedDateExplanation: 'Calculated Through is an estimate date, not an official credit date.', needsAttention: false })
   }
 
   for (const transfer of account.ledger.transfers) {

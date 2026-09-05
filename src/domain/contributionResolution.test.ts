@@ -3,14 +3,14 @@ import { createInitialAccount } from './data'
 import { deriveContributionResolution } from './contributionResolution'
 
 describe('contribution discrepancy resolution', () => {
-  it('offers only the supported inconsistent-component category for June', () => {
-    const resolution = deriveContributionResolution(createInitialAccount(), 'vertex-2026-06')!
+  it('offers only the supported inconsistent-component category for August', () => {
+    const resolution = deriveContributionResolution(createInitialAccount(), 'vertex-2026-08')!
 
     expect(resolution.validCategories).toEqual(['inconsistent-epf-eps-component'])
     expect(resolution.recordedComponents).toContainEqual({ code: 'employer-epf', amount: null })
     expect(resolution.expectedComponents).toContainEqual({ code: 'employer-epf', amount: 550 })
     expect(resolution.missingComponents).toEqual(['employer-epf'])
-    expect(resolution.references).toEqual(['TXN-VTX-2026-06-0708', 'ECR-VTX-2026-06'])
+    expect(resolution.references).toEqual(['TXN-VTX-2026-08-0908', 'ECR-VTX-2026-08'])
     expect(resolution.preparedDescription).not.toMatch(/fraud|wrongdoing/i)
   })
 
@@ -24,7 +24,7 @@ describe('contribution discrepancy resolution', () => {
 
   it('derives missing, incorrect amount, wrong employer and wrong month only from explicit expectations', () => {
     const base = createInitialAccount()
-    const template = base.ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    const template = base.ledger.contributions.find((item) => item.id === 'vertex-2026-08')!
     const cases = [
       { id: 'missing', patch: { employeeEpf: null, employerEpf: null, eps: null }, category: 'missing-contribution' },
       { id: 'amount', patch: { employeeEpf: 1_700, employerEpf: 550, eps: 1_250 }, category: 'incorrect-amount' },

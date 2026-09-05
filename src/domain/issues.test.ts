@@ -31,7 +31,7 @@ describe('PF record issue derivation', () => {
     const account = createInitialAccount()
     const issue = transferIssue(account)
 
-    expect(totalEpfBalance(account)).toBe(482_650)
+    expect(totalEpfBalance(account)).toBe(487_350)
     expect(issue).toMatchObject({
       code: 'TRANSFER_IN_PROGRESS',
       ruleVersion: RECORD_ISSUE_RULE_VERSION,
@@ -53,17 +53,17 @@ describe('PF record issue derivation', () => {
       duplicateAmountInTotal: false,
       pensionServiceState: 'linked-employment-record',
     })
-    expect(issue.calculationTrail.map((line) => line.amount)).toEqual([38_450, 444_200, 482_650])
+    expect(issue.calculationTrail.map((line) => line.amount)).toEqual([38_450, 448_900, 487_350])
   })
 
-  it('keeps the June missing amount unavailable and EPS separate', () => {
+  it('keeps the August missing amount unavailable and EPS separate', () => {
     const issue = contributionIssue()
 
     expect(issue.code).toBe('CONTRIBUTION_COMPONENT_MISSING')
     expect(issue.facts).toMatchObject({
       kind: 'contribution',
-      wageMonth: '2026-06',
-      recordedOn: '2026-07-08',
+      wageMonth: '2026-08',
+      recordedOn: '2026-09-08',
       missingComponents: ['employer-epf'],
       knownRecordedEpf: 1_800,
     })
@@ -76,7 +76,7 @@ describe('PF record issue derivation', () => {
 
   it('does not convert an entirely missing EPF component set to zero', () => {
     const account = createInitialAccount()
-    const contribution = account.ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    const contribution = account.ledger.contributions.find((item) => item.id === 'vertex-2026-08')!
     contribution.employeeEpf = null
     contribution.employerEpf = null
     const issue = contributionIssue(account)
@@ -88,7 +88,7 @@ describe('PF record issue derivation', () => {
   it('moves the contribution issue to checking the same request when acknowledgement is missing', () => {
     const before = createInitialAccount()
     const serviceMonths = totalEpsServiceMonths(before)
-    const after = submitGrievance(before, { submittedOn: '2026-09-03', employmentId: 'vertex', contributionId: 'vertex-2026-06', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount shown as not recorded.' })
+    const after = submitGrievance(before, { submittedOn: '2026-09-08', employmentId: 'vertex', contributionId: 'vertex-2026-08', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount shown as not recorded.' })
     const issue = contributionIssue(after)
 
     expect(issue.code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
@@ -96,7 +96,7 @@ describe('PF record issue derivation', () => {
     expect(issue.responsiblePartyCode).toBe('member')
     expect(issue.action).toMatchObject({ availability: 'available', code: 'CHECK_EXISTING_ATTEMPT' })
     expect(issue.currentStage).toMatchObject({ code: 'SOURCE_EVENT', label: 'Grievance Portal Receipt' })
-    expect(totalEpfBalance(after)).toBe(482_650)
+    expect(totalEpfBalance(after)).toBe(487_350)
     expect(totalEpsServiceMonths(after)).toBe(serviceMonths)
   })
 
@@ -146,7 +146,7 @@ describe('PF record issue derivation', () => {
     expect(historical).toMatchObject({ code: 'TRANSFER_COMPLETED', status: 'resolved', responsiblePartyCode: 'none', actionCode: 'NO_ACTION_REQUIRED', currentStage: { code: 'COMPLETED' } })
     expect(historical.facts).toMatchObject({ kind: 'transfer', currentlyCountedUnderEmploymentId: 'vertex', addedToDestination: 'completed', duplicateAmountInTotal: false })
     expect(reconcileMemberId(completed, 'KA/HFI/0031849').closingBalance).toBe(0)
-    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(482_650)
+    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(487_350)
   })
 
   it.each([
@@ -173,6 +173,6 @@ describe('PF record issue derivation', () => {
 
     expect(second).toEqual(first)
     expect(account).toEqual(before)
-    expect(first.map((issue) => issue.sourceSnapshotAt)).toEqual(['2026-06-24', '2026-07-08'])
+    expect(first.map((issue) => issue.sourceSnapshotAt)).toEqual(['2026-06-24', '2026-09-08'])
   })
 })

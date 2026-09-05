@@ -66,12 +66,16 @@ const employments: Employment[] = [
     id: 'northstar',
     employer: 'Stark Industries',
     establishmentType: 'exempted-pf-trust',
-    memberId: 'DL/NST/0001842',
+    memberId: 'SDS/PF-TRUST/001842',
     joinedOn: '2018-08-01',
     exitedOn: '2019-06-30',
     status: 'transferred',
-    dataAvailability: 'partial',
-    dataAvailabilityNote: 'EPFO has the transfer total and a partial trust statement. The original month-by-month trust ledger is not available in this account.',
+    dataAvailability: 'complete',
+    pfAccounts: [
+      { entity: 'Stark Defence Systems', provider: 'exempted-pf-trust', accountNumber: 'SDS/PF-TRUST/001842' },
+      { entity: 'Stark IT Services', provider: 'epfo', accountNumber: 'DL/SIS/0027816' },
+      { entity: 'Stark Digital Platforms', provider: 'epfo', accountNumber: 'DL/SDP/0041903' },
+    ],
   },
   {
     id: 'bluekite',
@@ -126,10 +130,20 @@ const vertexContributions: ContributionRecord[] = [
   },
   {
     id: 'vertex-2026-06', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-06', recordedOn: '2026-07-08',
+    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+  },
+  {
+    id: 'vertex-2026-07', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-07', recordedOn: '2026-08-08',
+    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+  },
+  {
+    id: 'vertex-2026-08', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-08', recordedOn: '2026-09-08',
     pfWage: 15_000, employeeEpf: 1_800, employerEpf: null, eps: 1_250, status: 'amount-needs-review',
     explanation: 'The employer EPF amount is not currently recorded. This does not establish why the amount is missing.',
-    transactionReference: 'TXN-VTX-2026-06-0708',
-    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-06', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-06', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['June 2026 payslip or employer PF contribution statement'] },
+    transactionReference: 'TXN-VTX-2026-08-0908',
+    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-08', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-08', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['August 2026 payslip or employer PF contribution statement'] },
   },
 ]
 
@@ -144,7 +158,7 @@ const officialInterestCredits: InterestCredit[] = [
 ]
 
 export const initialAccount: AccountState = {
-  version: 3,
+  version: 4,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -194,7 +208,7 @@ export const initialAccount: AccountState = {
   },
   exceptions: [
     { id: 'exception-previous-balance', kind: 'previous-balance', state: 'in-progress', title: 'Previous PF Balance Transfer Is in Progress', explanation: '₹38,450 remains under Waystar Royco while the transfer is processed.', amount: 38_450, employmentId: harbor.id, relatedRequestId: 'request-transfer-2026', currentResponsibleParty: 'epfo', pensionServiceState: 'linked-employment-record', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-06-24', sourceRecordReferences: [{ kind: 'employment', id: harbor.id }, { kind: 'employment', id: vertex.id }, { kind: 'transfer', id: 'transfer-harbor-vertex-2026-06-18' }, { kind: 'request', id: 'request-transfer-2026' }] } },
-    { id: 'exception-june-contribution', kind: 'contribution-review', state: 'open', title: 'June Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-06', employmentId: vertex.id, currentResponsibleParty: 'member', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-07-08', sourceRecordReferences: [{ kind: 'employment', id: vertex.id }, { kind: 'contribution', id: 'vertex-2026-06' }] } },
+    { id: 'exception-august-contribution', kind: 'contribution-review', state: 'open', title: 'August Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-08', employmentId: vertex.id, currentResponsibleParty: 'member', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-09-08', sourceRecordReferences: [{ kind: 'employment', id: vertex.id }, { kind: 'contribution', id: 'vertex-2026-08' }] } },
     { id: 'exception-pan', kind: 'kyc-review', state: 'open', title: 'PAN Verification Is Incomplete', explanation: 'Complete PAN verification to keep your account information ready.', kycType: 'pan' },
   ],
   requests: [

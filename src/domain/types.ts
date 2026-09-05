@@ -80,6 +80,11 @@ export interface Employment {
   status: EmploymentStatus
   dataAvailability: DataAvailability
   dataAvailabilityNote?: string
+  pfAccounts?: Array<{
+    entity: string
+    provider: EstablishmentType
+    accountNumber: string
+  }>
 }
 
 export interface EmploymentGap {
@@ -389,7 +394,7 @@ export interface Ledger {
 }
 
 export interface AccountState {
-  version: 3
+  version: 4
   member: Member
   kyc: KycRecord[]
   employments: Employment[]
@@ -456,6 +461,8 @@ export interface LedgerTransaction {
   employmentId: string
   type: 'contribution' | 'official-interest' | 'estimated-interest' | 'transfer-in' | 'transfer-out' | 'withdrawal'
   amount: Money | null
+  employeeEpf?: Money | null
+  employerEpf?: Money | null
   state: string
   title: string
   explanation: string

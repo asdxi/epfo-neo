@@ -102,7 +102,7 @@ describe('v0.2 application surfaces', () => {
   it('renders the decision-oriented home workspace from reconciled account data', () => {
     const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
-    expect(html).toContain('₹4,82,650')
+    expect(html).toContain('₹4,87,350')
     expect(html).toContain('EPS')
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
     expect(html).toContain('Pied Piper')
@@ -148,21 +148,27 @@ describe('v0.2 application surfaces', () => {
     expect(home).not.toContain('balance-calculation-dialog')
     expect(passbook).toContain('class="ux4g-btn ux4g-btn-text-primary ux4g-btn-md passbook-calculation-link"')
     expect(passbook).toContain('id="balance-composition-title">How This Is Calculated</h2>')
+    expect(passbook).toContain('Interest Credited')
+    expect(passbook).toContain('PF received from earlier Member IDs.')
+    expect(passbook).toContain('PF moved to later Member IDs.')
+    expect(passbook).toContain('Pension Service</dt><dd>6 years 5 months')
+    expect(passbook).toContain('To Reach 10 Years</dt><dd>3 years 7 months more')
+    expect(passbook).toContain('Normal Pension Age</dt><dd>58 · 14 November 2051')
     expect(passbook).not.toContain('financial-explanation')
   })
 
   it('opens a home contribution in the filtered transaction ledger', async () => {
-    window.history.replaceState(null, '', '/passbook?view=transactions&employer=vertex&type=contribution&period=6-months&load=1&highlight=vertex-2026-06')
+    window.history.replaceState(null, '', '/passbook?view=transactions&employer=vertex&type=contribution&period=6-months&load=1&highlight=vertex-2026-08')
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
-    await act(async () => root.render(<PassbookPage account={createInitialAccount()} initialContextId="vertex-2026-06" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />))
+    await act(async () => root.render(<PassbookPage account={createInitialAccount()} initialContextId="vertex-2026-08" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />))
 
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Transactions')
     expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:first-child select')?.value).toBe('vertex')
     expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:nth-child(2) select')?.value).toBe('contribution')
-    expect(container.querySelector('#transaction-vertex-2026-06')?.classList.contains('context-target-highlight')).toBe(true)
-    expect(container.querySelector('#transaction-vertex-2026-06')?.textContent).toContain('Contribution for June 2026')
+    expect(container.querySelector('#transaction-vertex-2026-08')?.classList.contains('context-target-highlight')).toBe(true)
+    expect(container.querySelector('#transaction-vertex-2026-08')?.textContent).toContain('Contribution for August 2026')
 
     await act(async () => root.unmount())
     container.remove()
@@ -171,7 +177,7 @@ describe('v0.2 application surfaces', () => {
 
   it('renders missing contribution components as missing while preserving an explicit zero', () => {
     const account = createInitialAccount()
-    const latest = account.ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    const latest = account.ledger.contributions.find((item) => item.id === 'vertex-2026-08')!
     latest.employeeEpf = null
     latest.employerEpf = 0
     latest.eps = null
@@ -200,7 +206,7 @@ describe('v0.2 application surfaces', () => {
     expect(container.textContent).toContain('Responsible PartyEPFO')
     expect(container.textContent).toContain('Balance TreatmentCurrently Counted UnderWaystar RoycoAdded to Pied PiperAfter CompletionDuplicate Amount in TotalNo')
     expect(container.textContent).toContain('Pension ServiceStateLinked Employment Record IncludedEPS is a service record. It is not transferred as cash.')
-    expect(container.textContent).toContain('EmployerPied PiperWage MonthJune 2026Recorded On8 July 2026Missing AmountEmployer EPF')
+    expect(container.textContent).toContain('EmployerPied PiperWage MonthAugust 2026Recorded On8 September 2026Missing AmountEmployer EPF')
     expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800Employer EPF₹550EPS₹1,250')
     expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800Employer EPFNot RecordedEPS₹1,250')
     expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')
@@ -216,7 +222,7 @@ describe('v0.2 application surfaces', () => {
     await clickButton('Track Transfer')
     expect(trackRequest).toHaveBeenCalledWith('request-transfer-2026')
     await clickButton('Request Review')
-    expect(raiseGrievance).toHaveBeenCalledWith(expect.objectContaining({ id: 'vertex-2026-06' }))
+    expect(raiseGrievance).toHaveBeenCalledWith(expect.objectContaining({ id: 'vertex-2026-08' }))
 
     await act(async () => root.unmount())
     container.remove()
@@ -254,7 +260,7 @@ describe('v0.2 application surfaces', () => {
     expect(html).not.toContain('Waystar Royco')
     expect(html).toContain('Employer EPF')
     expect(html).toContain('Employee EPF')
-    expect(html).toContain('Employer EPF: Not Recorded')
+    expect(html).toContain('Employer EPF</span><strong><span class="record-missing-value">Not Recorded</span>')
     expect(html).toContain('EPS')
     expect(html).not.toContain('Generate Statement')
     expect(html).not.toContain('Contributions</button>')
@@ -272,6 +278,28 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('Dunder Mifflin Paper Co.')
     expect(html).toContain('Transfer Completed')
     expect(html).not.toContain('No Transfer Needed')
+
+    const stark = renderToStaticMarkup(
+      <PassbookPage account={createInitialAccount()} initialView="employers" initialContextId="northstar" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    )
+    expect(stark).toContain('Stark Defence Systems')
+    expect(stark).toContain('SDS/PF-TRUST/001842')
+    expect(stark).toContain('Stark IT Services')
+    expect(stark).toContain('Stark Digital Platforms')
+    expect(stark).not.toContain('Historical Data Is Partial')
+    expect(stark).toContain('Closing Balance: ₹0')
+  })
+
+  it('uses member-facing transaction filters and contribution breakup columns', () => {
+    const html = renderToStaticMarkup(
+      <PassbookPage account={createInitialAccount()} initialView="transactions" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    )
+
+    expect(html).toContain('<option value="official-interest">Interest Credit</option>')
+    expect(html).toContain('<option value="transfers">Transfers</option>')
+    expect(html).not.toContain('<option value="estimated-interest">')
+    expect(html).not.toContain('<option value="transfer-in">')
+    expect(html).not.toContain('<option value="transfer-out">')
   })
 
   it('disables transaction download only when a custom range is incomplete', async () => {
@@ -314,7 +342,7 @@ describe('v0.2 application surfaces', () => {
     })
     await act(async () => container.querySelector<HTMLButtonElement>('.transaction-actions .ux4g-btn-primary')?.click())
 
-    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Amount'])
+    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Employee EPF', 'Employer EPF', 'Total'])
     expect(container.querySelectorAll('.transaction-table tbody tr')).toHaveLength(10)
     expect(container.querySelector('.transaction-pagination')?.textContent).toContain('Next')
     expect(container.querySelector('.transaction-pagination-summary')?.textContent).toContain('Showing 1–10')
@@ -437,13 +465,13 @@ describe('v0.2 application surfaces', () => {
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
-    await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-06" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
+    await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-08" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
 
     await clickButton('Continue')
-    expect(container.textContent).toContain('Wage MonthJune 2026')
+    expect(container.textContent).toContain('Wage MonthAugust 2026')
     expect(container.textContent).toContain('Employer PF Not Recorded')
     expect(container.querySelector<HTMLInputElement>('#grievance-support')?.value).toContain('Employer contribution record')
-    expect(container.textContent).not.toContain('TXN-VTX-2026-06-0708')
+    expect(container.textContent).not.toContain('TXN-VTX-2026-08-0908')
     expect(container.textContent).not.toContain('Transfer Delay')
     expect(container.querySelector<HTMLSelectElement>('#grievance-category')?.disabled).toBe(true)
 
@@ -681,7 +709,7 @@ describe('v0.2 application surfaces', () => {
         account={account}
         initialService="grievance"
         initialEmploymentId="vertex"
-        initialContributionId="vertex-2026-06"
+        initialContributionId="vertex-2026-08"
         onSubmitTransfer={noop}
         onSubmitClaim={noop}
         onSubmitPanVerification={noop}
@@ -702,7 +730,7 @@ describe('v0.2 application surfaces', () => {
 
     expect(container.textContent).toContain('Grievance Attempt Saved')
     expect(container.textContent).toContain('Request ID')
-    expect(account.requests.find((request) => request.contributionId === 'vertex-2026-06')?.reference).toMatch(/^GRV-/)
+    expect(account.requests.find((request) => request.contributionId === 'vertex-2026-08')?.reference).toMatch(/^GRV-/)
     await act(async () => root.unmount())
     container.remove()
   })

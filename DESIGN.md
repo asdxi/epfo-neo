@@ -280,6 +280,16 @@ keeping UX4G components as the default whenever they genuinely fit.
   tabular numerals. It renders one column on mobile, two on intermediate widths
   and six compact columns on wide screens. Full synthetic ledger data remains available to
   the explicitly requested transaction view and its filtered download.
+- **Consolidated Employer PF Accounts:** One employer journey may contain several
+  legal entities and PF accounts. Passbook keeps one employer-level summary and
+  lists every recorded PF Trust or EPFO account beneath it, so organisational
+  movements do not appear as unrelated employers. Employer totals remain derived
+  from the ledger; account labels and identifiers do not alter financial truth.
+- **Passbook Pension Eligibility Summary:** The EPS information alert keeps
+  pension service separate from EPF cash and shows progress toward 10 years of
+  eligible service plus the member's normal pension date at age 58. It also
+  names reduced pension from age 50 only as a conditional route after leaving
+  employment; the interface does not claim that age alone establishes eligibility.
 - **On-demand Transaction Results:** Detailed ledger rows remain hidden until a
   member chooses filters and requests results. The application-owned compact
   list shows at most twelve matching entries with employer, recorded date, type

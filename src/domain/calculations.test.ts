@@ -28,14 +28,14 @@ const createTransferEligibleAccount = () => {
 describe('v0.2 financial reconciliation', () => {
   it('reconciles the headline balance from the underlying ledger', () => {
     const account = createInitialAccount()
-    expect(totalEpfBalance(account)).toBe(482_650)
-    expect(accountReconciliation(account).closingBalance).toBe(482_650)
+    expect(totalEpfBalance(account)).toBe(487_350)
+    expect(accountReconciliation(account).closingBalance).toBe(487_350)
   })
 
   it('reconciles every employer total with its Member ID transactions', () => {
     const account = createInitialAccount()
     const summaries = employerSummaries(account)
-    expect(summaries.map((item) => item.closingBalance)).toEqual([0, 0, 38_450, 444_200])
+    expect(summaries.map((item) => item.closingBalance)).toEqual([0, 0, 38_450, 448_900])
     for (const summary of summaries) {
       expect(summary).toMatchObject(reconcileMemberId(account, summary.employment.memberId))
       expect(summary.closingBalance).toBeGreaterThanOrEqual(0)
@@ -45,11 +45,11 @@ describe('v0.2 financial reconciliation', () => {
   it('keeps employee EPF, employer EPF and EPS separate', () => {
     const account = createInitialAccount()
     const reconciliation = accountReconciliation(account)
-    expect(reconciliation.employeeContributions).toBe(310_200)
-    expect(reconciliation.employerEpfContributions).toBe(94_233)
-    expect(totalEpsContributions(account)).toBe(93_750)
-    expect(totalEpsServiceMonths(account)).toBe(75)
-    expect(totalEpfBalance(account)).not.toBe(482_650 + 93_750)
+    expect(reconciliation.employeeContributions).toBe(313_800)
+    expect(reconciliation.employerEpfContributions).toBe(95_333)
+    expect(totalEpsContributions(account)).toBe(96_250)
+    expect(totalEpsServiceMonths(account)).toBe(77)
+    expect(totalEpfBalance(account)).not.toBe(487_350 + 96_250)
   })
 
   it('moves completed transfers without creating money', () => {
@@ -76,8 +76,8 @@ describe('v0.2 financial reconciliation', () => {
     const completed = completeTransferResolution(before, 'transfer-harbor-vertex-2026-06-18', '2026-09-04')
 
     expect(reconcileMemberId(completed, 'KA/HFI/0031849').closingBalance).toBe(0)
-    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(482_650)
-    expect(totalEpfBalance(completed)).toBe(482_650)
+    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(487_350)
+    expect(totalEpfBalance(completed)).toBe(487_350)
     expect(completed.requests.find((request) => request.id === 'request-transfer-2026')?.state).toBe('completed')
   })
 
@@ -87,7 +87,7 @@ describe('v0.2 financial reconciliation', () => {
     expect(reconciliation.withdrawals).toBe(45_000)
     expect(reconciliation.officialInterestCredits).toBe(123_217)
     expect(account.ledger.estimatedInterestAccruals[0].amount).toBe(6_480)
-    expect(totalEpfBalance(account)).toBe(482_650)
+    expect(totalEpfBalance(account)).toBe(487_350)
   })
 })
 
@@ -100,7 +100,7 @@ describe('record integrity and validation', () => {
   })
 
   it('surfaces a contribution with an unavailable employer EPF amount', () => {
-    const record = createInitialAccount().ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    const record = createInitialAccount().ledger.contributions.find((item) => item.id === 'vertex-2026-08')!
     expect(record.employerEpf).toBeNull()
     expect(record.status).toBe('amount-needs-review')
     expect(contributionIsReconciled(record)).toBe(false)
@@ -124,7 +124,7 @@ describe('derived attention and connected request state', () => {
     expect(attention).toHaveLength(3)
     expect(attention.filter((item) => item.priority === 'action-required')).toHaveLength(2)
     expect(attention.map((item) => item.title)).toContain('Previous PF Transfer')
-    expect(attention).toContainEqual(expect.objectContaining({ title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.' }))
+    expect(attention).toContainEqual(expect.objectContaining({ title: 'August Contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.' }))
   })
 
   it('creates a transfer request and updates the related attention surface', () => {
@@ -137,10 +137,10 @@ describe('derived attention and connected request state', () => {
   })
 
   it('creates and transitions a contribution grievance', () => {
-    const account = submitGrievance(createInitialAccount(), { submittedOn: '2026-08-28', employmentId: 'vertex', contributionId: 'vertex-2026-06', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount.' })
-    const grievance = account.requests.find((item) => item.contributionId === 'vertex-2026-06')!
+    const account = submitGrievance(createInitialAccount(), { submittedOn: '2026-09-08', employmentId: 'vertex', contributionId: 'vertex-2026-08', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount.' })
+    const grievance = account.requests.find((item) => item.contributionId === 'vertex-2026-08')!
     expect(grievance.reference).toMatch(/^GRV-/)
-    expect(account.exceptions.find((item) => item.contributionId === 'vertex-2026-06')?.state).toBe('in-progress')
+    expect(account.exceptions.find((item) => item.contributionId === 'vertex-2026-08')?.state).toBe('in-progress')
     expect(transitionRequest(account, grievance.id, 'in-progress', '2026-08-29').requests.find((item) => item.id === grievance.id)?.state).toBe('in-progress')
   })
 
@@ -190,10 +190,10 @@ describe('derived attention and connected request state', () => {
     expect(loaded.exceptions.find((item) => item.kind === 'previous-balance')?.issueSnapshot).toMatchObject({ ruleVersion: 'record-issue-rules/1.0.0', sourceSnapshotAt: '2026-08-28' })
     expect(deriveRecordIssues(loaded)[0].code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
     stored = '{invalid json'
-    expect(loadPersistedAccount(storage).version).toBe(3)
+    expect(loadPersistedAccount(storage).version).toBe(4)
   })
 
-  it('hydrates incomplete version 3 saved accounts before rendering', () => {
+  it('hydrates incomplete version 4 saved accounts before rendering', () => {
     const account = createInitialAccount()
     const incomplete = structuredClone(account) as Partial<typeof account>
     delete (incomplete.member as Partial<typeof account.member>).email
@@ -233,7 +233,7 @@ describe('derived attention and connected request state', () => {
 
     clearPersistedAccount(storage)
     const reset = loadPersistedAccount(storage)
-    expect(totalEpfBalance(reset)).toBe(482_650)
+    expect(totalEpfBalance(reset)).toBe(487_350)
     expect(deriveRecordIssues(reset).map((issue) => issue.code)).toEqual(['TRANSFER_IN_PROGRESS', 'CONTRIBUTION_COMPONENT_MISSING'])
   })
 
