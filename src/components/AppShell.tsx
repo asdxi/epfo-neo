@@ -35,6 +35,7 @@ export interface AppShellProps {
   onOpenTerms?: () => void
   onOpenPrivacy?: () => void
   onResetDemo?: () => void
+  breadcrumbs?: Array<{ label: string; href?: string; onClick?: () => void }>
 }
 
 export function AppShell({
@@ -46,6 +47,7 @@ export function AppShell({
   onOpenTerms,
   onOpenPrivacy,
   onResetDemo,
+  breadcrumbs,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -252,16 +254,19 @@ export function AppShell({
       </div>
 
       <dialog ref={signOutDialogRef} className="sign-out-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description">
-        <div><h2 id="sign-out-title">Sign out?</h2><p id="sign-out-description">Are you sure you want to sign out of EPFO Neo?</p></div>
+        <div><h2 id="sign-out-title">Sign Out?</h2><p id="sign-out-description">Are you sure you want to sign out?</p></div>
         <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => signOutDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={confirmSignOut}>Sign Out</button></div>
       </dialog>
 
       <dialog ref={resetDemoDialogRef} className="sign-out-dialog reset-demo-dialog" aria-labelledby="reset-demo-title" aria-describedby="reset-demo-description">
-        <div><h2 id="reset-demo-title">Reset demo?</h2><p id="reset-demo-description">This will discard all saved demo changes and sign you out. You will start again with the original account data.</p></div>
+        <div><h2 id="reset-demo-title">Reset Demo?</h2><p id="reset-demo-description">This will discard all saved demo changes and sign you out. You will start again with the original account data.</p></div>
         <div className="sign-out-dialog-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => resetDemoDialogRef.current?.close()}>Cancel</button><button className="ux4g-btn ux4g-btn-danger ux4g-btn-md" type="button" onClick={confirmResetDemo}>Reset Demo</button></div>
       </dialog>
 
-      <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
+      <main id="main-content" className="app-main" tabIndex={-1}>
+        {breadcrumbs && breadcrumbs.length > 0 && <nav className="ux4g-breadcrumb ux4g-breadcrumb-divider app-breadcrumb" aria-label="Breadcrumb"><ol>{breadcrumbs.map((item, index) => <li key={item.label}>{item.href && item.onClick ? <a href={item.href} onClick={(event) => { event.preventDefault(); item.onClick?.() }}>{item.label}</a> : <span aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{item.label}</span>}</li>)}</ol></nav>}
+        {children}
+      </main>
 
       {hasFooterLinks && (
         <footer className="app-footer ux4g-footer-primary">

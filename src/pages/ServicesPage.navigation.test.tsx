@@ -33,7 +33,7 @@ describe('Services page navigation', () => {
     ))
 
     expect(container.textContent).toContain('Choose a service to see what you need and what happens next.')
-    expect(container.textContent).toContain('Manage nomination in Account')
+    expect(container.textContent).toContain('Manage Nomination in Account')
     expect(container.textContent).toContain('Add or update nominee details and confirm how the total share is divided.')
     expect(container.textContent).not.toContain('Balance ready to move')
     expect(container.textContent).not.toContain('Contribution support')
@@ -49,7 +49,7 @@ describe('Services page navigation', () => {
     const action = correctionItem?.querySelector('button')
     await act(async () => action?.click())
 
-    expect(pushState).toHaveBeenCalledWith(expect.objectContaining({ epfoService: 'correction' }), '')
+    expect(pushState).toHaveBeenCalledWith(expect.objectContaining({ epfoService: 'correction' }), '', '/services?service=correction')
     expect(container.textContent).toContain('Correct a Recorded Employment Detail')
     expect(container.querySelector('.ux4g-breadcrumb')).toBeNull()
     expect(container.textContent).not.toContain('Member service')

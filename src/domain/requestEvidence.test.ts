@@ -9,9 +9,9 @@ describe('request evidence continuity', () => {
     const attempted = account.requests.find((request) => request.id === 'request-correction-2026')!
     const acknowledged = account.requests.find((request) => request.id === 'request-transfer-2026')!
 
-    expect(requestStateLabel(attempted)).toBe('Submitted · receipt not confirmed')
+    expect(requestStateLabel(attempted)).toBe('Submitted · Receipt Not Confirmed')
     expect(requestEvidenceSummary(attempted).firstMissingAcknowledgement?.kind).toBe('channel-receipt')
-    expect(requestStateLabel(acknowledged)).toBe('Being processed')
+    expect(requestStateLabel(acknowledged)).toBe('Being Processed')
     expect(requestEvidenceSummary(acknowledged).latestConfirmedEvent?.label).toBe('Employment Record Verification')
   })
 

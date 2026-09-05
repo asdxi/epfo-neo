@@ -5,6 +5,7 @@ import type {
   InterestCredit,
   Money,
 } from './types'
+import { RECORD_ISSUE_RULE_VERSION } from './issues'
 import defaultProfilePhoto from '../assets/ade4f4eb-8a5e-4290-b28f-f12b5db4ebb9.png'
 
 const monthsBetween = (first: string, last: string): string[] => {
@@ -63,7 +64,7 @@ const contributionSeries = (
 const employments: Employment[] = [
   {
     id: 'northstar',
-    employer: 'Northstar Consumer Technologies',
+    employer: 'Stark Industries',
     establishmentType: 'exempted-pf-trust',
     memberId: 'DL/NST/0001842',
     joinedOn: '2018-08-01',
@@ -74,7 +75,7 @@ const employments: Employment[] = [
   },
   {
     id: 'bluekite',
-    employer: 'BlueKite Digital Services',
+    employer: 'Dunder Mifflin Paper Co.',
     establishmentType: 'epfo',
     memberId: 'DL/BLK/0019274',
     joinedOn: '2019-07-01',
@@ -84,7 +85,7 @@ const employments: Employment[] = [
   },
   {
     id: 'harbor',
-    employer: 'Harbor Foods India',
+    employer: 'Waystar Royco',
     establishmentType: 'epfo',
     memberId: 'KA/HFI/0031849',
     joinedOn: '2023-01-01',
@@ -94,7 +95,7 @@ const employments: Employment[] = [
   },
   {
     id: 'vertex',
-    employer: 'Vertex Mobility',
+    employer: 'Pied Piper',
     establishmentType: 'epfo',
     memberId: 'KA/VTX/0048291',
     joinedOn: '2026-03-01',
@@ -116,7 +117,7 @@ const vertexContributions: ContributionRecord[] = [
     pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-late',
     explanation: 'This contribution is complete. It was recorded later than the usual date for this account.',
     transactionReference: 'TXN-VTX-2026-04-0512',
-    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-04', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record received by Neo', reference: 'ECR-VTX-2026-04', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: [] },
+    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-04', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-04', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: [] },
   },
   {
     id: 'vertex-2026-05', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-05', recordedOn: '2026-06-08',
@@ -128,7 +129,7 @@ const vertexContributions: ContributionRecord[] = [
     pfWage: 15_000, employeeEpf: 1_800, employerEpf: null, eps: 1_250, status: 'amount-needs-review',
     explanation: 'The employer EPF amount is not currently recorded. This does not establish why the amount is missing.',
     transactionReference: 'TXN-VTX-2026-06-0708',
-    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-06', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record received by Neo', reference: 'ECR-VTX-2026-06', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['June 2026 payslip or employer PF contribution statement'] },
+    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-06', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-06', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['June 2026 payslip or employer PF contribution statement'] },
   },
 ]
 
@@ -170,7 +171,7 @@ export const initialAccount: AccountState = {
     { type: 'bank', state: 'verified', maskedValue: '•••• 7314', updatedOn: '2026-03-02', explanation: 'This bank account is verified for online services.' },
   ],
   employments,
-  employmentGaps: [{ startsOn: '2024-07-01', endsOn: '2026-02-28', label: 'No EPF-covered employment recorded' }],
+  employmentGaps: [{ startsOn: '2024-07-01', endsOn: '2026-02-28', label: 'No EPF-Covered Employment Recorded' }],
   ledger: {
     contributions: [
       ...contributionSeries(northstar, '2018-08', '2019-06', 27_000, 8_250, 13_750),
@@ -186,14 +187,14 @@ export const initialAccount: AccountState = {
     transfers: [
       { id: 'transfer-northstar-bluekite', fromMemberId: northstar.memberId, toMemberId: bluekite.memberId, amount: 42_780, initiatedOn: '2019-07-05', completedOn: '2019-07-24', state: 'completed', source: 'exempted-pf-trust', explanation: 'The PF trust transferred the recorded closing balance to the EPFO-linked Member ID.' },
       { id: 'transfer-bluekite-harbor', fromMemberId: bluekite.memberId, toMemberId: harbor.memberId, amount: 243_920, initiatedOn: '2023-01-09', completedOn: '2023-01-28', state: 'completed', source: 'epfo', explanation: 'The previous EPF balance moved to the next Member ID. This did not create a new contribution.' },
-      { id: 'transfer-harbor-vertex-partial', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 435_350, initiatedOn: '2026-03-08', completedOn: '2026-04-01', state: 'completed', source: 'epfo', explanation: 'Part of the Harbor Foods India balance was transferred to the current Member ID.' },
-      { id: 'transfer-harbor-vertex-2026-06-18', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 38_450, initiatedOn: '2026-06-18', state: 'submitted', source: 'epfo', relatedRequestId: 'request-transfer-2026', explanation: 'This transfer is in employment record verification. The balance remains under the previous Member ID until completion.' },
+      { id: 'transfer-harbor-vertex-partial', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 435_350, initiatedOn: '2026-03-08', completedOn: '2026-04-01', state: 'completed', source: 'epfo', explanation: 'Part of the Waystar Royco balance was transferred to the current Member ID.' },
+      { id: 'transfer-harbor-vertex-2026-06-18', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 38_450, initiatedOn: '2026-06-18', state: 'submitted', source: 'epfo', relatedRequestId: 'request-transfer-2026', pensionServiceState: 'linked-employment-record', explanation: 'This transfer is in employment record verification. The balance remains under the previous Member ID until completion.' },
     ],
     withdrawals: [{ id: 'withdrawal-bluekite-2022', memberId: bluekite.memberId, claimReference: 'CLM-2022-18421', processedOn: '2022-08-19', amount: 45_000, state: 'completed', explanation: 'A completed partial withdrawal reduced this Member ID balance.' }],
   },
   exceptions: [
-    { id: 'exception-previous-balance', kind: 'previous-balance', state: 'in-progress', title: 'Previous PF Balance Transfer Is in Progress', explanation: '₹38,450 remains under Harbor Foods India while the transfer is processed.', amount: 38_450, employmentId: harbor.id, relatedRequestId: 'request-transfer-2026', currentResponsibleParty: 'epfo', pensionServiceImpact: 'The transfer also carries the linked employment record used to confirm pension-service continuity. EPS remains a service record and is not transferred or added as cash.' },
-    { id: 'exception-june-contribution', kind: 'contribution-review', state: 'open', title: 'June Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-06', employmentId: vertex.id, currentResponsibleParty: 'member', pensionServiceImpact: 'The EPS entry is recorded for this wage month and remains separate from EPF.' },
+    { id: 'exception-previous-balance', kind: 'previous-balance', state: 'in-progress', title: 'Previous PF Balance Transfer Is in Progress', explanation: '₹38,450 remains under Waystar Royco while the transfer is processed.', amount: 38_450, employmentId: harbor.id, relatedRequestId: 'request-transfer-2026', currentResponsibleParty: 'epfo', pensionServiceState: 'linked-employment-record', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-06-24', sourceRecordReferences: [{ kind: 'employment', id: harbor.id }, { kind: 'employment', id: vertex.id }, { kind: 'transfer', id: 'transfer-harbor-vertex-2026-06-18' }, { kind: 'request', id: 'request-transfer-2026' }] } },
+    { id: 'exception-june-contribution', kind: 'contribution-review', state: 'open', title: 'June Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-06', employmentId: vertex.id, currentResponsibleParty: 'member', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-07-08', sourceRecordReferences: [{ kind: 'employment', id: vertex.id }, { kind: 'contribution', id: 'vertex-2026-06' }] } },
     { id: 'exception-pan', kind: 'kyc-review', state: 'open', title: 'PAN Verification Is Incomplete', explanation: 'Complete PAN verification to keep your account information ready.', kycType: 'pan' },
   ],
   requests: [
@@ -202,22 +203,22 @@ export const initialAccount: AccountState = {
       nextExpectedStep: 'EPFO will verify the previous employment record and process the transfer.',
       channel: 'Member portal', externalReference: 'TRF-2026-004512', currentResponsibleParty: 'epfo',
       timeline: [
-        { id: 'transfer-attempt-2026', label: 'Submitted from Neo', date: '2026-06-18', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
-        { id: 'transfer-received-2026', label: 'Received by member portal', date: '2026-06-18', state: 'completed', kind: 'channel-receipt', confirmation: 'confirmed', party: 'portal', channel: 'Member portal', reference: 'TRF-2026-004512' },
+        { id: 'transfer-attempt-2026', label: 'Submission Attempted', date: '2026-06-18', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+        { id: 'transfer-received-2026', label: 'Received by Member Portal', date: '2026-06-18', state: 'completed', kind: 'channel-receipt', confirmation: 'confirmed', party: 'portal', channel: 'Member Portal', reference: 'TRF-2026-004512' },
         { id: 'transfer-acknowledged-2026', label: 'Acknowledged by EPFO', date: '2026-06-18', state: 'completed', kind: 'epfo-acknowledgement', confirmation: 'confirmed', party: 'epfo', reference: 'TRF-2026-004512' },
         { id: 'transfer-verification-2026', label: 'Employment Record Verification', date: '2026-06-24', state: 'current', kind: 'responsible-party-assignment', confirmation: 'confirmed', party: 'epfo', explanation: 'Assigned to EPFO, which is currently responsible for the next confirmed step.' },
-        { id: 'transfer-processing-2026', label: 'Transfer processing', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
+        { id: 'transfer-processing-2026', label: 'Transfer Processing', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
       ],
     },
     {
       id: 'request-correction-2026', type: 'correction', service: 'Correct Employment Records', reference: 'COR-2026-001173', title: 'Date of Exit Correction', state: 'submitted', submittedOn: '2026-06-22', updatedOn: '2026-06-22', employmentId: harbor.id,
-      nextExpectedStep: 'Neo recorded the submission attempt, but a portal receipt has not been confirmed. Check the existing attempt before trying again.',
+      nextExpectedStep: 'A portal receipt has not been confirmed. Check the existing attempt before trying again.',
       channel: 'Member portal', currentResponsibleParty: 'member', citizenAction: 'Check whether the member portal issued a receipt. This will not create another request.',
       timeline: [
-        { id: 'correction-submitted-2026', label: 'Submitted from Neo', date: '2026-06-22', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
-        { id: 'correction-receipt-2026', label: 'Member portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member portal' },
-        { id: 'correction-ack-2026', label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
-        { id: 'correction-employer-review-2026', label: 'Employer review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
+        { id: 'correction-submitted-2026', label: 'Submission Attempted', date: '2026-06-22', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+        { id: 'correction-receipt-2026', label: 'Member Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member Portal' },
+        { id: 'correction-ack-2026', label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+        { id: 'correction-employer-review-2026', label: 'Employer Review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
       ],
     },
     {

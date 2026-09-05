@@ -28,6 +28,7 @@ import { PassbookPage, type PassbookView, type StatementRequest } from './pages/
 import { RequestsPage } from './pages/RequestsPage'
 import { RecordReviewPage } from './pages/RecordReviewPage'
 import { ServicesPage, type ServiceId } from './pages/ServicesPage'
+import { contributionPassbookUrl, parsePortalLocation, portalUrl, type PortalLocation } from './navigation'
 
 type Surface = AppRoute | 'record-review' | 'terms' | 'privacy'
 type LoadState = 'loading' | 'ready' | 'error'
@@ -72,15 +73,16 @@ function downloadReport(account: AccountState, report: GeneratedReport): boolean
 }
 
 export default function App() {
+  const initialLocation = parsePortalLocation(window.location)
   const [authenticated, setAuthenticated] = useState(safeInitialAuthentication)
-  const [authView, setAuthView] = useState<'login' | 'register'>('login')
-  const [surface, setSurface] = useState<Surface>('home')
+  const [authView, setAuthView] = useState<'login' | 'register'>(window.location.pathname === '/register' ? 'register' : 'login')
+  const [surface, setSurface] = useState<Surface>(initialLocation.surface)
   const [account, setAccount] = useState<AccountState>(safeInitialAccount)
   const [loadState, setLoadState] = useState<LoadState>('ready')
-  const [passbookContext, setPassbookContext] = useState<string>()
-  const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({})
-  const [requestContext, setRequestContext] = useState<string>()
-  const [accountContext, setAccountContext] = useState<'nomination'>()
+  const [passbookContext, setPassbookContext] = useState<string | undefined>(initialLocation.passbookContext)
+  const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({ service: initialLocation.service as ServiceId | undefined, employmentId: initialLocation.employmentId, contributionId: initialLocation.contributionId })
+  const [requestContext, setRequestContext] = useState<string | undefined>(initialLocation.requestId)
+  const [accountContext, setAccountContext] = useState<'nomination' | undefined>(initialLocation.accountSection)
   const [announcement, setAnnouncement] = useState<{ tone: 'success' | 'error'; message: string }>()
   const skipNextPersistence = useRef(false)
 
@@ -98,9 +100,42 @@ export default function App() {
     try { persistAccount(window.localStorage, account) } catch { /* Browser storage is optional; in-memory state remains safe. */ }
   }, [account])
 
+  useEffect(() => {
+    const desiredInitialUrl = authenticated
+      ? ['/', '/login', '/register'].includes(window.location.pathname) ? '/home' : window.location.href
+      : window.location.pathname === '/register' ? '/register' : '/login'
+    if (!window.history.state?.epfoNeo || desiredInitialUrl !== window.location.href) window.history.replaceState({ epfoNeo: true, depth: 0 }, '', desiredInitialUrl)
+    const applyBrowserLocation = () => {
+      const next = parsePortalLocation(window.location)
+      setAuthView(window.location.pathname === '/register' ? 'register' : 'login')
+      setSurface(next.surface)
+      setPassbookContext(next.passbookContext)
+      setServiceContext({ service: next.service as ServiceId | undefined, employmentId: next.employmentId, contributionId: next.contributionId })
+      setRequestContext(next.requestId)
+      setAccountContext(next.accountSection)
+      window.scrollTo({ top: 0 })
+    }
+    window.addEventListener('popstate', applyBrowserLocation)
+    return () => window.removeEventListener('popstate', applyBrowserLocation)
+  }, [authenticated])
+
+  const applyLocation = (next: PortalLocation, options?: { replace?: boolean; url?: string }) => {
+    const depth = Number(window.history.state?.depth ?? 0)
+    const state = { epfoNeo: true, depth: options?.replace ? depth : depth + 1 }
+    window.history[options?.replace ? 'replaceState' : 'pushState'](state, '', options?.url ?? portalUrl(next))
+    setSurface(next.surface)
+    setPassbookContext(next.passbookContext)
+    setServiceContext({ service: next.service as ServiceId | undefined, employmentId: next.employmentId, contributionId: next.contributionId })
+    setRequestContext(next.requestId)
+    setAccountContext(next.accountSection)
+    setAnnouncement(undefined)
+    window.scrollTo({ top: 0 })
+  }
+
   const authenticate = () => {
     try { persistAuthentication(window.localStorage) } catch { /* Browser storage is optional; in-memory state remains safe. */ }
     setAuthenticated(true)
+    applyLocation({ surface: 'home' }, { replace: true })
     setLoadState('loading')
     window.setTimeout(() => setLoadState('ready'), 450)
   }
@@ -113,42 +148,34 @@ export default function App() {
     skipNextPersistence.current = true
     setAccount(createInitialAccount())
     setAuthenticated(false)
-    setSurface('home')
-    setServiceContext({})
-    setPassbookContext(undefined)
-    setRequestContext(undefined)
-    setAccountContext(undefined)
+    applyLocation({ surface: 'home' }, { replace: true, url: '/login' })
     setAnnouncement(undefined)
   }
 
   const navigate = (route: AppRoute) => {
-    setSurface(route)
-    setAnnouncement(undefined)
-    if (route !== 'passbook') setPassbookContext(undefined)
-    if (route !== 'services') setServiceContext({})
-    if (route !== 'requests') setRequestContext(undefined)
-    if (route !== 'account') setAccountContext(undefined)
-    window.scrollTo({ top: 0 })
+    applyLocation({ surface: route })
   }
 
   const navigateFinancial = (route: FinancialRoute, contextId?: string) => {
-    if (route === 'passbook') setPassbookContext(contextId)
-    if (route === 'requests') setRequestContext(contextId)
-    setSurface(route)
-    window.scrollTo({ top: 0 })
+    if (route === 'passbook') {
+      const contribution = account.ledger.contributions.find((item) => item.id === contextId)
+      applyLocation(
+        { surface: 'passbook', passbookContext: contextId },
+        contribution ? { url: contributionPassbookUrl(contribution.employmentId, contribution.id) } : undefined,
+      )
+      return
+    }
+    if (route === 'requests') applyLocation({ surface: 'requests', requestId: contextId })
+    else applyLocation({ surface: route })
   }
 
   const openService = (service: CoreServiceId | ServiceId, contextId?: string) => {
     const normalized: ServiceId = service === 'claims' ? 'claim' : service
-    setServiceContext({ service: normalized, contributionId: normalized === 'grievance' ? contextId : undefined })
-    setSurface('services')
-    window.scrollTo({ top: 0 })
+    applyLocation({ surface: 'services', service: normalized, contributionId: normalized === 'grievance' ? contextId : undefined })
   }
 
   const openContributionGrievance = (contribution: AccountState['ledger']['contributions'][number]) => {
-    setServiceContext({ service: 'grievance', employmentId: contribution.employmentId, contributionId: contribution.id })
-    setSurface('services')
-    window.scrollTo({ top: 0 })
+    applyLocation({ surface: 'services', service: 'grievance', employmentId: contribution.employmentId, contributionId: contribution.id })
   }
 
   const submitAndFind = (next: AccountState, predicate: (request: MemberRequest) => boolean): MemberRequest | void => {
@@ -206,11 +233,11 @@ export default function App() {
   }
 
   if (!authenticated) {
-    if (authView === 'register') return <OnboardingScreen onBack={() => setAuthView('login')} onComplete={(profile) => {
+    if (authView === 'register') return <OnboardingScreen onBack={() => { setAuthView('login'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/login') }} onComplete={(profile) => {
       setAccount((current) => updateMemberProfile(current, { ...profile, updatedOn: demoToday }))
       authenticate()
     }} />
-    return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => setAuthView('register')} />
+    return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => { setAuthView('register'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/register') }} />
   }
 
   const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface === 'record-review' ? 'home' : surface
@@ -221,13 +248,13 @@ export default function App() {
     : loadState === 'error'
       ? <div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Account Could Not Be Loaded</p><p className="ux4g-alert-message">Your saved account data is safe. Try loading it again.</p><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => { setLoadState('loading'); window.setTimeout(() => setLoadState('ready'), 350) }}>Try Again</button></div></div>
       : surface === 'home'
-        ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} onReviewIssues={() => { setSurface('record-review'); window.scrollTo({ top: 0 }) }} />
+        ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} onReviewIssues={() => applyLocation({ surface: 'record-review' })} />
         : surface === 'record-review'
           ? <RecordReviewPage
               account={account}
-              onBack={() => { setSurface('home'); window.scrollTo({ top: 0 }) }}
-              onTrackRequest={(requestId) => { setRequestContext(requestId); setSurface('requests'); window.scrollTo({ top: 0 }) }}
-              onStartTransfer={(employmentId) => { setServiceContext({ service: 'transfer', employmentId }); setSurface('services'); window.scrollTo({ top: 0 }) }}
+              onBack={() => Number(window.history.state?.depth ?? 0) > 0 ? window.history.back() : applyLocation({ surface: 'home' }, { replace: true })}
+              onTrackRequest={(requestId) => applyLocation({ surface: 'requests', requestId })}
+              onStartTransfer={(employmentId) => applyLocation({ surface: 'services', service: 'transfer', employmentId })}
               onRaiseContributionGrievance={openContributionGrievance}
             />
         : surface === 'passbook'
@@ -238,7 +265,7 @@ export default function App() {
               initialContextId={passbookContext}
               onGenerateStatement={handleStatement}
               onRaiseContributionGrievance={openContributionGrievance}
-              onStartTransfer={(employmentId) => { setServiceContext({ service: 'transfer', employmentId }); setSurface('services') }}
+              onStartTransfer={(employmentId) => applyLocation({ surface: 'services', service: 'transfer', employmentId })}
             />
           : surface === 'services'
             ? <ServicesPage
@@ -253,8 +280,8 @@ export default function App() {
                 onSubmitCorrection={handleCorrection}
                 onSubmitGrievance={handleGrievance}
                 onSubmitExit={(input) => submitAndFind(submitExit(account, input), (request) => request.type === 'exit' && request.submittedOn === input.submittedOn)}
-                onViewRequests={(requestId) => { setRequestContext(requestId); setSurface('requests') }}
-                onManageNomination={() => { setAccountContext('nomination'); setSurface('account') }}
+                onViewRequests={(requestId) => applyLocation({ surface: 'requests', requestId })}
+                onManageNomination={() => applyLocation({ surface: 'account', accountSection: 'nomination' })}
               />
             : surface === 'requests'
               ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" onCitizenAction={(request) => { setAccount((current) => prepareOrCheckExistingRequest(current, request.id, demoToday)); setAnnouncement({ tone: 'success', message: request.rejection ? 'Known details and evidence are prepared on this request.' : 'Existing request checked. No duplicate request was created.' }) }} />
@@ -272,10 +299,10 @@ export default function App() {
                         : { tone: 'error', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} report. Please try again.` })
                     }}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
-                    onStartPanVerification={() => { setServiceContext({ service: 'kyc' }); setSurface('services') }}
-                    onNavigateLegal={setSurface}
+                    onStartPanVerification={() => applyLocation({ surface: 'services', service: 'kyc' })}
+                    onNavigateLegal={(legalSurface) => applyLocation({ surface: legalSurface })}
                   />
-                : <LegalPage page={surface} onBack={() => setSurface('account')} onNavigate={setSurface} />
+                : <LegalPage page={surface} onBack={() => applyLocation({ surface: 'account' })} onNavigate={(legalSurface) => applyLocation({ surface: legalSurface })} />
 
   return <>
     <Analytics />
@@ -286,14 +313,12 @@ export default function App() {
       onSignOut={() => {
         try { clearPersistedAuthentication(window.localStorage) } catch { /* Browser storage is optional. */ }
         setAuthenticated(false)
-        setSurface('home')
-        setServiceContext({})
-        setPassbookContext(undefined)
-        setRequestContext(undefined)
+        applyLocation({ surface: 'home' }, { replace: true, url: '/login' })
       }}
-      onOpenTerms={() => setSurface('terms')}
-      onOpenPrivacy={() => setSurface('privacy')}
+      onOpenTerms={() => applyLocation({ surface: 'terms' })}
+      onOpenPrivacy={() => applyLocation({ surface: 'privacy' })}
       onResetDemo={resetDemo}
+      breadcrumbs={surface === 'record-review' ? [{ label: 'Home', href: '/home', onClick: () => applyLocation({ surface: 'home' }) }, { label: 'Needs Attention' }] : undefined}
     >
       {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
       {page}

@@ -1,3 +1,5 @@
+import { reconcileMemberId } from './calculations'
+import { RECORD_ISSUE_RULE_VERSION } from './issues'
 import type { AccountState, MemberRequest, Nominee, RequestState } from './types'
 
 const requestNumber = (account: AccountState, type: MemberRequest['type']): string => {
@@ -18,6 +20,7 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
   const destination = account.employments.find((item) => item.status === 'current')
   if (!source || !destination) return account
   const requestId = `request-transfer-${submittedOn}`
+  const transferId = `transfer-${source.id}-${destination.id}-${submittedOn}`
   const reference = requestNumber(account, 'transfer')
   const request: MemberRequest = {
     id: requestId, type: 'transfer', service: 'Transfer Previous PF', reference,
@@ -27,10 +30,10 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
     nextExpectedStep: 'Check whether the member portal issues a receipt for this existing attempt before taking another action.',
     citizenAction: 'A portal receipt is not confirmed. Check this existing attempt; do not create another transfer request.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted from Neo', date: submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
-      { id: `${requestId}-receipt`, label: 'Member portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member portal' },
-      { id: `${requestId}-ack`, label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
-      { id: `${requestId}-employer`, label: 'Previous employer verification', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
+      { id: `${requestId}-submitted`, label: 'Submission Attempted', date: submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+      { id: `${requestId}-receipt`, label: 'Member Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member Portal' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-employer`, label: 'Previous Employer Verification', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
     ],
   }
   return withRequest({
@@ -38,7 +41,7 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
     ledger: {
       ...account.ledger,
       transfers: [...account.ledger.transfers, {
-        id: `transfer-harbor-vertex-${submittedOn}`,
+        id: transferId,
         fromMemberId: source.memberId,
         toMemberId: destination.memberId,
         amount: exception.amount,
@@ -46,10 +49,26 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
         state: 'submitted',
         source: source.establishmentType,
         relatedRequestId: requestId,
+        pensionServiceState: exception.pensionServiceState ?? 'not-confirmed',
         explanation: 'This transfer request is submitted. The balance remains under the previous Member ID until the transfer completes.',
       }],
     },
-    exceptions: account.exceptions.map((item) => item.id === exception.id ? { ...item, state: 'in-progress', relatedRequestId: requestId, currentResponsibleParty: 'member' } : item),
+    exceptions: account.exceptions.map((item) => item.id === exception.id ? {
+      ...item,
+      state: 'in-progress',
+      relatedRequestId: requestId,
+      currentResponsibleParty: 'member',
+      issueSnapshot: {
+        ruleVersion: RECORD_ISSUE_RULE_VERSION,
+        sourceSnapshotAt: submittedOn,
+        sourceRecordReferences: [
+          { kind: 'employment', id: source.id },
+          { kind: 'employment', id: destination.id },
+          { kind: 'transfer', id: transferId },
+          { kind: 'request', id: requestId },
+        ],
+      },
+    } : item),
   }, request)
 }
 
@@ -64,16 +83,29 @@ export function submitGrievance(account: AccountState, input: { submittedOn: str
     nextExpectedStep: 'Check for a grievance-portal receipt before expecting EPFO review.',
     citizenAction: 'A portal receipt is not confirmed. Check this existing attempt; do not create another grievance.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted from Neo', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: input.description },
-      { id: `${requestId}-receipt`, label: 'Grievance portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Grievance portal' },
-      { id: `${requestId}-ack`, label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
-      { id: `${requestId}-review`, label: 'EPFO review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-submitted`, label: 'Submission Attempted', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: input.description },
+      { id: `${requestId}-receipt`, label: 'Grievance Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Grievance Portal' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-review`, label: 'EPFO Review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'epfo' },
     ],
   }
   const next = withRequest(account, request)
   return {
     ...next,
-    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? { ...item, state: 'in-progress', relatedRequestId: requestId, currentResponsibleParty: 'member' } : item),
+    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? {
+      ...item,
+      state: 'in-progress',
+      relatedRequestId: requestId,
+      currentResponsibleParty: 'member',
+      issueSnapshot: {
+        ruleVersion: RECORD_ISSUE_RULE_VERSION,
+        sourceSnapshotAt: input.submittedOn,
+        sourceRecordReferences: [
+          ...(item.issueSnapshot?.sourceRecordReferences ?? []),
+          { kind: 'request', id: requestId },
+        ],
+      },
+    } : item),
   }
 }
 
@@ -88,10 +120,10 @@ export function submitClaim(account: AccountState, input: { submittedOn: string;
     nextExpectedStep: 'Check for a claims-portal receipt before expecting EPFO review.',
     citizenAction: 'A portal receipt is not confirmed. Check this existing attempt; do not create another claim.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted from Neo', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
-      { id: `${requestId}-receipt`, label: 'Claims portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Claims portal' },
-      { id: `${requestId}-ack`, label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
-      { id: `${requestId}-payment`, label: 'Bank hand-off', date: null, state: 'upcoming', kind: 'bank-handoff', confirmation: 'expected', party: 'bank' },
+      { id: `${requestId}-submitted`, label: 'Submission Attempted', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+      { id: `${requestId}-receipt`, label: 'Claims Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Claims Portal' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-payment`, label: 'Bank Hand-Off', date: null, state: 'upcoming', kind: 'bank-handoff', confirmation: 'expected', party: 'bank' },
     ],
   })
 }
@@ -108,10 +140,10 @@ export function submitCorrection(account: AccountState, input: { submittedOn: st
     nextExpectedStep: 'Check for a member-portal receipt before expecting employer verification.',
     citizenAction: 'A portal receipt is not confirmed. Check this existing attempt; do not create another correction request.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted from Neo', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Proposed value: ${input.proposedValue}` },
-      { id: `${requestId}-receipt`, label: 'Member portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member portal' },
-      { id: `${requestId}-ack`, label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
-      { id: `${requestId}-employer`, label: 'Employer verification', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
+      { id: `${requestId}-submitted`, label: 'Submission Attempted', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Proposed value: ${input.proposedValue}` },
+      { id: `${requestId}-receipt`, label: 'Member Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member Portal' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-employer`, label: 'Employer Verification', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
     ],
   })
 }
@@ -152,9 +184,9 @@ export function submitExit(account: AccountState, input: { submittedOn: string; 
     nextExpectedStep: 'Check for a member-portal receipt before making a withdrawal claim.',
     citizenAction: 'A portal receipt is not confirmed. Check this existing attempt; do not create another exit request.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted from Neo', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Date of exit: ${input.exitedOn}. Reason: ${input.reason}.` },
-      { id: `${requestId}-receipt`, label: 'Member portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member portal' },
-      { id: `${requestId}-ack`, label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-submitted`, label: 'Submission Attempted', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Date of exit: ${input.exitedOn}. Reason: ${input.reason}.` },
+      { id: `${requestId}-receipt`, label: 'Member Portal Receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member Portal' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
     ],
   })
 }
@@ -202,13 +234,13 @@ export function prepareOrCheckExistingRequest(account: AccountState, requestId: 
         recoveryPreparedOn: updatedOn,
         state: 'action-required',
         rejection: { ...request.rejection, recoveryAction: 'resume' },
-        citizenAction: 'Neo has prepared the known request details and evidence list. Resume this same request when you are ready.',
+        citizenAction: 'The known request details are ready. Resume this request when you are ready.',
         nextExpectedStep: 'Review the prepared correction, then resume this same request. No fresh submission is needed.',
       }
       return {
         ...request,
         updatedOn,
-        citizenAction: `Neo checked the existing attempt on ${updatedOn}. The missing acknowledgement is still not confirmed; no new request was created.`,
+        citizenAction: `This attempt was checked on ${updatedOn}. The acknowledgement is still not confirmed; no new request was created.`,
       }
     }),
   }
@@ -218,16 +250,30 @@ export function completeTransferResolution(account: AccountState, transferId: st
   const transfer = account.ledger.transfers.find((item) => item.id === transferId)
   if (!transfer || transfer.state === 'completed') return account
   const requestId = transfer.relatedRequestId
+  const sourceWillBeEmpty = reconcileMemberId(account, transfer.fromMemberId).closingBalance === transfer.amount
   return {
     ...account,
+    employments: account.employments.map((employment) => employment.memberId === transfer.fromMemberId && sourceWillBeEmpty
+      ? { ...employment, status: 'transferred' }
+      : employment),
     ledger: {
       ...account.ledger,
       transfers: account.ledger.transfers.map((item) => item.id === transferId
         ? { ...item, state: 'completed', completedOn, explanation: 'The transfer was completed and posted once to the destination Member ID.' }
         : item),
     },
-    exceptions: account.exceptions.map((item) => item.relatedRequestId === requestId
-      ? { ...item, state: 'resolved', currentResponsibleParty: 'none', explanation: 'The transfer completed and the amount is posted only to the destination Member ID.' }
+    exceptions: account.exceptions.map((item) => requestId !== undefined && item.relatedRequestId === requestId
+      ? {
+          ...item,
+          state: 'resolved',
+          currentResponsibleParty: 'none',
+          explanation: 'The transfer completed and the amount is posted only to the destination Member ID.',
+          issueSnapshot: {
+            ruleVersion: RECORD_ISSUE_RULE_VERSION,
+            sourceSnapshotAt: completedOn,
+            sourceRecordReferences: item.issueSnapshot?.sourceRecordReferences ?? [],
+          },
+        }
       : item),
     requests: account.requests.map((request) => request.id === requestId
       ? {
@@ -237,7 +283,7 @@ export function completeTransferResolution(account: AccountState, transferId: st
           currentResponsibleParty: 'none',
           nextExpectedStep: 'No action is required. The transfer is complete.',
           timeline: [...request.timeline.filter((event) => event.confirmation !== 'expected').map((event) => event.state === 'current' ? { ...event, state: 'completed' as const } : event), {
-            id: `${request.id}-resolution`, label: 'Transfer posted to destination', date: completedOn, state: 'completed' as const,
+            id: `${request.id}-resolution`, label: 'Transfer Posted to Destination', date: completedOn, state: 'completed' as const,
             kind: 'resolution' as const, confirmation: 'confirmed' as const, party: 'epfo' as const,
           }],
         }

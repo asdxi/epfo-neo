@@ -159,19 +159,19 @@ Then:
 YOUR EMPLOYMENT JOURNEY
 
 2018
-Northstar Consumer Technologies
+Stark Industries
 PF Trust
 
 2020
-BlueKite Digital Services
+Dunder Mifflin Paper Co.
 EPFO
 
 2023
-Harbor Foods India
+Waystar Royco
 EPFO
 
 2026
-Vertex Mobility
+Pied Piper
 EPFO
 
 If there is a period with no EPF-covered employment:
@@ -222,7 +222,7 @@ Do not make Member ID the primary visual element.
 
 Example:
 
-## Northstar Consumer Technologies
+## Stark Industries
 
 August 2018 – June 2019
 
@@ -245,7 +245,7 @@ Transferred
 
 Then:
 
-## BlueKite Digital Services
+## Dunder Mifflin Paper Co.
 
 July 2019 – December 2022
 
@@ -513,7 +513,7 @@ Career history:
 
 ## Employment 1
 
-Northstar Consumer Technologies
+Stark Industries
 
 August 2018 – June 2019
 
@@ -537,7 +537,7 @@ Create enough data to demonstrate that historical employer PF trusts are support
 
 ## Employment 2
 
-BlueKite Digital Services
+Dunder Mifflin Paper Co.
 
 July 2019 – December 2022
 
@@ -553,7 +553,7 @@ Include:
 - employer contributions
 - EPS
 - annual interest
-- transfer-in from Northstar
+- transfer-in from Stark Industries
 - one partial withdrawal/claim
 - closing balance
 
@@ -561,7 +561,7 @@ Include:
 
 ## Employment 3
 
-Harbor Foods India
+Waystar Royco
 
 January 2023 – June 2024
 
@@ -577,7 +577,7 @@ Include:
 - employer contributions
 - EPS
 - annual interest
-- transfer-in from BlueKite
+- transfer-in from Dunder Mifflin Paper Co.
 - transfer-out to current/next account
 
 ---
@@ -600,7 +600,7 @@ No EPF-covered employment recorded
 
 ## Employment 4
 
-Vertex Mobility
+Pied Piper
 
 March 2026 – Present
 
@@ -757,7 +757,7 @@ Unavailable
 
 Example:
 
-Northstar Consumer Technologies
+Stark Industries
 
 Historical trust statement:
 Partial

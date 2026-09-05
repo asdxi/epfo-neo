@@ -11,6 +11,7 @@ import {
   totalEpsServiceMonths,
 } from './calculations'
 import { createInitialAccount } from './data'
+import { deriveRecordIssues } from './issues'
 import { ACCOUNT_STORAGE_KEY, AUTHENTICATION_STORAGE_KEY, clearPersistedAccount, clearPersistedAuthentication, loadPersistedAccount, loadPersistedAuthentication, persistAccount, persistAuthentication } from './persistence'
 import { buildExcelStatement, buildPdfStatement, createReportRecord, isReportExpired } from './reports'
 import { completeTransferResolution, markReportReady, submitExit, submitGrievance, submitTransfer, transitionRequest } from './state'
@@ -165,8 +166,8 @@ describe('derived attention and connected request state', () => {
     const report = createReportRecord({ id: 'report-all-pdf', periodLabel: 'All Time', startsOn: '2018-08-01', endsOn: '2026-08-28', format: 'pdf', requestedOn: '2026-08-28', background: false, deliverToEmail: false })
     const contents = new TextDecoder().decode(buildPdfStatement(account, report))
     expect(contents.match(/\/Type \/Page\b/g)?.length).toBeGreaterThan(1)
-    expect(contents).toContain('Northstar Consumer Tech')
-    expect(contents).toContain('Vertex Mobility')
+    expect(contents).toContain('Stark Industries')
+    expect(contents).toContain('Pied Piper')
     expect(contents).toContain('Page 1 of')
     expect(contents).toContain(`Page ${contents.match(/\/Type \/Page\b/g)?.length} of`)
   })
@@ -184,7 +185,10 @@ describe('derived attention and connected request state', () => {
     const storage = { getItem: () => stored, setItem: (_key: string, value: string) => { stored = value } }
     const submitted = submitTransfer(createTransferEligibleAccount(), '2026-08-28')
     persistAccount(storage, submitted)
-    expect(loadPersistedAccount(storage).requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
+    const loaded = loadPersistedAccount(storage)
+    expect(loaded.requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
+    expect(loaded.exceptions.find((item) => item.kind === 'previous-balance')?.issueSnapshot).toMatchObject({ ruleVersion: 'record-issue-rules/1.0.0', sourceSnapshotAt: '2026-08-28' })
+    expect(deriveRecordIssues(loaded)[0].code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
     stored = '{invalid json'
     expect(loadPersistedAccount(storage).version).toBe(3)
   })
@@ -198,10 +202,39 @@ describe('derived attention and connected request state', () => {
     expect(loadPersistedAccount(storage).member.email.value).toBe(account.member.email.value)
   })
 
+  it('updates employer names and portal voice in saved demo data', () => {
+    const account = createInitialAccount()
+    account.employments[0].employer = 'Stark Industries'
+    account.employments[2].employer = 'Waystar Royco'
+    account.requests[0].timeline[0].label = 'Submitted from Neo'
+    const storage = { getItem: () => JSON.stringify(account) }
+
+    const loaded = loadPersistedAccount(storage)
+    expect(loaded.employments[0].employer).toBe('Stark Industries')
+    expect(loaded.employments[2].employer).toBe('Waystar Royco')
+    expect(loaded.requests[0].timeline[0].label).toBe('Submission Attempted')
+  })
+
   it('clears only the persisted account key when resetting the demo', () => {
     const removed: string[] = []
     clearPersistedAccount({ removeItem: (key) => { removed.push(key) } })
     expect(removed).toEqual([ACCOUNT_STORAGE_KEY])
+  })
+
+  it('restores the intended deterministic hero state after clearing persisted account data', () => {
+    let stored: string | null = null
+    const storage = {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => { stored = value },
+      removeItem: (key: string) => { if (key === ACCOUNT_STORAGE_KEY) stored = null },
+    }
+    persistAccount(storage, completeTransferResolution(createInitialAccount(), 'transfer-harbor-vertex-2026-06-18', '2026-09-04'))
+    expect(deriveRecordIssues(loadPersistedAccount(storage))[0].code).toBe('TRANSFER_COMPLETED')
+
+    clearPersistedAccount(storage)
+    const reset = loadPersistedAccount(storage)
+    expect(totalEpfBalance(reset)).toBe(482_650)
+    expect(deriveRecordIssues(reset).map((issue) => issue.code)).toEqual(['TRANSFER_IN_PROGRESS', 'CONTRIBUTION_COMPONENT_MISSING'])
   })
 
   it('persists authentication across reloads and clears it on sign out', () => {

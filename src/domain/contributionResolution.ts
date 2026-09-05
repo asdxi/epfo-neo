@@ -1,14 +1,6 @@
 import { formatDate, formatMoney, formatWageMonth } from './calculations'
+import { contributionComponentLabel, contributionDiscrepancyLabel } from './issueContent'
 import type { AccountState, ContributionDiscrepancyCategory, ContributionResolution, Money } from './types'
-
-const labels: Record<ContributionDiscrepancyCategory, string> = {
-  'missing-contribution': 'Contribution not recorded',
-  'incorrect-amount': 'Recorded amount differs from expected record',
-  'wrong-employer': 'Contribution linked to the wrong employer',
-  'incorrect-wage-month': 'Contribution linked to the wrong Wage Month',
-  'late-recording': 'Contribution recorded late',
-  'inconsistent-epf-eps-component': 'EPF or EPS component is incomplete',
-}
 
 const differs = (recorded: Money | null, expected: Money | null) =>
   recorded !== null && expected !== null && recorded !== expected
@@ -21,14 +13,14 @@ export function deriveContributionResolution(account: AccountState, contribution
   if (!contribution || !expectation || !employment || !expectedEmployment) return undefined
 
   const recordedComponents = [
-    { label: 'Employee EPF', amount: contribution.employeeEpf },
-    { label: 'Employer EPF', amount: contribution.employerEpf },
-    { label: 'EPS', amount: contribution.eps },
+    { code: 'employee-epf' as const, amount: contribution.employeeEpf },
+    { code: 'employer-epf' as const, amount: contribution.employerEpf },
+    { code: 'eps' as const, amount: contribution.eps },
   ]
   const expectedComponents = [
-    { label: 'Employee EPF', amount: expectation.employeeEpf },
-    { label: 'Employer EPF', amount: expectation.employerEpf },
-    { label: 'EPS', amount: expectation.eps },
+    { code: 'employee-epf' as const, amount: expectation.employeeEpf },
+    { code: 'employer-epf' as const, amount: expectation.employerEpf },
+    { code: 'eps' as const, amount: expectation.eps },
   ]
   const allRecordedMissing = recordedComponents.every((item) => item.amount === null)
   const someRecordedMissing = !allRecordedMissing && recordedComponents.some((item) => item.amount === null)
@@ -45,27 +37,37 @@ export function deriveContributionResolution(account: AccountState, contribution
   if (validCategories.length === 0) return undefined
 
   const category = validCategories[0]
-  const recordedEpf = (contribution.employeeEpf ?? 0) + (contribution.employerEpf ?? 0)
+  const missingComponents = recordedComponents
+    .filter((item, index) => item.amount === null && expectedComponents[index].amount !== null)
+    .map((item) => item.code)
+  const recordedEpfComponents = [contribution.employeeEpf, contribution.employerEpf]
+    .filter((amount): amount is number => amount !== null)
+  const recordedEpf = recordedEpfComponents.length > 0
+    ? recordedEpfComponents.reduce((total, amount) => total + amount, 0)
+    : null
   const memberImpact = category === 'late-recording'
     ? 'The contribution is complete and recorded. No correction is required.'
-    : `${formatMoney(recordedEpf)} of EPF is currently recorded for this Wage Month. Review is needed before any remaining effect can be confirmed.`
+    : recordedEpf === null
+      ? 'EPF is not recorded for this Wage Month. Review is needed before any effect can be confirmed.'
+      : `${formatMoney(recordedEpf)} of EPF is currently recorded for this Wage Month. Review is needed before any remaining effect can be confirmed.`
 
   return {
     category,
     validCategories,
-    categoryLabel: labels[category],
+    categoryLabel: contributionDiscrepancyLabel(category),
     expectedComponents,
     recordedComponents,
+    missingComponents,
     expectedEmployer: expectedEmployment.employer,
     expectedWageMonth: expectation.wageMonth,
     expectationBasis: expectation.basis,
     references: [contribution.transactionReference, expectation.reference].filter((item): item is string => Boolean(item)),
     evidenceHeld: expectation.evidenceHeld,
     evidenceMemberMayNeed: expectation.evidenceMemberMayNeed,
-    preparedDescription: `${labels[category]} for ${expectedEmployment.employer}, Wage Month ${formatWageMonth(expectation.wageMonth)}. Recorded on ${formatDate(contribution.recordedOn)}. ${recordedComponents.map((item) => `${item.label}: ${item.amount === null ? 'not recorded' : formatMoney(item.amount)}`).join('; ')}.`,
+    preparedDescription: `${contributionDiscrepancyLabel(category)} for ${expectedEmployment.employer}, Wage Month ${formatWageMonth(expectation.wageMonth)}. Recorded on ${formatDate(contribution.recordedOn)}. ${recordedComponents.map((item) => `${contributionComponentLabel(item.code)}: ${item.amount === null ? 'not recorded' : formatMoney(item.amount)}`).join('; ')}.`,
     responsibleParty: category === 'late-recording' ? 'none' : 'member',
     memberImpact,
   }
 }
 
-export const contributionDiscrepancyLabel = (category: ContributionDiscrepancyCategory) => labels[category]
+export { contributionDiscrepancyLabel } from './issueContent'

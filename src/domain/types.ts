@@ -85,7 +85,7 @@ export interface Employment {
 export interface EmploymentGap {
   startsOn: string
   endsOn: string
-  label: 'No EPF-covered employment recorded'
+  label: 'No EPF-Covered Employment Recorded'
 }
 
 export interface ContributionRecord {
@@ -154,6 +154,7 @@ export interface TransferRecord {
   source: EstablishmentType
   explanation: string
   relatedRequestId?: string
+  pensionServiceState?: 'linked-employment-record' | 'not-confirmed'
   uanEvidence?: {
     sourceUan: string
     destinationUan: string
@@ -244,18 +245,41 @@ export interface AccountException {
   kycType?: KycRecord['type']
   relatedRequestId?: string
   currentResponsibleParty?: RecordIssueResponsibleParty
-  pensionServiceImpact?: string
+  pensionServiceState?: 'linked-employment-record' | 'not-confirmed'
+  issueSnapshot?: RecordIssueSourceSnapshot
 }
 
 export type RecordIssueType = 'pending-transfer' | 'contribution-record'
 export type RecordIssueStatus = 'action-required' | 'in-progress' | 'resolved' | 'unavailable'
 export type RecordIssueResponsibleParty = 'member' | 'source-employer' | 'destination-employer' | 'epfo' | 'none'
+export type RecordIssueCode =
+  | 'TRANSFER_READY'
+  | 'TRANSFER_IN_PROGRESS'
+  | 'TRANSFER_COMPLETED'
+  | 'CONTRIBUTION_COMPONENT_MISSING'
+  | 'REQUEST_ACKNOWLEDGEMENT_MISSING'
+  | 'REQUEST_REJECTED'
+  | 'RECORD_UNAVAILABLE'
+export type RecordIssueActionCode =
+  | 'START_TRANSFER'
+  | 'TRACK_TRANSFER'
+  | 'RAISE_CONTRIBUTION_GRIEVANCE'
+  | 'TRACK_CONTRIBUTION_REVIEW'
+  | 'CHECK_EXISTING_ATTEMPT'
+  | 'RECOVER_REQUEST'
+  | 'NO_ACTION_REQUIRED'
+  | 'ACTION_UNAVAILABLE'
+export type ContributionComponentCode = 'employee-epf' | 'employer-epf' | 'eps'
 
-export interface RecordIssueReference {
+export interface RecordIssueSourceReference {
   kind: 'employment' | 'contribution' | 'transfer' | 'request'
   id: string
-  label: string
-  value: string
+}
+
+export interface RecordIssueSourceSnapshot {
+  ruleVersion: string
+  sourceSnapshotAt: string | null
+  sourceRecordReferences: RecordIssueSourceReference[]
 }
 
 export interface RecordIssueEvent {
@@ -265,32 +289,70 @@ export interface RecordIssueEvent {
   detail?: string
 }
 
+export type RecordIssueStageCode = 'SOURCE_EVENT' | 'READY_TO_START' | 'COMPLETED' | 'RESOLVED' | 'MEMBER_REVIEW' | 'RECORD_UNAVAILABLE'
+
+export interface RecordIssueStage {
+  code: RecordIssueStageCode
+  sourceEventId: string | null
+  label: string | null
+}
+
 export type RecordIssueAction =
-  | { availability: 'available'; kind: 'start-transfer' | 'track-request' | 'raise-grievance'; label: string; contextId: string }
-  | { availability: 'unavailable'; label: string; reason: string }
-  | { availability: 'not-required'; label: string }
+  | { availability: 'available'; code: Exclude<RecordIssueActionCode, 'NO_ACTION_REQUIRED' | 'ACTION_UNAVAILABLE'>; contextId: string }
+  | { availability: 'unavailable'; code: 'ACTION_UNAVAILABLE' }
+  | { availability: 'not-required'; code: 'NO_ACTION_REQUIRED' }
 
 export interface RecordIssueCalculationLine {
   label: string
   amount: Money
 }
 
+export interface TransferIssueFacts {
+  kind: 'transfer'
+  sourceEmployment: { id: string; employer: string; memberId: string }
+  destinationEmployment: { id: string; employer: string; memberId: string }
+  transferId: string | null
+  transferState: TransferRecord['state'] | 'ready'
+  amount: Money
+  currentlyCountedUnderEmploymentId: string
+  addedToDestination: 'after-completion' | 'completed'
+  duplicateAmountInTotal: false
+  pensionServiceState: 'linked-employment-record' | 'not-confirmed'
+}
+
+export interface ContributionIssueFacts {
+  kind: 'contribution'
+  employment: { id: string; employer: string; memberId: string }
+  contributionId: string
+  wageMonth: string
+  recordedOn: string | null
+  components: Array<{ code: ContributionComponentCode; expected: Money | null; recorded: Money | null }>
+  missingComponents: ContributionComponentCode[]
+  knownRecordedEpf: Money | null
+}
+
+export interface UnavailableIssueFacts {
+  kind: 'unavailable'
+  missingSource: 'employment' | 'transfer' | 'contribution'
+}
+
+export type RecordIssueFacts = TransferIssueFacts | ContributionIssueFacts | UnavailableIssueFacts
+
 export interface RecordIssue {
   id: string
   type: RecordIssueType
+  code: RecordIssueCode
+  ruleVersion: string
+  sourceSnapshotAt: string | null
   status: RecordIssueStatus
-  finding: string
-  supportingRecords: RecordIssueReference[]
-  affectedAmount?: Money
-  affectedService: string
-  financialImpact: string
-  pensionServiceImpact: string
-  responsibleParty: RecordIssueResponsibleParty
-  responsiblePartyLabel: string
-  currentStage: string
+  sourceRecordReferences: RecordIssueSourceReference[]
+  facts: RecordIssueFacts
+  responsiblePartyCode: RecordIssueResponsibleParty
+  actionCode: RecordIssueActionCode
+  relatedRequestId: string | null
+  currentStage: RecordIssueStage
   lastConfirmedEvent: RecordIssueEvent
-  recommendedNextAction: string
-  resolutionAction: RecordIssueAction
+  action: RecordIssueAction
   chronology: RecordIssueEvent[]
   calculationTrail: RecordIssueCalculationLine[]
   identityRisk?: {
@@ -304,8 +366,9 @@ export interface ContributionResolution {
   category: ContributionDiscrepancyCategory
   validCategories: ContributionDiscrepancyCategory[]
   categoryLabel: string
-  expectedComponents: Array<{ label: string; amount: Money | null }>
-  recordedComponents: Array<{ label: string; amount: Money | null }>
+  expectedComponents: Array<{ code: ContributionComponentCode; amount: Money | null }>
+  recordedComponents: Array<{ code: ContributionComponentCode; amount: Money | null }>
+  missingComponents: ContributionComponentCode[]
   expectedEmployer: string
   expectedWageMonth: string
   expectationBasis: string
@@ -363,6 +426,16 @@ export interface AttentionItem {
   actionLabel: string
   route: 'passbook' | 'services' | 'requests' | 'account'
   contextId?: string
+}
+
+export interface JobChangeAttention {
+  id: string
+  issueId: string
+  sourceEmployment: { id: string; employer: string; memberId: string }
+  destinationEmployment: { id: string; employer: string; memberId: string }
+  amount: Money
+  actionCode: RecordIssueActionCode
+  relatedRequestId: string | null
 }
 
 export interface MemberNotice {

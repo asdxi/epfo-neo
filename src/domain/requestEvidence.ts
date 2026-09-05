@@ -18,11 +18,11 @@ export function requestEvidenceSummary(request: MemberRequest): RequestEvidenceS
 export const requestStateLabel = (request: MemberRequest): string => {
   if (request.state === 'submitted' || request.state === 'submission-attempted') {
     const evidence = requestEvidenceSummary(request)
-    return evidence.firstMissingAcknowledgement?.kind === 'channel-receipt' ? 'Submitted · receipt not confirmed' : 'Submitted'
+    return evidence.firstMissingAcknowledgement?.kind === 'channel-receipt' ? 'Submitted · Receipt Not Confirmed' : 'Submitted'
   }
   if (request.state === 'received') return 'Received'
-  if (request.state === 'in-progress') return 'Being processed'
-  if (request.state === 'action-required') return 'Action required'
-  if (request.state === 'rejected') return 'Rejected · recoverable'
+  if (request.state === 'in-progress') return 'Being Processed'
+  if (request.state === 'action-required') return 'Action Required'
+  if (request.state === 'rejected') return 'Rejected · Can Be Corrected'
   return 'Completed'
 }

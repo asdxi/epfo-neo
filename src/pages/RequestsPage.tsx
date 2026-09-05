@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { AccountState, MemberRequest, RequestState, RequestType } from '../domain/types'
 import { requestEvidenceSummary, requestStateLabel } from '../domain/requestEvidence'
 import './service-pages.css'
@@ -16,20 +16,21 @@ type RequestFilter = 'all' | RequestType
 
 const requestViews: RequestView[] = ['open', 'completed']
 const requestFilters: RequestFilter[] = ['all', 'claim', 'transfer', 'correction', 'grievance', 'exit']
-const requestFilterLabel: Record<RequestFilter, string> = { all: 'All', claim: 'Claims', transfer: 'Transfers', correction: 'Corrections', grievance: 'Grievances', exit: 'Exit updates' }
+const requestFilterLabel: Record<RequestFilter, string> = { all: 'All', claim: 'Claims', transfer: 'Transfers', correction: 'Corrections', grievance: 'Grievances', exit: 'Exit Updates' }
 
 const formatMoney = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`)) : 'Pending'
 const titleCase = (value: string) => value.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ')
 const statusTone: Record<RequestState, string> = { submitted: 'info', 'submission-attempted': 'warning', received: 'info', 'in-progress': 'info', 'action-required': 'warning', rejected: 'error', completed: 'success' }
-const partyLabel = { member: 'You', 'source-employer': 'Previous employer', 'destination-employer': 'Current employer', epfo: 'EPFO', none: 'No action owner' }
-const emptyRequestTitle = (view: RequestView, filter: RequestFilter) => `No ${view}${filter === 'all' ? '' : ` ${requestFilterLabel[filter].toLowerCase()}`} requests`
+const partyLabel = { member: 'You', 'source-employer': 'Previous Employer', 'destination-employer': 'Current Employer', epfo: 'EPFO', none: 'No Action Needed' }
+const emptyRequestTitle = (view: RequestView, filter: RequestFilter) => `No ${titleCase(view)}${filter === 'all' ? '' : ` ${requestFilterLabel[filter]}`} Requests`
 
 function RequestSkeleton() {
   return <div className="request-layout" aria-busy="true" aria-label="Loading requests"><div className="request-list">{[1, 2, 3].map((item) => <div className="request-skeleton" key={item}><span /><span /><span /></div>)}</div><div className="request-skeleton request-skeleton--detail"><span /><span /><span /><span /></div></div>
 }
 
 export function RequestsPage({ account, initialRequestId, status = 'ready', onRetry, onCitizenAction }: RequestsPageProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const [view, setView] = useState<RequestView>(() => account.requests.find((item) => item.id === initialRequestId)?.state === 'completed' ? 'completed' : 'open')
   const [filter, setFilter] = useState<RequestFilter>('all')
   const [selectedId, setSelectedId] = useState(initialRequestId ?? '')
@@ -41,6 +42,7 @@ export function RequestsPage({ account, initialRequestId, status = 'ready', onRe
     .sort((a, b) => b.updatedOn.localeCompare(a.updatedOn)), [account.requests, filter, view])
   const selected = requests.find((request) => request.id === selectedId) ?? requests[0]
   const requestsInView = useMemo(() => account.requests.filter((request) => view === 'completed' ? request.state === 'completed' : request.state !== 'completed'), [account.requests, view])
+  useEffect(() => { if (initialRequestId) headingRef.current?.focus() }, [initialRequestId])
   const selectView = (nextView: RequestView) => { setView(nextView); setSelectedId('') }
   const selectFilter = (nextFilter: RequestFilter) => { setFilter(nextFilter); setSelectedId('') }
   const searchByRequestId = (event: FormEvent<HTMLFormElement>) => {
@@ -79,7 +81,7 @@ export function RequestsPage({ account, initialRequestId, status = 'ready', onRe
   if (status === 'error') return <section className="service-page" aria-labelledby="requests-title"><header className="service-page-heading"><h1 id="requests-title">Requests</h1></header><div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Requests Could Not Be Loaded</p><p className="ux4g-alert-message">Your account data is safe. Try loading this page again.</p>{onRetry && <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={onRetry}>Try Again</button>}</div></div></section>
 
   return <section className="service-page" aria-labelledby="requests-title">
-    <header className="service-page-heading request-page-heading"><h1 id="requests-title">Requests</h1><form className="request-search" role="search" onSubmit={searchByRequestId} noValidate>
+    <header className="service-page-heading request-page-heading"><h1 id="requests-title" ref={headingRef} tabIndex={initialRequestId ? -1 : undefined}>Requests</h1><form className="request-search" role="search" onSubmit={searchByRequestId} noValidate>
       <label className="visually-hidden" htmlFor="request-id-search">Search by request ID</label>
       <input id="request-id-search" className="ux4g-input ux4g-input-md" type="search" value={requestIdQuery} onChange={(event) => { setRequestIdQuery(event.target.value); setSearchMessage('') }} placeholder="Enter request ID" autoComplete="off" aria-describedby="request-search-status" />
       <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="submit">Search</button>
@@ -102,10 +104,10 @@ function RequestDetail({ request, onCitizenAction }: { request: MemberRequest; o
   const evidence = requestEvidenceSummary(request)
   return <article className="request-detail" aria-live="polite" aria-labelledby="request-detail-title">
     <header className="request-detail-header"><h2 id="request-detail-title">{request.title}</h2><span className={`ux4g-tag ux4g-tag-filled-${statusTone[request.state]} ux4g-tag-s`}>{requestStateLabel(request)}</span></header>
-    <dl className="request-facts"><div><dt>Neo case ID</dt><dd>{request.reference}</dd></div>{request.externalReference && <div><dt>External reference</dt><dd>{request.externalReference}</dd></div>}<div><dt>Submission attempted</dt><dd>{formatDate(request.submittedOn)}</dd></div><div><dt>Last Updated</dt><dd>{formatDate(request.updatedOn)}</dd></div>{request.currentResponsibleParty && <div><dt>Responsible now</dt><dd>{partyLabel[request.currentResponsibleParty]}</dd></div>}{request.amount !== undefined && <div><dt>Amount</dt><dd>{formatMoney(request.amount)}</dd></div>}</dl>
-    {evidence.firstMissingAcknowledgement && <div className="ux4g-alert ux4g-alert-warning request-evidence-alert" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-title">{evidence.firstMissingAcknowledgement.label} not confirmed</p><p className="ux4g-alert-message">Neo has no confirmed acknowledgement from {evidence.firstMissingAcknowledgement.channel ?? 'the receiving system'}. The existing attempt remains in this request; checking it will not start another one.</p></div></div>}
+    <dl className="request-facts"><div><dt>Request ID</dt><dd>{request.reference}</dd></div>{request.externalReference && <div><dt>External Reference</dt><dd>{request.externalReference}</dd></div>}<div><dt>Submission Attempted</dt><dd>{formatDate(request.submittedOn)}</dd></div><div><dt>Last Updated</dt><dd>{formatDate(request.updatedOn)}</dd></div>{request.currentResponsibleParty && <div><dt>Responsible Now</dt><dd>{partyLabel[request.currentResponsibleParty]}</dd></div>}{request.amount !== undefined && <div><dt>Amount</dt><dd>{formatMoney(request.amount)}</dd></div>}</dl>
+    {evidence.firstMissingAcknowledgement && <div className="ux4g-alert ux4g-alert-warning request-evidence-alert" role="status"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Request Not Confirmed</p><p className="ux4g-alert-message">A confirmation from {evidence.firstMissingAcknowledgement.channel ?? 'the receiving system'} is not available. Check this request before trying again.</p></div></div>}
     {request.rejection && <section className="request-rejection" aria-labelledby="request-rejection-title"><h3 id="request-rejection-title">Recover this request</h3><div className="ux4g-alert ux4g-alert-error"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Original rejection remark</p><p className="ux4g-alert-message">{request.rejection.originalRemark}</p></div></div><dl><div><dt>What it means</dt><dd>{request.rejection.plainLanguageMeaning}</dd></div><div><dt>Exact mismatch</dt><dd>{request.rejection.mismatch}</dd></div><div><dt>Who can correct it</dt><dd>{request.rejection.correctableBy}</dd></div></dl><h4>Evidence to prepare</h4><ul>{request.rejection.evidenceNeeded.map((item) => <li key={item}>{item}</li>)}</ul><p>{request.rejection.requiresFreshSubmission ? 'A fresh submission is explicitly required for this scenario.' : 'Keep this request and reference. A fresh submission is not required.'}</p>{onCitizenAction && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-lg" type="button" onClick={() => onCitizenAction(request)}>{request.rejection.recoveryAction === 'resume' ? 'Resume this request' : 'Prepare correction'}</button>}</section>}
-    <section className="request-next-step" aria-labelledby="next-step-title"><h3 id="next-step-title">Recommended next step</h3><p>{request.nextExpectedStep}</p>{request.citizenAction && !request.rejection && <div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Action required</p><p className="ux4g-alert-message">{request.citizenAction}</p>{onCitizenAction && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-lg" type="button" onClick={() => onCitizenAction(request)}>Check existing request</button>}</div></div>}</section>
-    <section className="request-timeline-section" aria-labelledby="request-timeline-title"><h3 id="request-timeline-title">Evidence chain</h3>{evidence.latestConfirmedEvent && <p className="request-latest-event">Latest confirmed: <strong>{evidence.latestConfirmedEvent.label}</strong> · {formatDate(evidence.latestConfirmedEvent.date)}</p>}<ol className="request-timeline">{request.timeline.map((event) => <li key={event.id} className={`is-${event.state} ${event.confirmation ? `is-${event.confirmation}` : ''}`}><span className="request-timeline-marker" aria-hidden="true" /><div><div className="request-timeline-heading"><strong>{event.label}</strong><time>{event.confirmation === 'missing' ? 'Not confirmed' : formatDate(event.date)}</time></div>{event.reference && <p>Reference: {event.reference}</p>}{event.explanation && <p>{event.explanation}</p>}</div></li>)}</ol></section>
+    <section className="request-next-step" aria-labelledby="next-step-title"><h3 id="next-step-title">Recommended Next Step</h3><p>{request.nextExpectedStep}</p>{request.citizenAction && !request.rejection && <div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Action Required</p><p className="ux4g-alert-message">{request.citizenAction}</p>{onCitizenAction && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-lg" type="button" onClick={() => onCitizenAction(request)}>Check Existing Request</button>}</div></div>}</section>
+    <section className="request-timeline-section" aria-labelledby="request-timeline-title"><h3 id="request-timeline-title">Request History</h3>{evidence.latestConfirmedEvent && <p className="request-latest-event">Latest Confirmed: <strong>{evidence.latestConfirmedEvent.label}</strong> · {formatDate(evidence.latestConfirmedEvent.date)}</p>}<ol className="request-timeline">{request.timeline.map((event) => <li key={event.id} className={`is-${event.state} ${event.confirmation ? `is-${event.confirmation}` : ''}`}><span className="request-timeline-marker" aria-hidden="true" /><div><div className="request-timeline-heading"><strong>{event.label}</strong><time>{event.confirmation === 'missing' ? 'Not Confirmed' : formatDate(event.date)}</time></div>{event.reference && <p>Reference: {event.reference}</p>}{event.explanation && <p>{event.explanation}</p>}</div></li>)}</ol></section>
   </article>
 }

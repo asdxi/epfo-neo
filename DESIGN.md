@@ -300,17 +300,19 @@ keeping UX4G components as the default whenever they genuinely fit.
   action-oriented divided list above it. Mobile keeps the same DOM and scroll
   behavior; the visible height remains sufficient for three compact entries.
 - **PF Record Review:** UX4G has no single component that presents a domain
-  finding, supporting financial records, member impact, responsible party and
-  resolution action in that evidence-first order. EPFO Neo therefore uses an
-  application-owned, unboxed divided issue list. Each issue exposes its finding,
-  impact and action owner first; native semantic disclosure reveals record
-  references, calculation lines and a dated chronology without changing focus
-  order. The pending transfer is first and initially expanded. On mobile all
-  facts and actions stack in one column with 48px UX4G large buttons; wider
+  issue label, route, financial facts, responsible party and resolution action
+  in an evidence-first order. EPFO Neo therefore uses an application-owned,
+  unboxed divided issue list. Each issue exposes its stable catalogue label,
+  decision-relevant facts and action owner. Technical rule records, source IDs,
+  calculation trails and chronology remain in the domain model and tests rather
+  than the citizen-facing screen. The pending transfer is first. On mobile all
+  facts and actions stack in one column with 48px UX4G
+  large buttons; wider
   layouts use two columns only for compact facts and evidence. Empty, resolved
   and unavailable-action states retain explicit text and semantics. Financial
-  values and explanations are derived from domain records rather than copied
-  into the component. Contribution discrepancies extend this composition with
+  values, employer names, dates, stages and actions are read from structured
+  domain records; content templates supply only controlled generic labels and
+  short explanations. Contribution discrepancies extend this composition with
   a two-column expected-versus-recorded comparison sourced from an explicit
   expectation record; it stacks on mobile and renders missing values as “Not
   recorded” or “Not confirmed,” never zero. A warning Alert appears for a
@@ -326,6 +328,7 @@ keeping UX4G components as the default whenever they genuinely fit.
   large primary recovery action. Alternative wait or escalation guidance remains
   secondary copy. Mobile preserves the same evidence order and stacks facts and
   actions without horizontal scrolling.
+
 - **Editable Profile Layout:** UX4G has no member-record editor with a
   persistent supporting rail. EPFO Neo uses an application-owned two-column
   composition: member details and the edit form are primary content, while a
@@ -339,6 +342,25 @@ keeping UX4G components as the default whenever they genuinely fit.
   remain available after selection.
 - Status words use filled UX4G Tag variants, not icon badges. Icon badges are
   intentionally tiny indicators and are not suitable containers for text.
+
+### Deterministic issue architecture
+
+- PF Record Review issues are produced by versioned deterministic domain rules.
+  The same source account state produces the same issue code, structured facts,
+  status and action code.
+- Issue records persist the rule version, source-snapshot timestamp and exact
+  source-record references needed to audit a classification. Existing
+  transfer, contribution, employment and request records remain the financial
+  and workflow truth.
+- The versioned content catalogue contains only generic labels and short
+  explanations. Changing a template cannot change calculations, financial
+  values or issue classification.
+- An LLM is not required to derive, explain or route a supported issue. No
+  runtime LLM is part of the reconciliation or resolution path.
+- Production data sources, submission channels and identity services would sit
+  behind explicit adapters so domain rules remain deterministic and testable.
+  The current prototype uses synthetic local records and does not perform real
+  external submissions or identity verification.
 
 ### Interaction requirements for this application
 

@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { totalEpfBalance, totalEpsServiceMonths } from './calculations'
+import { reconcileMemberId, totalEpfBalance, totalEpsServiceMonths } from './calculations'
 import { createInitialAccount } from './data'
-import { activeRecordIssues, deriveRecordIssues } from './issues'
+import { activeRecordIssues, deriveRecordIssues, RECORD_ISSUE_RULE_VERSION } from './issues'
 import { completeTransferResolution, submitGrievance } from './state'
+import {
+  acknowledgementMissingScenario,
+  contributionComponentMissingScenario,
+  noActiveIssueScenario,
+  rejectedRequestScenario,
+  transferCompletedScenario,
+  transferInProgressScenario,
+  transferReadyScenario,
+  unavailableSourceScenario,
+} from '../test-fixtures/reconciliationScenarios'
+
+const transferIssue = (account = createInitialAccount()) => deriveRecordIssues(account).find((issue) => issue.type === 'pending-transfer')!
+const contributionIssue = (account = createInitialAccount()) => deriveRecordIssues(account).find((issue) => issue.type === 'contribution-record')!
 
 describe('PF record issue derivation', () => {
   it('derives the two record issues in principal order without including KYC', () => {
@@ -10,75 +23,105 @@ describe('PF record issue derivation', () => {
 
     expect(issues).toHaveLength(2)
     expect(issues.map((issue) => issue.type)).toEqual(['pending-transfer', 'contribution-record'])
+    expect(issues.map((issue) => issue.code)).toEqual(['TRANSFER_IN_PROGRESS', 'CONTRIBUTION_COMPONENT_MISSING'])
     expect(issues.map((issue) => issue.id)).not.toContain('exception-pan')
   })
 
   it('traces the pending transfer without moving or double-counting EPF', () => {
     const account = createInitialAccount()
-    const issue = deriveRecordIssues(account)[0]
+    const issue = transferIssue(account)
 
     expect(totalEpfBalance(account)).toBe(482_650)
     expect(issue).toMatchObject({
-      affectedAmount: 38_450,
+      code: 'TRANSFER_IN_PROGRESS',
+      ruleVersion: RECORD_ISSUE_RULE_VERSION,
+      sourceSnapshotAt: '2026-06-24',
       status: 'in-progress',
-      responsibleParty: 'epfo',
-      currentStage: 'Employment Record Verification',
-      resolutionAction: { availability: 'available', kind: 'track-request', contextId: 'request-transfer-2026' },
+      responsiblePartyCode: 'epfo',
+      actionCode: 'TRACK_TRANSFER',
+      relatedRequestId: 'request-transfer-2026',
+      currentStage: { code: 'SOURCE_EVENT', label: 'Employment Record Verification' },
+      action: { availability: 'available', code: 'TRACK_TRANSFER', contextId: 'request-transfer-2026' },
     })
-    expect(issue.financialImpact).toContain('included once')
+    expect(issue.facts).toMatchObject({
+      kind: 'transfer',
+      amount: 38_450,
+      sourceEmployment: { employer: 'Waystar Royco' },
+      destinationEmployment: { employer: 'Pied Piper' },
+      currentlyCountedUnderEmploymentId: 'harbor',
+      addedToDestination: 'after-completion',
+      duplicateAmountInTotal: false,
+      pensionServiceState: 'linked-employment-record',
+    })
     expect(issue.calculationTrail.map((line) => line.amount)).toEqual([38_450, 444_200, 482_650])
-    expect(issue.pensionServiceImpact).toContain('not transferred or added as cash')
-    expect(issue.identityRisk).toBeUndefined()
   })
 
   it('keeps the June missing amount unavailable and EPS separate', () => {
-    const issue = deriveRecordIssues(createInitialAccount())[1]
+    const issue = contributionIssue()
 
-    expect(issue.affectedAmount).toBeUndefined()
-    expect(issue.supportingRecords).toContainEqual(expect.objectContaining({ label: 'Wage Month', value: 'June 2026' }))
-    expect(issue.supportingRecords).toContainEqual(expect.objectContaining({ label: 'Recorded On', value: '8 July 2026' }))
-    expect(issue.supportingRecords).toContainEqual(expect.objectContaining({ label: 'Employer EPF', value: 'Not recorded' }))
-    expect(issue.pensionServiceImpact).toContain('₹1,250')
-    expect(issue.resolutionAction).toMatchObject({ availability: 'available', kind: 'raise-grievance' })
+    expect(issue.code).toBe('CONTRIBUTION_COMPONENT_MISSING')
+    expect(issue.facts).toMatchObject({
+      kind: 'contribution',
+      wageMonth: '2026-06',
+      recordedOn: '2026-07-08',
+      missingComponents: ['employer-epf'],
+      knownRecordedEpf: 1_800,
+    })
+    if (issue.facts.kind !== 'contribution') throw new Error('Expected contribution facts')
+    expect(issue.facts.components).toContainEqual({ code: 'employer-epf', expected: 550, recorded: null })
+    expect(issue.facts.components).toContainEqual({ code: 'eps', expected: 1_250, recorded: 1_250 })
+    expect(issue.action).toMatchObject({ availability: 'available', code: 'RAISE_CONTRIBUTION_GRIEVANCE' })
+    expect(issue.calculationTrail.map((line) => line.label)).not.toContain('Employer EPF recorded')
   })
 
-  it('moves the contribution issue to EPFO tracking after a grievance is submitted', () => {
+  it('does not convert an entirely missing EPF component set to zero', () => {
+    const account = createInitialAccount()
+    const contribution = account.ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    contribution.employeeEpf = null
+    contribution.employerEpf = null
+    const issue = contributionIssue(account)
+
+    expect(issue.facts).toMatchObject({ kind: 'contribution', knownRecordedEpf: null })
+    expect(issue.calculationTrail).not.toContainEqual(expect.objectContaining({ amount: 0 }))
+  })
+
+  it('moves the contribution issue to checking the same request when acknowledgement is missing', () => {
     const before = createInitialAccount()
     const serviceMonths = totalEpsServiceMonths(before)
     const after = submitGrievance(before, { submittedOn: '2026-09-03', employmentId: 'vertex', contributionId: 'vertex-2026-06', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount shown as not recorded.' })
-    const issue = deriveRecordIssues(after)[1]
+    const issue = contributionIssue(after)
 
-    expect(issue.status).toBe('in-progress')
-    expect(issue.responsibleParty).toBe('member')
-    expect(issue.resolutionAction).toMatchObject({ availability: 'available', kind: 'track-request' })
-    expect(issue.currentStage).toBe('Grievance portal receipt')
+    expect(issue.code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
+    expect(issue.status).toBe('action-required')
+    expect(issue.responsiblePartyCode).toBe('member')
+    expect(issue.action).toMatchObject({ availability: 'available', code: 'CHECK_EXISTING_ATTEMPT' })
+    expect(issue.currentStage).toMatchObject({ code: 'SOURCE_EVENT', label: 'Grievance Portal Receipt' })
     expect(totalEpfBalance(after)).toBe(482_650)
     expect(totalEpsServiceMonths(after)).toBe(serviceMonths)
   })
 
-  it('offers the transfer action before a request exists', () => {
-    const account = createInitialAccount()
-    account.requests = account.requests.filter((request) => request.type !== 'transfer')
-    account.ledger.transfers = account.ledger.transfers.filter((transfer) => transfer.id !== 'transfer-harbor-vertex-2026-06-18')
-    account.exceptions = account.exceptions.map((exception) => exception.kind === 'previous-balance' ? { ...exception, state: 'open', relatedRequestId: undefined, currentResponsibleParty: 'member' } : exception)
+  it('offers the transfer action before a request exists without matching an unrelated completed transfer', () => {
+    const issue = transferIssue(transferReadyScenario())
 
-    expect(deriveRecordIssues(account)[0]).toMatchObject({
+    expect(issue).toMatchObject({
+      code: 'TRANSFER_READY',
       status: 'action-required',
-      currentStage: 'Ready to start',
-      responsibleParty: 'member',
-      resolutionAction: { availability: 'available', kind: 'start-transfer', contextId: 'harbor' },
+      responsiblePartyCode: 'member',
+      action: { availability: 'available', code: 'START_TRANSFER', contextId: 'harbor' },
+      currentStage: { code: 'READY_TO_START' },
     })
+    expect(issue.facts).toMatchObject({ kind: 'transfer', amount: 38_450, transferId: null, transferState: 'ready' })
+    expect(JSON.stringify(issue)).not.toContain('435350')
   })
 
   it('represents resolved, unavailable and empty states without dead actions', () => {
-    const resolved = createInitialAccount()
-    resolved.exceptions = resolved.exceptions.map((exception) => exception.kind === 'previous-balance' || exception.kind === 'contribution-review' ? { ...exception, state: 'resolved' } : exception)
-    expect(activeRecordIssues(resolved)).toEqual([])
-    expect(deriveRecordIssues(resolved).every((issue) => issue.resolutionAction.availability === 'not-required')).toBe(true)
+    const noActive = noActiveIssueScenario()
+    expect(activeRecordIssues(noActive)).toEqual([])
+    expect(deriveRecordIssues(noActive).every((issue) => issue.action.availability === 'not-required')).toBe(true)
 
-    const unavailable = createInitialAccount()
-    unavailable.ledger.transfers = unavailable.ledger.transfers.filter((transfer) => transfer.id !== 'transfer-harbor-vertex-2026-06-18')
-    expect(deriveRecordIssues(unavailable)[0]).toMatchObject({ status: 'unavailable', resolutionAction: { availability: 'unavailable' } })
+    const unavailable = transferIssue(unavailableSourceScenario())
+    expect(unavailable).toMatchObject({ code: 'RECORD_UNAVAILABLE', status: 'unavailable', action: { availability: 'unavailable', code: 'ACTION_UNAVAILABLE' } })
+    expect(unavailable.facts).toEqual({ kind: 'unavailable', missingSource: 'transfer' })
 
     const empty = createInitialAccount()
     empty.exceptions = empty.exceptions.filter((exception) => exception.kind === 'kyc-review')
@@ -90,18 +133,46 @@ describe('PF record issue derivation', () => {
     const transfer = account.ledger.transfers.find((item) => item.id === 'transfer-harbor-vertex-2026-06-18')!
     transfer.uanEvidence = { sourceUan: '100000654321', destinationUan: account.member.uan, confirmation: 'confirmed', explanation: 'The source employment is linked to a second confirmed synthetic UAN reference.' }
 
-    expect(deriveRecordIssues(account)[0].identityRisk).toMatchObject({ label: 'Possible multiple-UAN record' })
+    expect(transferIssue(account).identityRisk).toMatchObject({ label: 'Possible multiple-UAN record' })
     transfer.uanEvidence.confirmation = 'unconfirmed'
-    expect(deriveRecordIssues(account)[0].identityRisk).toBeUndefined()
+    expect(transferIssue(account).identityRisk).toBeUndefined()
   })
 
   it('keeps a completed transfer in issue history while removing it from active review', () => {
     const completed = completeTransferResolution(createInitialAccount(), 'transfer-harbor-vertex-2026-06-18', '2026-09-04')
-    const historical = deriveRecordIssues(completed)[0]
+    const historical = transferIssue(completed)
 
     expect(activeRecordIssues(completed).map((issue) => issue.id)).not.toContain(historical.id)
-    expect(historical).toMatchObject({ status: 'resolved', responsibleParty: 'none', currentStage: 'Completed' })
-    expect(historical.finding).toContain('posted once')
-    expect(historical.financialImpact).toContain('no longer included')
+    expect(historical).toMatchObject({ code: 'TRANSFER_COMPLETED', status: 'resolved', responsiblePartyCode: 'none', actionCode: 'NO_ACTION_REQUIRED', currentStage: { code: 'COMPLETED' } })
+    expect(historical.facts).toMatchObject({ kind: 'transfer', currentlyCountedUnderEmploymentId: 'vertex', addedToDestination: 'completed', duplicateAmountInTotal: false })
+    expect(reconcileMemberId(completed, 'KA/HFI/0031849').closingBalance).toBe(0)
+    expect(reconcileMemberId(completed, 'KA/VTX/0048291').closingBalance).toBe(482_650)
+  })
+
+  it.each([
+    ['ready', transferReadyScenario, 'pending-transfer', 'TRANSFER_READY', 'action-required', 'START_TRANSFER'],
+    ['in progress', transferInProgressScenario, 'pending-transfer', 'TRANSFER_IN_PROGRESS', 'in-progress', 'TRACK_TRANSFER'],
+    ['acknowledgement missing', acknowledgementMissingScenario, 'pending-transfer', 'REQUEST_ACKNOWLEDGEMENT_MISSING', 'action-required', 'CHECK_EXISTING_ATTEMPT'],
+    ['rejected', rejectedRequestScenario, 'pending-transfer', 'REQUEST_REJECTED', 'action-required', 'RECOVER_REQUEST'],
+    ['completed', transferCompletedScenario, 'pending-transfer', 'TRANSFER_COMPLETED', 'resolved', 'NO_ACTION_REQUIRED'],
+    ['component missing', contributionComponentMissingScenario, 'contribution-record', 'CONTRIBUTION_COMPONENT_MISSING', 'action-required', 'RAISE_CONTRIBUTION_GRIEVANCE'],
+    ['unavailable', unavailableSourceScenario, 'pending-transfer', 'RECORD_UNAVAILABLE', 'unavailable', 'ACTION_UNAVAILABLE'],
+  ] as const)('classifies the %s scenario deterministically', (_name, createScenario, type, code, status, actionCode) => {
+    const account = createScenario()
+    const issue = deriveRecordIssues(account).find((item) => item.type === type)!
+    expect({ code: issue.code, status: issue.status, actionCode: issue.actionCode }).toEqual({ code, status, actionCode })
+    expect(issue.ruleVersion).toBe(RECORD_ISSUE_RULE_VERSION)
+    expect(issue.sourceRecordReferences.every((reference) => Boolean(reference.kind && reference.id))).toBe(true)
+  })
+
+  it('returns stable facts without mutating or reading the runtime clock', () => {
+    const account = createInitialAccount()
+    const before = structuredClone(account)
+    const first = deriveRecordIssues(account)
+    const second = deriveRecordIssues(structuredClone(account))
+
+    expect(second).toEqual(first)
+    expect(account).toEqual(before)
+    expect(first.map((issue) => issue.sourceSnapshotAt)).toEqual(['2026-06-24', '2026-07-08'])
   })
 })

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   accountReconciliation, employerSummaries,
   formatDate, formatMoney, formatWageMonth, ledgerTransactions,
@@ -33,6 +33,10 @@ const transactionTypeLabel: Record<LedgerTransaction['type'], string> = {
   contribution: 'Contribution', 'official-interest': 'Official Interest', 'estimated-interest': 'Estimated Interest',
   'transfer-in': 'Transfer In', 'transfer-out': 'Transfer Out', withdrawal: 'Withdrawal',
 }
+const transferStateLabel = (state: ReturnType<typeof employerSummaries>[number]['transferState']): string => ({
+  ready: 'Transfer Ready', pending: 'Transfer Pending', submitted: 'Transfer Submitted',
+  processing: 'Transfer in Progress', completed: 'Transfer Completed', 'not-applicable': 'Not Applicable',
+})[state]
 const subtractMonths = (month: string, count: number) => {
   const [year, value] = month.split('-').map(Number)
   return new Date(Date.UTC(year, value - count, 1)).toISOString().slice(0, 7)
@@ -50,21 +54,38 @@ const endOfMonth = (month: string) => {
 }
 const providerLabel = (type: AccountState['employments'][number]['establishmentType']) => type === 'exempted-pf-trust' ? 'Employer PF Trust' : 'EPFO'
 const transactionsPerPage = 10
+const desktopPassbookQuery = '(min-width: 64rem)'
+
+const useDesktopPassbookLayout = () => {
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia?.(desktopPassbookQuery).matches ?? false)
+  useEffect(() => {
+    const query = window.matchMedia?.(desktopPassbookQuery)
+    if (!query) return
+    const update = () => setIsDesktop(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  return isDesktop
+}
 
 export function PassbookPage(props: PassbookPageProps) {
   const { account, initialView = 'overview', initialContextId, onGenerateStatement, onRaiseContributionGrievance, onStartTransfer } = props
   const initialEmployer = account.employments.some((item) => item.id === initialContextId) ? initialContextId : undefined
   const initialContribution = account.ledger.contributions.some((item) => item.id === initialContextId) ? initialContextId : undefined
+  const query = new URLSearchParams(window.location.search)
   const contextView = views.find((item) => item.id === initialContextId)?.id
-  const inferredView: PassbookView = initialEmployer ? 'employers' : contextView ?? initialView
-  const [view, setView] = useState(inferredView)
+  const inferredView: PassbookView = initialContribution ? 'transactions' : initialEmployer ? 'employers' : contextView ?? initialView
+  const isDesktop = useDesktopPassbookLayout()
+  const [view, setView] = useState<PassbookView>(() => isDesktop && inferredView === 'overview' ? 'employers' : inferredView)
+  const effectiveView: PassbookView = isDesktop && view === 'overview' ? 'employers' : view
+  const visibleViews = isDesktop ? views.filter((item) => item.id !== 'overview') : views
   const [selectedEmployerId, setSelectedEmployerId] = useState(initialEmployer ?? account.employments.find((item) => item.status === 'current')?.id ?? '')
-  const [transactionEmployer, setTransactionEmployer] = useState('all')
-  const [transactionType, setTransactionType] = useState('all')
-  const [transactionRange, setTransactionRange] = useState<PassbookRange>('6-months')
+  const [transactionEmployer, setTransactionEmployer] = useState(query.get('employer') ?? (initialContribution ? account.ledger.contributions.find((item) => item.id === initialContribution)?.employmentId ?? 'all' : 'all'))
+  const [transactionType, setTransactionType] = useState(query.get('type') ?? (initialContribution ? 'contribution' : 'all'))
+  const [transactionRange, setTransactionRange] = useState<PassbookRange>((query.get('period') as PassbookRange | null) ?? '6-months')
   const [transactionStart, setTransactionStart] = useState('')
   const [transactionEnd, setTransactionEnd] = useState('')
-  const [transactionsRequested, setTransactionsRequested] = useState(false)
+  const [transactionsRequested, setTransactionsRequested] = useState(query.get('load') === '1' || Boolean(initialContribution))
   const [transactionPage, setTransactionPage] = useState(1)
   const [formatDialogOpen, setFormatDialogOpen] = useState(false)
   const summaries = employerSummaries(account)
@@ -78,20 +99,40 @@ export function PassbookPage(props: PassbookPageProps) {
   const transactions = useMemo(() => transactionPeriodReady ? ledgerTransactions(account).filter((item) =>
     (transactionEmployer === 'all' || item.employmentId === transactionEmployer)
     && (transactionType === 'all' || item.type === transactionType)
-    && (item.date ?? '') >= `${transactionPeriod.start}-01`
-    && (item.date ?? '') <= endOfMonth(transactionPeriod.end),
+    && (item.wageMonth ?? item.date?.slice(0, 7) ?? '') >= transactionPeriod.start
+    && (item.wageMonth ?? item.date?.slice(0, 7) ?? '') <= transactionPeriod.end,
   ) : [], [account, transactionEmployer, transactionType, transactionPeriod.start, transactionPeriod.end, transactionPeriodReady])
 
+  useEffect(() => {
+    const targetId = initialContribution ? `transaction-${initialContribution}` : initialEmployer ? `employer-detail-${initialEmployer}` : undefined
+    if (!targetId) return
+    const timeout = window.setTimeout(() => {
+      const target = document.getElementById(targetId)
+      target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+      target?.focus({ preventScroll: true })
+    }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [initialContribution, initialEmployer])
+
   const changeView = (next: PassbookView) => {
+    window.history.pushState({ ...window.history.state, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', `/passbook?view=${next}`)
     setView(next)
     requestAnimationFrame(() => document.getElementById(`passbook-panel-${next}`)?.focus())
   }
   const handleTabKey = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
-    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + views.length) % views.length
-    changeView(views[nextIndex].id)
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? visibleViews.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + visibleViews.length) % visibleViews.length
+    changeView(visibleViews[nextIndex].id)
     requestAnimationFrame(() => document.querySelectorAll<HTMLButtonElement>('.financial-tabs [role="tab"]')[nextIndex]?.focus())
+  }
+  const showCalculation = () => {
+    if (view !== 'overview') changeView('overview')
+    window.setTimeout(() => {
+      const target = document.getElementById('balance-calculation-section')
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      target?.focus({ preventScroll: true })
+    }, 0)
   }
   const downloadTransactions = (format: ReportFormat) => {
     if (!transactionPeriodReady) return
@@ -99,30 +140,39 @@ export function PassbookPage(props: PassbookPageProps) {
     setFormatDialogOpen(false)
   }
   const updateTransactionFilter = (update: () => void) => { update(); setTransactionsRequested(false); setTransactionPage(1) }
+  const selectEmployer = (employmentId: string) => {
+    window.history.pushState({ ...window.history.state, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', `/passbook?view=employers&employment=${employmentId}`)
+    setSelectedEmployerId(employmentId)
+  }
 
   return <section className="financial-page passbook-page" aria-labelledby="passbook-title">
     <header className="financial-heading"><h1 id="passbook-title">Passbook</h1><p>See your balance, recent contributions, employer totals and ledger activity.</p></header>
-    <article className="ux4g-card ux4g-card-solid ux4g-card-vertical passbook-balance-card" aria-labelledby="passbook-balance-title"><div className="ux4g-card-body"><h2 className="home-balance-title" id="passbook-balance-title">Current EPF Balance</h2><p className="financial-balance">{formatMoney(totalEpfBalance(account))}</p><p>Across all recorded PF accounts.</p></div></article>
-    <nav className="ux4g-tab ux4g-tab-underline ux4g-tab-md financial-tabs" aria-label="Passbook views"><ul className="ux4g-tab-list" role="tablist">{views.map((item, index) => <li key={item.id} role="presentation"><button className={`ux4g-tab-item${view === item.id ? ' active' : ''}`} type="button" role="tab" tabIndex={view === item.id ? 0 : -1} aria-selected={view === item.id} aria-controls={`passbook-panel-${item.id}`} onKeyDown={(event) => handleTabKey(event, index)} onClick={() => changeView(item.id)}>{item.label}</button></li>)}</ul></nav>
-    {view === 'overview' && <Overview account={account} contributions={recentContributions} highlightedContributionId={initialContribution} explanationOpen={initialContextId === 'explain-balance'} onRaiseContributionGrievance={onRaiseContributionGrievance} />}
-    {view === 'employers' && <section className="passbook-panel" id="passbook-panel-employers" role="tabpanel" tabIndex={-1}><div className="financial-section-heading"><div><h2>Employers</h2><p>Totals are reconciled for each Member ID.</p></div></div>{summaries.length === 0 ? <Empty title="No Employer Records Available">Employer-level ledger records are unavailable in this account.</Empty> : <div className="employer-layout"><div className="employer-selector" role="list" aria-label="Employers">{summaries.map((summary) => <button key={summary.employment.id} type="button" className={selectedEmployerId === summary.employment.id ? 'selected' : ''} aria-pressed={selectedEmployerId === summary.employment.id} onClick={() => setSelectedEmployerId(summary.employment.id)}><strong>{summary.employment.employer}</strong><span className="employer-account-number">PF Account Number · {summary.employment.memberId}</span><span>{formatDate(summary.employment.joinedOn)} to {summary.employment.exitedOn ? formatDate(summary.employment.exitedOn) : 'Present'}</span><span>{formatMoney(summary.closingBalance)} closing balance</span></button>)}</div>{selectedEmployer && <EmployerDetail summary={selectedEmployer} onStartTransfer={onStartTransfer} />}</div>}</section>}
-    {view === 'transactions' && <section className="passbook-panel" id="passbook-panel-transactions" role="tabpanel" tabIndex={-1}><div className="financial-section-heading"><div><h2>Transactions</h2><p>Filter your ledger, then download the transactions shown.</p></div></div><TransactionFilters account={account} employer={transactionEmployer} type={transactionType} range={transactionRange} start={transactionStart} end={transactionEnd} ready={transactionPeriodReady} canDownload={transactionPeriodReady} onEmployer={(value) => updateTransactionFilter(() => setTransactionEmployer(value))} onType={(value) => updateTransactionFilter(() => setTransactionType(value))} onRange={(value) => updateTransactionFilter(() => setTransactionRange(value))} onStart={(value) => updateTransactionFilter(() => setTransactionStart(value))} onEnd={(value) => updateTransactionFilter(() => setTransactionEnd(value))} onGenerate={() => { setTransactionPage(1); setTransactionsRequested(true) }} onDownload={() => setFormatDialogOpen(true)} />{transactionsRequested && (transactions.length === 0 ? <Empty title="No Transactions Match">No ledger activity matches these filters. Change a filter to continue.</Empty> : <TransactionTable account={account} transactions={transactions} page={transactionPage} onPageChange={setTransactionPage} />)}</section>}
+    <article className="ux4g-card ux4g-card-solid ux4g-card-vertical passbook-balance-card" aria-labelledby="passbook-balance-title"><div className="ux4g-card-body"><h2 className="home-balance-title" id="passbook-balance-title">Current EPF Balance</h2><p className="financial-balance">{formatMoney(totalEpfBalance(account))}</p><p>Across all recorded PF accounts.</p><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md passbook-calculation-link" type="button" aria-controls="balance-calculation-section" onClick={showCalculation}>How This Is Calculated</button></div></article>
+    <div className="passbook-content-layout">
+      <div className="passbook-tabbed-content">
+    <nav className="ux4g-tab ux4g-tab-underline ux4g-tab-md financial-tabs" aria-label="Passbook views"><ul className="ux4g-tab-list" role="tablist">{visibleViews.map((item, index) => <li key={item.id} role="presentation"><button className={`ux4g-tab-item${effectiveView === item.id ? ' active' : ''}`} type="button" role="tab" tabIndex={effectiveView === item.id ? 0 : -1} aria-selected={effectiveView === item.id} aria-controls={`passbook-panel-${item.id}`} onKeyDown={(event) => handleTabKey(event, index)} onClick={() => changeView(item.id)}>{item.label}</button></li>)}</ul></nav>
+    {!isDesktop && effectiveView === 'overview' && <Overview account={account} contributions={recentContributions} highlightedContributionId={initialContribution} onRaiseContributionGrievance={onRaiseContributionGrievance} />}
+    {effectiveView === 'employers' && <section className="passbook-panel" id="passbook-panel-employers" role="tabpanel" tabIndex={-1}><div className="financial-section-heading"><div><h2>Employers</h2><p>Totals are reconciled for each Member ID.</p></div></div>{summaries.length === 0 ? <Empty title="No Employer Records Available">Employer-level ledger records are unavailable in this account.</Empty> : <div className="employer-layout"><div className="employer-selector" role="list" aria-label="Employers">{summaries.map((summary) => <button key={summary.employment.id} type="button" className={selectedEmployerId === summary.employment.id ? 'selected' : ''} aria-pressed={selectedEmployerId === summary.employment.id} onClick={() => selectEmployer(summary.employment.id)}><strong>{summary.employment.employer}</strong><span className="employer-account-number">PF Account Number · {summary.employment.memberId}</span><span>{formatDate(summary.employment.joinedOn)} to {summary.employment.exitedOn ? formatDate(summary.employment.exitedOn) : 'Present'}</span><span>{formatMoney(summary.closingBalance)} closing balance</span></button>)}</div>{selectedEmployer && <EmployerDetail summary={selectedEmployer} highlighted={selectedEmployer.employment.id === initialEmployer} onStartTransfer={onStartTransfer} />}</div>}</section>}
+    {effectiveView === 'transactions' && <section className="passbook-panel" id="passbook-panel-transactions" role="tabpanel" tabIndex={-1}><div className="financial-section-heading"><div><h2>Transactions</h2><p>Filter your ledger, then download the transactions shown.</p></div></div><TransactionFilters account={account} employer={transactionEmployer} type={transactionType} range={transactionRange} start={transactionStart} end={transactionEnd} ready={transactionPeriodReady} canDownload={transactionPeriodReady} onEmployer={(value) => updateTransactionFilter(() => setTransactionEmployer(value))} onType={(value) => updateTransactionFilter(() => setTransactionType(value))} onRange={(value) => updateTransactionFilter(() => setTransactionRange(value))} onStart={(value) => updateTransactionFilter(() => setTransactionStart(value))} onEnd={(value) => updateTransactionFilter(() => setTransactionEnd(value))} onGenerate={() => { setTransactionPage(1); setTransactionsRequested(true) }} onDownload={() => setFormatDialogOpen(true)} />{transactionsRequested && (transactions.length === 0 ? <Empty title="No Transactions Match">No ledger activity matches these filters. Change a filter to continue.</Empty> : <TransactionTable account={account} transactions={transactions} page={transactionPage} highlightedTransactionId={initialContribution} onPageChange={setTransactionPage} />)}</section>}
+      </div>
+      {isDesktop && <aside className="passbook-overview-rail" aria-label="Overview"><Overview account={account} contributions={recentContributions} highlightedContributionId={initialContribution} rail onRaiseContributionGrievance={onRaiseContributionGrievance} /></aside>}
+    </div>
     {formatDialogOpen && <DownloadFormatDialog onClose={() => setFormatDialogOpen(false)} onChoose={downloadTransactions} />}
   </section>
 }
 
 function Empty({ title, children }: { title: string; children: string }) { return <div className="financial-empty"><h3>{title}</h3><p>{children}</p></div> }
 
-function Overview({ account, contributions, highlightedContributionId, explanationOpen, onRaiseContributionGrievance }: { account: AccountState; contributions: ContributionRecord[]; highlightedContributionId?: string; explanationOpen: boolean; onRaiseContributionGrievance: (contribution: ContributionRecord) => void }) {
+function Overview({ account, contributions, highlightedContributionId, rail = false, onRaiseContributionGrievance }: { account: AccountState; contributions: ContributionRecord[]; highlightedContributionId?: string; rail?: boolean; onRaiseContributionGrievance: (contribution: ContributionRecord) => void }) {
   const value = accountReconciliation(account)
   const rows = [['Employee Contributions', value.employeeContributions], ['Employer EPF Contributions', value.employerEpfContributions], ['Interest Officially Credited', value.officialInterestCredits], ['Transfers In', value.transfersIn], ['Transfers Out', -value.transfersOut], ['Withdrawals', -value.withdrawals]] as const
-  return <section className="passbook-panel" id="passbook-panel-overview" role="tabpanel" tabIndex={-1}><section className="financial-section" aria-labelledby="recent-contributions-title"><div className="financial-section-heading"><div><h2 id="recent-contributions-title">Recent Contributions</h2><p>Employee and employer EPF amounts recorded in the latest six-month period. EPS is shown separately.</p></div></div>{contributions.length === 0 ? <Empty title="No Contributions Recorded">No contribution records are available for the last six months.</Empty> : <ol className="contribution-summary-grid">{contributions.map((record) => { const employer = account.employments.find((item) => item.id === record.employmentId); const highlighted = record.id === highlightedContributionId; return <li key={record.id} className={highlighted ? 'highlighted' : ''}><time dateTime={record.wageMonth}>{formatWageMonth(record.wageMonth)}</time><div className="contribution-amount"><span>Employee EPF</span><strong>{record.employeeEpf === null ? 'Not recorded' : formatMoney(record.employeeEpf)}</strong></div><small>Employer EPF: {record.employerEpf === null ? 'Not recorded' : formatMoney(record.employerEpf)}</small><span>{employer?.employer ?? 'Employer unavailable'}</span><small>Recorded {formatDate(record.recordedOn)}</small>{highlighted && record.employerEpf === null && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-lg contribution-review-action" type="button" onClick={() => onRaiseContributionGrievance(record)}>Ask EPFO to review</button>}</li> })}</ol>}</section><div className="overview-grid"><section className="financial-panel" aria-labelledby="balance-composition-title"><h2 id="balance-composition-title">How Your Balance Adds Up</h2><dl className="balance-composition">{rows.map(([label, amount]) => <div key={label}><dt>{label}</dt><dd>{formatMoney(amount)}</dd></div>)}<div className="balance-composition-total"><dt>Current EPF Balance</dt><dd>{formatMoney(value.closingBalance)}</dd></div></dl><details className="financial-explanation" open={explanationOpen}><summary>How This Is Calculated</summary><ul><li>Added: employee EPF, employer EPF, credited interest and completed transfers in.</li><li>Subtracted: completed transfers out and withdrawals.</li><li>EPS is not included. Transfers move existing EPF money rather than creating contributions.</li></ul></details></section><aside className="ux4g-alert ux4g-alert-info overview-eps"><div className="ux4g-alert-content"><p className="ux4g-alert-title">EPS Is Separate</p><p className="ux4g-alert-message">{formatMoney(totalEpsContributions(account))} is recorded toward pension service and is not included in your EPF balance.</p></div></aside></div></section>
+  return <section className="passbook-panel" id="passbook-panel-overview" role={rail ? 'region' : 'tabpanel'} aria-label={rail ? 'Overview' : undefined} tabIndex={-1}><section className="financial-section overview-recent" aria-labelledby="recent-contributions-title"><div className="financial-section-heading"><div><h2 id="recent-contributions-title">Recent Contributions</h2><p>Employee and employer EPF amounts recorded in the latest six-month period. EPS is shown separately.</p></div></div>{contributions.length === 0 ? <Empty title="No Contributions Recorded">No contribution records are available for the last six months.</Empty> : <ol className="contribution-summary-grid">{contributions.map((record) => { const employer = account.employments.find((item) => item.id === record.employmentId); const highlighted = record.id === highlightedContributionId; return <li key={record.id} className={highlighted ? 'highlighted' : ''}><time dateTime={record.wageMonth}>{formatWageMonth(record.wageMonth)}</time><div className="contribution-amount"><span>Employee EPF</span><strong>{record.employeeEpf === null ? 'Not Recorded' : formatMoney(record.employeeEpf)}</strong></div><small>Employer EPF: {record.employerEpf === null ? 'Not Recorded' : formatMoney(record.employerEpf)}</small><span>{employer?.employer ?? 'Employer Unavailable'}</span><small>Recorded {formatDate(record.recordedOn)}</small>{highlighted && record.employerEpf === null && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-lg contribution-review-action" type="button" onClick={() => onRaiseContributionGrievance(record)}>Request Review</button>}</li> })}</ol>}</section><div className="overview-grid overview-calculation"><section className="financial-panel" id="balance-calculation-section" aria-labelledby="balance-composition-title" tabIndex={-1}><h2 id="balance-composition-title">How This Is Calculated</h2><dl className="balance-composition">{rows.map(([label, amount]) => <div key={label}><dt>{label}</dt><dd>{formatMoney(amount)}</dd></div>)}<div className="balance-composition-total"><dt>Current EPF Balance</dt><dd>{formatMoney(value.closingBalance)}</dd></div></dl></section><aside className="ux4g-alert ux4g-alert-info overview-eps"><div className="ux4g-alert-content"><p className="ux4g-alert-title">EPS Is Separate</p><p className="ux4g-alert-message">{formatMoney(totalEpsContributions(account))} is recorded toward pension service and is not included in your EPF balance.</p></div></aside></div></section>
 }
 
-function EmployerDetail({ summary, onStartTransfer }: { summary: ReturnType<typeof employerSummaries>[number]; onStartTransfer: (employmentId: string) => void }) {
+function EmployerDetail({ summary, highlighted, onStartTransfer }: { summary: ReturnType<typeof employerSummaries>[number]; highlighted: boolean; onStartTransfer: (employmentId: string) => void }) {
   const employment = summary.employment
   const transferInProgress = summary.transferState === 'submitted' || summary.transferState === 'processing'
-  return <article className="financial-panel employer-detail"><div className="financial-section-heading"><div><h3>{employment.employer}</h3><p className="employer-account-number">PF Account Number · {employment.memberId}</p><p>{formatDate(employment.joinedOn)} to {employment.exitedOn ? formatDate(employment.exitedOn) : 'Present'} · {providerLabel(employment.establishmentType)}</p></div><span className="ux4g-tag ux4g-tag-filled-neutral ux4g-tag-s">{summary.transferState === 'not-applicable' ? 'No Transfer Needed' : `Transfer ${summary.transferState}`}</span></div>{employment.dataAvailability !== 'complete' && <div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Historical Data {employment.dataAvailability === 'partial' ? 'Is Partial' : 'Is Unavailable'}</p><p className="ux4g-alert-message">{employment.dataAvailabilityNote ?? 'Some historical entries are not available in this account.'}</p></div></div>}<dl className="employer-metrics"><div><dt>Employee Contributions</dt><dd>{formatMoney(summary.employeeContributions)}</dd></div><div><dt>Employer EPF Contributions</dt><dd>{formatMoney(summary.employerEpfContributions)}</dd></div><div><dt>EPS Contributions</dt><dd>{formatMoney(summary.epsContributions)}</dd></div><div><dt>Interest Credited</dt><dd>{formatMoney(summary.officialInterestCredits)}</dd></div><div><dt>Transfers In</dt><dd>{formatMoney(summary.transfersIn)}</dd></div><div><dt>Transfers Out</dt><dd>{formatMoney(summary.transfersOut)}</dd></div><div><dt>Withdrawals</dt><dd>{formatMoney(summary.withdrawals)}</dd></div><div><dt>Closing EPF Balance</dt><dd>{formatMoney(summary.closingBalance)}</dd></div></dl>{employment.status === 'balance-remaining' && !transferInProgress && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => onStartTransfer(employment.id)}>Transfer Previous PF</button>}{transferInProgress && <div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Transfer Is in Progress</p><p className="ux4g-alert-message">This balance remains here until the submitted transfer is processed.</p></div></div>}</article>
+  return <article className={`financial-panel employer-detail${highlighted ? ' context-target-highlight' : ''}`} id={`employer-detail-${employment.id}`} tabIndex={-1}><div className="financial-section-heading"><div><h3>{employment.employer}</h3><p className="employer-account-number">PF Account Number · {employment.memberId}</p><p>{formatDate(employment.joinedOn)} to {employment.exitedOn ? formatDate(employment.exitedOn) : 'Present'} · {providerLabel(employment.establishmentType)}</p></div>{summary.transferState !== 'not-applicable' && <span className="ux4g-tag ux4g-tag-filled-neutral ux4g-tag-s">{transferStateLabel(summary.transferState)}</span>}</div>{employment.dataAvailability !== 'complete' && <div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Historical Data {employment.dataAvailability === 'partial' ? 'Is Partial' : 'Is Unavailable'}</p><p className="ux4g-alert-message">{employment.dataAvailabilityNote ?? 'Some historical entries are not available in this account.'}</p></div></div>}<dl className="employer-metrics"><div><dt>Employee Contributions</dt><dd>{formatMoney(summary.employeeContributions)}</dd></div><div><dt>Employer EPF Contributions</dt><dd>{formatMoney(summary.employerEpfContributions)}</dd></div><div><dt>EPS Contributions</dt><dd>{formatMoney(summary.epsContributions)}</dd></div><div><dt>Interest Credited</dt><dd>{formatMoney(summary.officialInterestCredits)}</dd></div><div><dt>Transfers In</dt><dd>{formatMoney(summary.transfersIn)}</dd></div><div><dt>Transfers Out</dt><dd>{formatMoney(summary.transfersOut)}</dd></div><div><dt>Withdrawals</dt><dd>{formatMoney(summary.withdrawals)}</dd></div><div><dt>Closing EPF Balance</dt><dd>{formatMoney(summary.closingBalance)}</dd></div></dl>{employment.status === 'balance-remaining' && !transferInProgress && <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => onStartTransfer(employment.id)}>Transfer Previous PF</button>}{transferInProgress && <div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Transfer Is in Progress</p><p className="ux4g-alert-message">This balance remains here until the submitted transfer is processed.</p></div></div>}</article>
 }
 
 interface TransactionFiltersProps {
@@ -138,7 +188,7 @@ function DownloadFormatDialog({ onClose, onChoose }: { onClose: () => void; onCh
   return <dialog className="download-format-dialog" aria-labelledby="download-format-title" onCancel={onClose} ref={(node) => { if (node && !node.open) node.showModal() }}><div><h2 id="download-format-title">Choose a File Format</h2><p>Download all transactions matching the current filters.</p></div><div className="download-format-actions"><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => onChoose('pdf')}>Download PDF</button><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={() => onChoose('excel')}>Download Excel</button><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={onClose}>Cancel</button></div></dialog>
 }
 
-function TransactionTable({ account, transactions, page, onPageChange }: { account: AccountState; transactions: LedgerTransaction[]; page: number; onPageChange: (page: number) => void }) {
+function TransactionTable({ account, transactions, page, highlightedTransactionId, onPageChange }: { account: AccountState; transactions: LedgerTransaction[]; page: number; highlightedTransactionId?: string; onPageChange: (page: number) => void }) {
   const pageCount = Math.ceil(transactions.length / transactionsPerPage)
   const currentPage = Math.min(page, pageCount)
   const startIndex = (currentPage - 1) * transactionsPerPage
@@ -149,7 +199,7 @@ function TransactionTable({ account, transactions, page, onPageChange }: { accou
       <table className="ux4g-table ux4g-table-m ux4g-table-zebra-rows transaction-table">
         <caption className="visually-hidden">Filtered passbook transactions</caption>
         <thead><tr><th scope="col">Date</th><th scope="col">Transaction</th><th scope="col">Employer</th><th scope="col">Type</th><th scope="col" className="transaction-amount-column">Amount</th></tr></thead>
-        <tbody>{pageTransactions.map((transaction) => { const employment = account.employments.find((item) => item.id === transaction.employmentId); return <tr key={transaction.id}><td>{formatDate(transaction.date)}</td><td>{transaction.title}</td><td>{employment?.employer ?? 'Employer unavailable'}</td><td><span className="ux4g-tag ux4g-tag-filled-neutral ux4g-tag-s">{transactionTypeLabel[transaction.type]}</span></td><td className="transaction-amount-column">{transaction.amount === null ? 'Unavailable' : formatMoney(transaction.amount)}</td></tr> })}</tbody>
+        <tbody>{pageTransactions.map((transaction) => { const employment = account.employments.find((item) => item.id === transaction.employmentId); const highlighted = transaction.id === highlightedTransactionId; return <tr key={transaction.id} id={`transaction-${transaction.id}`} className={highlighted ? 'context-target-highlight' : undefined} tabIndex={highlighted ? -1 : undefined}><td>{formatDate(transaction.date)}</td><td>{transaction.title}</td><td>{employment?.employer ?? 'Employer Unavailable'}</td><td><span className="ux4g-tag ux4g-tag-filled-neutral ux4g-tag-s">{transactionTypeLabel[transaction.type]}</span></td><td className="transaction-amount-column">{transaction.amount === null ? 'Unavailable' : formatMoney(transaction.amount)}</td></tr> })}</tbody>
       </table>
     </div>
     <div className="transaction-pagination-summary" role="status">Showing {startIndex + 1}–{Math.min(startIndex + transactionsPerPage, transactions.length)} of {transactions.length} transactions</div>

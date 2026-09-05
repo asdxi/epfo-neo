@@ -111,9 +111,11 @@ export function deriveAttentionItems(account: AccountState): AttentionItem[] {
     .filter((exception) => exception.state !== 'resolved')
     .map((exception): AttentionItem => {
       if (exception.kind === 'previous-balance') {
+        const source = account.employments.find((employment) => employment.id === exception.employmentId)
+        const amount = exception.amount === undefined ? 'Amount not confirmed' : formatMoney(exception.amount)
         return exception.state === 'in-progress'
-          ? { id: exception.id, priority: 'in-progress', title: 'Previous PF Transfer', explanation: `${formatMoney(exception.amount ?? 0)} is being processed.`, actionLabel: 'Track Transfer', route: 'requests', contextId: exception.relatedRequestId }
-          : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${formatMoney(exception.amount ?? 0)} remains with Harbor Foods.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
+          ? { id: exception.id, priority: 'in-progress', title: 'Previous PF Transfer', explanation: `${amount} is being processed.`, actionLabel: 'Track Transfer', route: 'requests', contextId: exception.relatedRequestId }
+          : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${amount} remains under ${source?.employer ?? 'the previous Member ID'}.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
       }
       if (exception.kind === 'contribution-review') {
         return { id: exception.id, priority: 'action-required', title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }

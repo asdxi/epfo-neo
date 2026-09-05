@@ -7,8 +7,9 @@ describe('contribution discrepancy resolution', () => {
     const resolution = deriveContributionResolution(createInitialAccount(), 'vertex-2026-06')!
 
     expect(resolution.validCategories).toEqual(['inconsistent-epf-eps-component'])
-    expect(resolution.recordedComponents).toContainEqual({ label: 'Employer EPF', amount: null })
-    expect(resolution.expectedComponents).toContainEqual({ label: 'Employer EPF', amount: 550 })
+    expect(resolution.recordedComponents).toContainEqual({ code: 'employer-epf', amount: null })
+    expect(resolution.expectedComponents).toContainEqual({ code: 'employer-epf', amount: 550 })
+    expect(resolution.missingComponents).toEqual(['employer-epf'])
     expect(resolution.references).toEqual(['TXN-VTX-2026-06-0708', 'ECR-VTX-2026-06'])
     expect(resolution.preparedDescription).not.toMatch(/fraud|wrongdoing/i)
   })
@@ -34,7 +35,9 @@ describe('contribution discrepancy resolution', () => {
     for (const item of cases) {
       const account = createInitialAccount()
       account.ledger.contributions.push({ ...template, ...item.patch, id: item.id, status: item.id === 'missing' ? 'missing-contribution' : 'amount-needs-review' })
-      expect(deriveContributionResolution(account, item.id)?.validCategories).toContain(item.category)
+      const resolution = deriveContributionResolution(account, item.id)
+      expect(resolution?.validCategories).toContain(item.category)
+      if (item.id === 'missing') expect(resolution?.memberImpact).not.toContain('₹0')
     }
   })
 })

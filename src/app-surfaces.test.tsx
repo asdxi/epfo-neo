@@ -12,6 +12,7 @@ import { PassbookPage } from './pages/PassbookPage'
 import { RequestsPage } from './pages/RequestsPage'
 import { RecordReviewPage } from './pages/RecordReviewPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { noActiveIssueScenario, transferCompletedScenario, unavailableSourceScenario } from './test-fixtures/reconciliationScenarios'
 
 const noop = vi.fn()
 
@@ -104,19 +105,23 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('₹4,82,650')
     expect(html).toContain('EPS')
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
-    expect(html).toContain('Vertex Mobility')
-    expect(html).toContain('2 PF record issues')
-    expect(html).toContain('Review 2 issues')
-    expect(html).toContain('Employer EPF</dt><dd>Not recorded')
+    expect(html).toContain('Pied Piper')
+    expect(html).toContain('Pending PF Transfer')
+    expect(html).toContain('Your PF transfer from Waystar Royco is still being processed.')
+    expect(html).not.toContain('Current employer')
+    expect(html).not.toContain('Next step')
+    expect(html).toContain('Employer PF Not Recorded')
+    expect(html).toContain('View Details')
+    expect(html).toContain('Employer EPF</dt><dd><span class="record-missing-value">Not Recorded</span>')
     expect(html).toContain('EPF Contributions')
     expect(html).toContain('₹35,250')
-    expect(html).toContain('No EPF-covered employment recorded')
-    expect(html.indexOf('Vertex Mobility')).toBeLessThan(html.indexOf('Northstar Consumer Technologies'))
+    expect(html).toContain('No EPF-Covered Employment Recorded')
+    expect(html.indexOf('Pied Piper')).toBeLessThan(html.indexOf('Stark Industries'))
     expect(html).toContain('id="notice-board-title">Notices</h2>')
     expect(html.match(/>New<\/span>/g)).toHaveLength(2)
     expect(html).toContain('aria-label="Notices, newest first"')
     expect(html).toContain('target="_blank"')
-    expect(html.indexOf('Keep your Aadhaar-linked mobile number active')).toBeLessThan(html.indexOf('Updates are available in Requests'))
+    expect(html.indexOf('Keep Your Aadhaar-Linked Mobile Number Active')).toBeLessThan(html.indexOf('Updates Are Available in Requests'))
     expect(html).not.toContain('Recent Activity')
     expect(html).not.toContain('What Would You Like to Do?')
     expect(html).not.toContain('Action Required')
@@ -135,6 +140,48 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('No Contribution Recorded')
   })
 
+  it('keeps balance calculations in Passbook rather than Home', () => {
+    const home = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
+    const passbook = renderToStaticMarkup(<PassbookPage account={createInitialAccount()} initialView="overview" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />)
+
+    expect(home).not.toContain('How This Is Calculated')
+    expect(home).not.toContain('balance-calculation-dialog')
+    expect(passbook).toContain('class="ux4g-btn ux4g-btn-text-primary ux4g-btn-md passbook-calculation-link"')
+    expect(passbook).toContain('id="balance-composition-title">How This Is Calculated</h2>')
+    expect(passbook).not.toContain('financial-explanation')
+  })
+
+  it('opens a home contribution in the filtered transaction ledger', async () => {
+    window.history.replaceState(null, '', '/passbook?view=transactions&employer=vertex&type=contribution&period=6-months&load=1&highlight=vertex-2026-06')
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<PassbookPage account={createInitialAccount()} initialContextId="vertex-2026-06" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />))
+
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Transactions')
+    expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:first-child select')?.value).toBe('vertex')
+    expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:nth-child(2) select')?.value).toBe('contribution')
+    expect(container.querySelector('#transaction-vertex-2026-06')?.classList.contains('context-target-highlight')).toBe(true)
+    expect(container.querySelector('#transaction-vertex-2026-06')?.textContent).toContain('Contribution for June 2026')
+
+    await act(async () => root.unmount())
+    container.remove()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('renders missing contribution components as missing while preserving an explicit zero', () => {
+    const account = createInitialAccount()
+    const latest = account.ledger.contributions.find((item) => item.id === 'vertex-2026-06')!
+    latest.employeeEpf = null
+    latest.employerEpf = 0
+    latest.eps = null
+    const html = renderToStaticMarkup(<HomePage account={account} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
+
+    expect(html).toContain('Employee EPF</dt><dd><span class="record-missing-value">Not Recorded</span>')
+    expect(html).toContain('Employer EPF</dt><dd>₹0')
+    expect(html).toContain('EPS Recorded</dt><dd><span class="record-missing-value">Not Recorded</span>')
+  })
+
   it('renders the evidence-first PF record review and routes both issue actions', async () => {
     const account = createInitialAccount()
     const trackRequest = vi.fn()
@@ -145,25 +192,50 @@ describe('v0.2 application surfaces', () => {
     const root = createRoot(container)
     await act(async () => root.render(<RecordReviewPage account={account} onBack={back} onTrackRequest={trackRequest} onStartTransfer={noop} onRaiseContributionGrievance={raiseGrievance} />))
 
-    expect(container.textContent).toContain('PF Record Review')
-    expect(container.textContent).toContain('₹38,450 is still recorded under Harbor Foods India')
-    expect(container.textContent).toContain('It has not also been added to Vertex Mobility')
+    expect(container.textContent).toContain('Needs Attention')
+    expect(container.textContent).toContain('Review items that need action or are still in progress.')
+    expect(container.textContent).toContain('Pending PF Transfer')
+    expect(container.textContent).toContain('Waystar Royco→Pied Piper₹38,450')
     expect(container.textContent).toContain('Employment Record Verification')
-    expect(container.textContent).toContain('Who must actEPFO')
-    expect(container.textContent).toContain('Wage MonthJune 2026')
-    expect(container.textContent).toContain('Recorded On8 July 2026')
-    expect(container.textContent).toContain('Employer EPFNot recorded')
+    expect(container.textContent).toContain('Responsible PartyEPFO')
+    expect(container.textContent).toContain('Balance TreatmentCurrently Counted UnderWaystar RoycoAdded to Pied PiperAfter CompletionDuplicate Amount in TotalNo')
+    expect(container.textContent).toContain('Pension ServiceStateLinked Employment Record IncludedEPS is a service record. It is not transferred as cash.')
+    expect(container.textContent).toContain('EmployerPied PiperWage MonthJune 2026Recorded On8 July 2026Missing AmountEmployer EPF')
+    expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800Employer EPF₹550EPS₹1,250')
+    expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800Employer EPFNot RecordedEPS₹1,250')
+    expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')
+    expect(container.querySelector('.record-missing-value')?.classList.contains('ux4g-tag')).toBe(false)
+    expect(container.textContent).not.toContain('Rule record')
+    expect(container.textContent).not.toContain('Supporting records')
+    expect(container.textContent).not.toContain('Calculation trail')
+    expect(container.querySelector('details.record-evidence')).toBeNull()
     expect(document.activeElement).toBe(container.querySelector('#record-review-title'))
 
-    await clickButton('← Back to Home')
+    await clickButton('← Back')
     expect(back).toHaveBeenCalledOnce()
-    await clickButton('Track transfer')
+    await clickButton('Track Transfer')
     expect(trackRequest).toHaveBeenCalledWith('request-transfer-2026')
-    await clickButton('Ask EPFO to review')
+    await clickButton('Request Review')
     expect(raiseGrievance).toHaveBeenCalledWith(expect.objectContaining({ id: 'vertex-2026-06' }))
 
     await act(async () => root.unmount())
     container.remove()
+  })
+
+  it('renders empty, resolved and unavailable record-review states without inventing outcomes', () => {
+    const renderReview = (account: ReturnType<typeof createInitialAccount>) => renderToStaticMarkup(<RecordReviewPage account={account} onBack={noop} onTrackRequest={noop} onStartTransfer={noop} onRaiseContributionGrievance={noop} />)
+    const empty = renderReview({ ...noActiveIssueScenario(), exceptions: [] })
+    const resolved = renderReview(transferCompletedScenario())
+    const unavailableAccount = unavailableSourceScenario()
+    unavailableAccount.exceptions = unavailableAccount.exceptions.filter((exception) => exception.kind === 'previous-balance')
+    const unavailable = renderReview(unavailableAccount)
+
+    expect(empty).toContain('No Items Need Attention')
+    expect(resolved).toContain('PF Transfer Completed')
+    expect(resolved).toContain('No Action Needed')
+    expect(unavailable).toContain('Record Unavailable')
+    expect(unavailable).toContain('No financial or pension result has been assumed.')
+    expect(unavailable).not.toContain('₹38,450')
   })
 
   it('renders passbook dates, EPF and EPS as distinct concepts', () => {
@@ -179,10 +251,10 @@ describe('v0.2 application surfaces', () => {
 
     expect(html).toContain('Recent Contributions')
     expect(html).toContain('Recorded 8 July 2026')
-    expect(html).not.toContain('Harbor Foods India')
+    expect(html).not.toContain('Waystar Royco')
     expect(html).toContain('Employer EPF')
     expect(html).toContain('Employee EPF')
-    expect(html).toContain('Employer EPF: Not recorded')
+    expect(html).toContain('Employer EPF: Not Recorded')
     expect(html).toContain('EPS')
     expect(html).not.toContain('Generate Statement')
     expect(html).not.toContain('Contributions</button>')
@@ -192,11 +264,14 @@ describe('v0.2 application surfaces', () => {
 
   it('shows PF account numbers for employers', () => {
     const html = renderToStaticMarkup(
-      <PassbookPage account={createInitialAccount()} initialView="employers" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+      <PassbookPage account={createInitialAccount()} initialView="employers" initialContextId="bluekite" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
     )
 
     expect(html).toContain('PF Account Number · KA/VTX/0048291')
     expect(html).toContain('PF Account Number · DL/BLK/0019274')
+    expect(html).toContain('Dunder Mifflin Paper Co.')
+    expect(html).toContain('Transfer Completed')
+    expect(html).not.toContain('No Transfer Needed')
   })
 
   it('disables transaction download only when a custom range is incomplete', async () => {
@@ -267,7 +342,7 @@ describe('v0.2 application surfaces', () => {
     expect(requests).toContain('<span>Grievances</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
-    expect(requests).toContain('Recommended next step')
+    expect(requests).toContain('Recommended Next Step')
     expect(requests).toContain('Search by request ID')
     expect(requests).toContain('Enter request ID')
     expect(requests).toContain('class="ux4g-input ux4g-input-md"')
@@ -276,11 +351,11 @@ describe('v0.2 application surfaces', () => {
     expect(requests).not.toContain('<p class="service-eyebrow">')
 
     const emptyRequests = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [] }} />)
-    expect(emptyRequests).toContain('No open requests')
+    expect(emptyRequests).toContain('No Open Requests')
 
     const actionRequest = { ...account.requests[0], state: 'action-required' as const, citizenAction: 'Confirm the requested details.' }
     const actionRequired = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [actionRequest] }} initialRequestId={actionRequest.id} />)
-    expect(actionRequired).toContain('Action required')
+    expect(actionRequired).toContain('Action Required')
     expect(actionRequired).not.toContain('Your Action Is Required')
   })
 
@@ -326,12 +401,25 @@ describe('v0.2 application surfaces', () => {
     container.remove()
   })
 
+  it('restores keyboard focus at Requests after a record-review hand-off', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<RequestsPage account={createInitialAccount()} initialRequestId="request-transfer-2026" />))
+
+    expect(document.activeElement).toBe(container.querySelector('#requests-title'))
+    expect(container.querySelector('.request-detail')?.textContent).toContain('TRF-2026-004512')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('renders acknowledgement evidence and recoverable rejection in the existing Requests detail', () => {
     const account = createInitialAccount()
     const missing = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-correction-2026" onCitizenAction={noop} />)
-    expect(missing).toContain('Submitted · receipt not confirmed')
-    expect(missing).toContain('Member portal receipt not confirmed')
-    expect(missing).toContain('Check existing request')
+    expect(missing).toContain('Submitted · Receipt Not Confirmed')
+    expect(missing).toContain('Request Not Confirmed')
+    expect(missing).toContain('Check Existing Request')
 
     const rejected = {
       ...account.requests[0], id: 'request-rejected', state: 'rejected' as const,
@@ -352,9 +440,10 @@ describe('v0.2 application surfaces', () => {
     await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-06" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
 
     await clickButton('Continue')
-    expect(container.textContent).toContain('Neo prepared this review')
-    expect(container.textContent).toContain('EPF or EPS component is incomplete')
-    expect(container.textContent).toContain('TXN-VTX-2026-06-0708')
+    expect(container.textContent).toContain('Wage MonthJune 2026')
+    expect(container.textContent).toContain('Employer PF Not Recorded')
+    expect(container.querySelector<HTMLInputElement>('#grievance-support')?.value).toContain('Employer contribution record')
+    expect(container.textContent).not.toContain('TXN-VTX-2026-06-0708')
     expect(container.textContent).not.toContain('Transfer Delay')
     expect(container.querySelector<HTMLSelectElement>('#grievance-category')?.disabled).toBe(true)
 
@@ -428,7 +517,7 @@ describe('v0.2 application surfaces', () => {
     const html = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />)
 
     expect(html).toContain('Profile Last Updated</p><p class="ux4g-alert-message"><time>Not available')
-    expect(html).toContain('Profile and account')
+    expect(html).toContain('Profile and Account')
   })
 
   it('reveals photo instructions on demand and allows only the intended profile fields to be edited', async () => {
@@ -574,8 +663,8 @@ describe('v0.2 application surfaces', () => {
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Confirm and Submit Transfer')
 
-    expect(container.textContent).toContain('Transfer attempt saved')
-    expect(container.textContent).toContain('Neo case ID')
+    expect(container.textContent).toContain('Transfer Attempt Saved')
+    expect(container.textContent).toContain('Request ID')
     expect(account.requests.find((request) => request.type === 'transfer')?.state).toBe('submitted')
     await act(async () => root.unmount())
     container.remove()
@@ -611,8 +700,8 @@ describe('v0.2 application surfaces', () => {
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Submit Grievance')
 
-    expect(container.textContent).toContain('Grievance attempt saved')
-    expect(container.textContent).toContain('Neo case ID')
+    expect(container.textContent).toContain('Grievance Attempt Saved')
+    expect(container.textContent).toContain('Request ID')
     expect(account.requests.find((request) => request.contributionId === 'vertex-2026-06')?.reference).toMatch(/^GRV-/)
     await act(async () => root.unmount())
     container.remove()
