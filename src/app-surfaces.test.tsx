@@ -147,13 +147,14 @@ describe('v0.2 application surfaces', () => {
     expect(home).not.toContain('How This Is Calculated')
     expect(home).not.toContain('balance-calculation-dialog')
     expect(passbook).toContain('class="ux4g-btn ux4g-btn-text-primary ux4g-btn-md passbook-calculation-link"')
-    expect(passbook).toContain('id="balance-composition-title">How This Is Calculated</h2>')
+    expect(passbook).toContain('id="balance-composition-title">Current EPF Balance Calculation</h2>')
     expect(passbook).toContain('Interest Credited')
     expect(passbook).toContain('PF received from earlier Member IDs.')
     expect(passbook).toContain('PF moved to later Member IDs.')
-    expect(passbook).toContain('Pension Service</dt><dd>6 years 5 months')
-    expect(passbook).toContain('To Reach 10 Years</dt><dd>3 years 7 months more')
-    expect(passbook).toContain('Normal Pension Age</dt><dd>58 · 14 November 2051')
+    expect(passbook).toContain('Recorded Pension Contributions</span><strong>₹96,250')
+    expect(passbook).toContain('<strong>Your Service:</strong> 6 years 5 months. 3 years 7 months to reach 10 years.')
+    expect(passbook).toContain('<strong>After 10 Years:</strong> No lump-sum withdrawal. EPS provides a monthly pension.')
+    expect(passbook).toContain('aria-label="Explain EPS"')
     expect(passbook).not.toContain('financial-explanation')
   })
 
@@ -268,13 +269,13 @@ describe('v0.2 application surfaces', () => {
     expect(html).not.toContain('Estimated Interest Accrued')
   })
 
-  it('shows PF account numbers for employers', () => {
+  it('shows Member IDs for employers', () => {
     const html = renderToStaticMarkup(
       <PassbookPage account={createInitialAccount()} initialView="employers" initialContextId="bluekite" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
     )
 
-    expect(html).toContain('PF Account Number · KA/VTX/0048291')
-    expect(html).toContain('PF Account Number · DL/BLK/0019274')
+    expect(html).toContain('Member ID · KA/VTX/0048291')
+    expect(html).toContain('Member ID · DL/BLK/0019274')
     expect(html).toContain('Dunder Mifflin Paper Co.')
     expect(html).toContain('Transfer Completed')
     expect(html).not.toContain('No Transfer Needed')
@@ -344,8 +345,13 @@ describe('v0.2 application surfaces', () => {
 
     expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Employee EPF', 'Employer EPF', 'Total'])
     expect(container.querySelectorAll('.transaction-table tbody tr')).toHaveLength(10)
-    expect(container.querySelector('.transaction-pagination')?.textContent).toContain('Next')
+    expect(container.querySelector('.transaction-pagination [aria-label="Next transaction page"] svg')).not.toBeNull()
     expect(container.querySelector('.transaction-pagination-summary')?.textContent).toContain('Showing 1–10')
+    expect(container.querySelector('.transaction-pagination-footer')).not.toBeNull()
+    expect(container.querySelector('.transaction-pagination .ux4g-page-number.active')?.textContent).toBe('1')
+    expect(container.querySelectorAll('.transaction-pagination .ux4g-page-number')).toHaveLength(4)
+    expect(container.querySelector('.transaction-table .ux4g-tag-filled-success')?.textContent).toBe('Contribution')
+    expect(container.querySelector('.transaction-table .ux4g-tag-filled-primary')?.textContent).toBe('Transfer')
 
     await act(async () => root.unmount())
     container.remove()
