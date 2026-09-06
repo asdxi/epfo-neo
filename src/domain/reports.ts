@@ -1,4 +1,4 @@
-import { formatDate, formatMoney, formatWageMonth, ledgerTransactions } from './calculations'
+import { formatDate, formatMoney, formatWageMonth, ledgerTransactions, totalEpfBalance } from './calculations'
 import type { AccountState, GeneratedReport, ReportFormat } from './types'
 
 const addDays = (isoDate: string, days: number): string => {
@@ -31,7 +31,18 @@ const transactionRows = (account: AccountState, report: GeneratedReport) => {
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
     .map((item) => {
       const employer = account.employments.find((entry) => entry.id === item.employmentId)
-      return [formatDate(item.date), employer?.employer ?? 'Unavailable', item.type, item.title, item.amount ?? 'Unavailable', item.state]
+      const contribution = item.type === 'contribution'
+      return [
+        formatDate(item.date),
+        employer?.employer ?? 'Unavailable',
+        item.type,
+        item.title,
+        contribution ? item.employeeEpf ?? 'Not Recorded' : 'N/A',
+        contribution ? item.voluntaryEpf ?? 'Not Recorded' : 'N/A',
+        contribution ? item.employerEpf ?? 'Not Recorded' : 'N/A',
+        item.amount ?? 'Unavailable',
+        item.state,
+      ]
     })
 }
 
@@ -48,6 +59,7 @@ const reportRows = (account: AccountState, startsOn: string, endsOn: string) => 
       employer?.employer ?? 'Unavailable',
       record.pfWage ?? 'Unavailable',
       record.employeeEpf ?? 'Unavailable',
+      record.voluntaryEpf ?? 'Unavailable',
       record.employerEpf ?? 'Unavailable',
       record.eps ?? 'Unavailable',
       record.status,
@@ -61,9 +73,7 @@ export function buildPdfStatement(account: AccountState, report: GeneratedReport
   const rows = transactionExport ? transactionRows(account, report) : reportRows(account, report.startsOn, report.endsOn)
   const rowsPerPage = 24
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage))
-  const officialBalance = account.ledger.contributions.reduce((total, item) => total + (item.employeeEpf ?? 0) + (item.employerEpf ?? 0), 0)
-    + account.ledger.officialInterestCredits.reduce((total, item) => total + item.amount, 0)
-    - account.ledger.withdrawals.reduce((total, item) => total + item.amount, 0)
+  const officialBalance = totalEpfBalance(account)
   const fontObjectId = 3
   const pageObjectIds = Array.from({ length: pageCount }, (_, index) => 4 + index * 2)
   const contentObjectIds = pageObjectIds.map((id) => id + 1)
@@ -83,10 +93,10 @@ export function buildPdfStatement(account: AccountState, report: GeneratedReport
       `Period: ${report.periodLabel} | Page ${pageIndex + 1} of ${pageCount}`,
       `Generated: ${formatDate(report.generatedOn ?? report.requestedOn)}`,
       '',
-      transactionExport ? 'Date | Employer | Type | Description | Amount | State' : 'Wage Month | Recorded On | Employer | Employee EPF | Employer EPF | EPS | Status',
+      transactionExport ? 'Date | Employer | Type | Description | Employee EPF | VPF | Employer EPF | EPF Total | State' : 'Wage Month | Recorded On | Employer | Employee EPF | VPF | Employer EPF | EPS | Status',
       ...pageRows.map((row) => transactionExport
-        ? `${row[0]} | ${String(row[1]).slice(0, 20)} | ${row[2]} | ${String(row[3]).slice(0, 24)} | ${row[4]} | ${row[5]}`
-        : `${row[0]} | ${row[1]} | ${String(row[2]).slice(0, 24)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]}`),
+        ? `${row[0]} | ${String(row[1]).slice(0, 20)} | ${row[2]} | ${String(row[3]).slice(0, 20)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]} | ${row[8]}`
+        : `${row[0]} | ${row[1]} | ${String(row[2]).slice(0, 20)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]} | ${row[8]}`),
       ...(isLastPage ? [
         '',
         `Current official EPF balance: ${formatMoney(officialBalance).replace('₹', 'INR ')}`,
@@ -115,7 +125,7 @@ const xmlEscape = (value: unknown): string => String(value)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 export function buildExcelStatement(account: AccountState, report: GeneratedReport): string {
-  const headings = report.transactionIds ? ['Date', 'Employer', 'Type', 'Description', 'Amount', 'State'] : ['Wage Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'Employer EPF', 'EPS', 'Status']
+  const headings = report.transactionIds ? ['Date', 'Employer', 'Type', 'Description', 'Employee EPF', 'VPF', 'Employer EPF', 'EPF Total', 'State'] : ['Wage Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'VPF', 'Employer EPF', 'EPS', 'Status']
   const rows = report.transactionIds ? transactionRows(account, report) : reportRows(account, report.startsOn, report.endsOn)
   const rowXml = [headings, ...rows].map((row) => `<Row>${row.map((cell) => `<Cell><Data ss:Type="${typeof cell === 'number' ? 'Number' : 'String'}">${xmlEscape(cell)}</Data></Cell>`).join('')}</Row>`).join('')
   return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>${xmlEscape(report.name)}</Title></DocumentProperties><Worksheet ss:Name="Passbook"><Table>${rowXml}</Table></Worksheet></Workbook>`

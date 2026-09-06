@@ -12,8 +12,11 @@ import type {
 const sum = (values: ReadonlyArray<Money | null | undefined>): Money =>
   values.reduce<number>((total, value) => total + (value ?? 0), 0)
 
+export const interestFromMonthlyBalances = (monthlyBalanceTotal: Money, annualRateBasisPoints: number): Money =>
+  Math.round((monthlyBalanceTotal * annualRateBasisPoints) / 120_000)
+
 export const epfAmountForContribution = (record: ContributionRecord): Money =>
-  (record.employeeEpf ?? 0) + (record.employerEpf ?? 0)
+  (record.employeeEpf ?? 0) + (record.voluntaryEpf ?? 0) + (record.employerEpf ?? 0)
 
 export const totalDepositedForContribution = (record: ContributionRecord): Money =>
   epfAmountForContribution(record) + (record.eps ?? 0)
@@ -21,6 +24,7 @@ export const totalDepositedForContribution = (record: ContributionRecord): Money
 export function reconcileMemberId(account: AccountState, memberId: string): Reconciliation {
   const contributions = account.ledger.contributions.filter((item) => item.memberId === memberId)
   const employeeContributions = sum(contributions.map((item) => item.employeeEpf))
+  const voluntaryContributions = sum(contributions.map((item) => item.voluntaryEpf))
   const employerEpfContributions = sum(contributions.map((item) => item.employerEpf))
   const officialInterestCredits = sum(account.ledger.officialInterestCredits.filter((item) => item.memberId === memberId).map((item) => item.amount))
   const transfersIn = sum(account.ledger.transfers.filter((item) => item.toMemberId === memberId && item.state === 'completed').map((item) => item.amount))
@@ -31,12 +35,13 @@ export function reconcileMemberId(account: AccountState, memberId: string): Reco
   return {
     openingBalance,
     employeeContributions,
+    voluntaryContributions,
     employerEpfContributions,
     officialInterestCredits,
     transfersIn,
     transfersOut,
     withdrawals,
-    closingBalance: openingBalance + employeeContributions + employerEpfContributions + officialInterestCredits + transfersIn - transfersOut - withdrawals,
+    closingBalance: openingBalance + employeeContributions + voluntaryContributions + employerEpfContributions + officialInterestCredits + transfersIn - transfersOut - withdrawals,
   }
 }
 
@@ -49,13 +54,14 @@ export function accountReconciliation(account: AccountState): Reconciliation {
   const result = summaries.reduce<Reconciliation>((totals, item) => ({
     openingBalance: totals.openingBalance + item.openingBalance,
     employeeContributions: totals.employeeContributions + item.employeeContributions,
+    voluntaryContributions: totals.voluntaryContributions + item.voluntaryContributions,
     employerEpfContributions: totals.employerEpfContributions + item.employerEpfContributions,
     officialInterestCredits: totals.officialInterestCredits + item.officialInterestCredits,
     transfersIn: totals.transfersIn + item.transfersIn,
     transfersOut: totals.transfersOut + item.transfersOut,
     withdrawals: totals.withdrawals + item.withdrawals,
     closingBalance: totals.closingBalance + item.closingBalance,
-  }), { openingBalance: 0, employeeContributions: 0, employerEpfContributions: 0, officialInterestCredits: 0, transfersIn: 0, transfersOut: 0, withdrawals: 0, closingBalance: 0 })
+  }), { openingBalance: 0, employeeContributions: 0, voluntaryContributions: 0, employerEpfContributions: 0, officialInterestCredits: 0, transfersIn: 0, transfersOut: 0, withdrawals: 0, closingBalance: 0 })
   return result
 }
 
@@ -101,9 +107,9 @@ export function contributionNeedsAttention(record: ContributionRecord): boolean 
 
 export function contributionIsReconciled(record: ContributionRecord): boolean {
   if (record.status === 'awaiting-record') return true
-  if (record.employeeEpf === null || record.employerEpf === null || record.eps === null) return false
+  if (record.employeeEpf === null || record.voluntaryEpf === null || record.employerEpf === null || record.eps === null) return false
   if (record.pfWage === null) return record.status !== 'amount-needs-review' && record.status !== 'missing-contribution'
-  return record.employeeEpf + record.employerEpf + record.eps >= 0
+  return record.employeeEpf + record.voluntaryEpf + record.employerEpf + record.eps >= 0
 }
 
 export function deriveAttentionItems(account: AccountState): AttentionItem[] {
@@ -120,7 +126,7 @@ export function deriveAttentionItems(account: AccountState): AttentionItem[] {
       if (exception.kind === 'contribution-review') {
         const contribution = account.ledger.contributions.find((item) => item.id === exception.contributionId)
         const month = contribution ? formatWageMonth(contribution.wageMonth).split(' ')[0] : ''
-        return { id: exception.id, priority: 'action-required', title: `${month} Contribution`.trim(), explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
+        return { id: exception.id, priority: 'action-required', title: `${month} Contribution`.trim(), explanation: 'Employee EPF, VPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
       }
       const kycLabel = (exception.kycType ?? 'pan').toUpperCase()
       return { id: exception.id, priority: exception.state === 'in-progress' ? 'in-progress' : 'action-required', title: `${kycLabel} verification`, explanation: 'Not yet complete.', actionLabel: exception.state === 'in-progress' ? 'View Status' : `Verify ${kycLabel}`, route: 'account', contextId: exception.kycType }
@@ -163,6 +169,7 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
     type: 'contribution',
     amount: epfAmountForContribution(record),
     employeeEpf: record.employeeEpf,
+    voluntaryEpf: record.voluntaryEpf,
     employerEpf: record.employerEpf,
     state: record.status,
     title: `Contribution for ${formatWageMonth(record.wageMonth)}`,

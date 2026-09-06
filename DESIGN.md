@@ -276,7 +276,7 @@ keeping UX4G components as the default whenever they genuinely fit.
   inspect the complete ledger. EPFO Neo therefore presents contribution records
   from the current six-month ledger window as an application-owned responsive
   list. Each item shows
-  wage month, EPF credited, employer and recorded date using semantic tokens and
+  wage month, statutory employee EPF, VPF, employer EPF, employer and recorded date using semantic tokens and
   tabular numerals. It renders one column on mobile, two on intermediate widths
   and six compact columns on wide screens. Full synthetic ledger data remains available to
   the explicitly requested transaction view and its filtered download.
@@ -354,6 +354,20 @@ keeping UX4G components as the default whenever they genuinely fit.
   intentionally tiny indicators and are not suitable containers for text.
 
 ### Deterministic issue architecture
+
+- Contribution records keep statutory employee EPF, voluntary PF (VPF),
+  employer EPF and EPS as separate typed amounts. The default account uses the
+  explicit ₹15,000 contribution wage, ₹1,800 employee EPF, ₹550 employer EPF
+  and ₹1,250 EPS source split for every recorded month. Pied Piper additionally
+  records ₹1,200 VPF per month. VPF is included in EPF balances and transfers,
+  never in EPS, and is never presented as an employer-matched amount.
+- The synthetic interest ledger contains credited source records only. Its seed
+  values use monthly running balances and notified annual rates through FY
+  2024–25; broken-period settlements use the last declared rate. A recommended
+  FY 2025–26 rate is not treated as a credit. Each credit persists its rate and
+  monthly-balance total so the rounded amount can be reproduced. Completed
+  transfer amounts equal the source Member ID balance at the transfer point;
+  pending transfers remain at source and are counted once.
 
 - PF Record Review issues are produced by versioned deterministic domain rules.
   The same source account state produces the same issue code, structured facts,

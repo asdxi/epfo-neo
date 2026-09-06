@@ -263,7 +263,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
     expected: discrepancy.expectedComponents[index].amount,
     recorded: component.amount,
   }))
-  const recordedEpfComponents = [contribution.employeeEpf, contribution.employerEpf]
+  const recordedEpfComponents = [contribution.employeeEpf, contribution.voluntaryEpf, contribution.employerEpf]
     .filter((amount): amount is number => amount !== null)
   const knownRecordedEpf = recordedEpfComponents.length > 0
     ? recordedEpfComponents.reduce((total, amount) => total + amount, 0)
@@ -297,6 +297,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
     chronology,
     calculationTrail: [
       ...(contribution.employeeEpf === null ? [] : [{ label: 'Employee EPF recorded', amount: contribution.employeeEpf }]),
+      ...(contribution.voluntaryEpf === null ? [] : [{ label: 'VPF recorded', amount: contribution.voluntaryEpf }]),
       ...(contribution.employerEpf === null ? [] : [{ label: 'Employer EPF recorded', amount: contribution.employerEpf }]),
       ...(knownRecordedEpf === null ? [] : [{ label: 'Known EPF recorded for this Wage Month', amount: knownRecordedEpf }]),
     ],

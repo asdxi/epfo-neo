@@ -14,11 +14,13 @@ export function deriveContributionResolution(account: AccountState, contribution
 
   const recordedComponents = [
     { code: 'employee-epf' as const, amount: contribution.employeeEpf },
+    { code: 'voluntary-epf' as const, amount: contribution.voluntaryEpf },
     { code: 'employer-epf' as const, amount: contribution.employerEpf },
     { code: 'eps' as const, amount: contribution.eps },
   ]
   const expectedComponents = [
     { code: 'employee-epf' as const, amount: expectation.employeeEpf },
+    { code: 'voluntary-epf' as const, amount: expectation.voluntaryEpf },
     { code: 'employer-epf' as const, amount: expectation.employerEpf },
     { code: 'eps' as const, amount: expectation.eps },
   ]
@@ -40,7 +42,7 @@ export function deriveContributionResolution(account: AccountState, contribution
   const missingComponents = recordedComponents
     .filter((item, index) => item.amount === null && expectedComponents[index].amount !== null)
     .map((item) => item.code)
-  const recordedEpfComponents = [contribution.employeeEpf, contribution.employerEpf]
+  const recordedEpfComponents = [contribution.employeeEpf, contribution.voluntaryEpf, contribution.employerEpf]
     .filter((amount): amount is number => amount !== null)
   const recordedEpf = recordedEpfComponents.length > 0
     ? recordedEpfComponents.reduce((total, amount) => total + amount, 0)

@@ -102,7 +102,7 @@ describe('v0.2 application surfaces', () => {
   it('renders the decision-oriented home workspace from reconciled account data', () => {
     const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
-    expect(html).toContain('₹4,87,350')
+    expect(html).toContain('₹1,88,094')
     expect(html).toContain('EPS')
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
     expect(html).toContain('Pied Piper')
@@ -114,7 +114,7 @@ describe('v0.2 application surfaces', () => {
     expect(html).toContain('View Details')
     expect(html).toContain('Employer EPF</dt><dd><span class="record-missing-value">Not Recorded</span>')
     expect(html).toContain('EPF Contributions')
-    expect(html).toContain('₹35,250')
+    expect(html).toContain('₹25,850')
     expect(html).toContain('No EPF-Covered Employment Recorded')
     expect(html.indexOf('Pied Piper')).toBeLessThan(html.indexOf('Stark Industries'))
     expect(html).toContain('id="notice-board-title">Notices</h2>')
@@ -216,8 +216,8 @@ describe('v0.2 application surfaces', () => {
     expect(container.textContent).toContain('Balance TreatmentCurrently Counted UnderWaystar RoycoAdded to Pied PiperAfter CompletionDuplicate Amount in TotalNo')
     expect(container.textContent).toContain('Pension ServiceStateLinked Employment Record IncludedEPS is a service record. It is not transferred as cash.')
     expect(container.textContent).toContain('EmployerPied PiperWage MonthAugust 2026Recorded On8 September 2026Missing AmountEmployer EPF')
-    expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800Employer EPF₹550EPS₹1,250')
-    expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800Employer EPFNot RecordedEPS₹1,250')
+    expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800VPF₹1,200Employer EPF₹550EPS₹1,250')
+    expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800VPF₹1,200Employer EPFNot RecordedEPS₹1,250')
     expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')
     expect(container.querySelector('.record-missing-value')?.classList.contains('ux4g-tag')).toBe(false)
     expect(container.textContent).not.toContain('Rule record')
@@ -351,7 +351,7 @@ describe('v0.2 application surfaces', () => {
     })
     await act(async () => container.querySelector<HTMLButtonElement>('.transaction-actions .ux4g-btn-primary')?.click())
 
-    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Employee EPF', 'Employer EPF', 'Total'])
+    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Employee EPF', 'VPF', 'Employer EPF', 'EPF Total'])
     expect(container.querySelectorAll('.transaction-table tbody tr')).toHaveLength(10)
     expect(container.querySelector('.transaction-pagination [aria-label="Next transaction page"] svg')).not.toBeNull()
     expect(container.querySelector('.transaction-pagination-summary')?.textContent).toContain('Showing 1–10')

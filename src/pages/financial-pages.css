@@ -122,12 +122,12 @@
 .passbook-content-layout, .passbook-tabbed-content { display: grid; gap: var(--ux4g-stack-l); min-width: 0; }
 .passbook-calculation-link { justify-self: start; }
 .contribution-summary-grid { display: grid; gap: var(--ux4g-stack-m); }
-.contribution-summary-grid li { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-xs) var(--ux4g-inline-m); grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; padding: var(--ux4g-padding-m); }
+.contribution-summary-grid li { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-xs) var(--ux4g-inline-s); grid-template-columns: repeat(6, minmax(0, 1fr)); min-width: 0; padding: var(--ux4g-padding-m); }
 .contribution-summary-grid li.highlighted { border-color: var(--ux4g-border-color-primary-strong); box-shadow: inset 0 0 0 var(--ux4g-border-thin) var(--ux4g-border-color-primary-strong); }
 .contribution-summary-grid time, .contribution-summary-grid small { color: var(--ux4g-text-neutral-secondary); }
-.contribution-summary-grid time { grid-column: 2; grid-row: 1; text-align: end; }
-.contribution-employer { font-weight: var(--ux4g-font-weight-semibold); grid-column: 1; grid-row: 1; }
-.contribution-amount { display: grid; gap: var(--ux4g-stack-xs); }
+.contribution-summary-grid time { grid-column: 4 / -1; grid-row: 1; text-align: end; }
+.contribution-employer { font-weight: var(--ux4g-font-weight-semibold); grid-column: 1 / 4; grid-row: 1; }
+.contribution-amount { display: grid; gap: var(--ux4g-stack-xs); grid-column: span 2; }
 .contribution-amount > span { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-12); }
 .contribution-summary-grid strong { color: var(--ux4g-text-neutral-primary); font-size: var(--ux4g-size-18); font-variant-numeric: tabular-nums; line-height: var(--ux4g-line-height-24); }
 .contribution-summary-grid small, .contribution-review-action { grid-column: 1 / -1; }
@@ -251,7 +251,7 @@
   .passbook-overview-rail { min-width: 0; }
   .passbook-overview-rail .passbook-panel { display: flex; flex-direction: column; gap: var(--ux4g-stack-l); }
   .passbook-overview-rail .contribution-summary-grid { grid-template-columns: 1fr; }
-  .passbook-overview-rail .contribution-summary-grid li { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .passbook-overview-rail .contribution-summary-grid li { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .employer-metrics { grid-template-columns: 1fr; }
   .employer-accounts li { grid-template-columns: minmax(0, 1fr) auto; }
   .employer-accounts .employer-account-number { grid-column: 1 / -1; }

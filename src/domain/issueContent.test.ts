@@ -14,7 +14,7 @@ describe('controlled issue content catalogue', () => {
     expect(issueContentFor(before[0].code).label).toBe('Pending PF Transfer')
     expect(issueContentFor(before[0].code, alternate).label).toBe('Alternate transfer label')
     expect(deriveRecordIssues(account)).toEqual(before)
-    expect(totalEpfBalance(account)).toBe(487_350)
+    expect(totalEpfBalance(account)).toBe(188_094)
     expect(totalEpsServiceMonths(account)).toBe(77)
   })
 

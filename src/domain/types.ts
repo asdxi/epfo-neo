@@ -101,6 +101,7 @@ export interface ContributionRecord {
   recordedOn: string | null
   pfWage: Money | null
   employeeEpf: Money | null
+  voluntaryEpf: Money | null
   employerEpf: Money | null
   eps: Money | null
   status: ContributionStatus
@@ -122,6 +123,7 @@ export interface ContributionExpectation {
   wageMonth: string
   pfWage: Money | null
   employeeEpf: Money | null
+  voluntaryEpf: Money | null
   employerEpf: Money | null
   eps: Money | null
   basis: string
@@ -136,6 +138,8 @@ export interface InterestCredit {
   financialYear: string
   creditedOn: string
   amount: Money
+  annualRateBasisPoints: number
+  monthlyBalanceTotal: Money
   kind: 'official-credit'
 }
 
@@ -274,7 +278,7 @@ export type RecordIssueActionCode =
   | 'RECOVER_REQUEST'
   | 'NO_ACTION_REQUIRED'
   | 'ACTION_UNAVAILABLE'
-export type ContributionComponentCode = 'employee-epf' | 'employer-epf' | 'eps'
+export type ContributionComponentCode = 'employee-epf' | 'voluntary-epf' | 'employer-epf' | 'eps'
 
 export interface RecordIssueSourceReference {
   kind: 'employment' | 'contribution' | 'transfer' | 'request'
@@ -394,7 +398,7 @@ export interface Ledger {
 }
 
 export interface AccountState {
-  version: 4
+  version: 6
   member: Member
   kyc: KycRecord[]
   employments: Employment[]
@@ -408,6 +412,7 @@ export interface AccountState {
 export interface Reconciliation {
   openingBalance: Money
   employeeContributions: Money
+  voluntaryContributions: Money
   employerEpfContributions: Money
   officialInterestCredits: Money
   transfersIn: Money
@@ -462,6 +467,7 @@ export interface LedgerTransaction {
   type: 'contribution' | 'official-interest' | 'estimated-interest' | 'transfer-in' | 'transfer-out' | 'withdrawal'
   amount: Money | null
   employeeEpf?: Money | null
+  voluntaryEpf?: Money | null
   employerEpf?: Money | null
   state: string
   title: string

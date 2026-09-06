@@ -3,7 +3,6 @@ import type {
   ContributionRecord,
   Employment,
   InterestCredit,
-  Money,
 } from './types'
 import { RECORD_ISSUE_RULE_VERSION } from './issues'
 import defaultProfilePhoto from '../assets/ade4f4eb-8a5e-4290-b28f-f12b5db4ebb9.png'
@@ -23,11 +22,6 @@ const monthsBetween = (first: string, last: string): string[] => {
   return months
 }
 
-const apportioned = (total: Money, count: number): Money[] => {
-  const base = Math.floor(total / count)
-  return Array.from({ length: count }, (_, index) => base + (index < total % count ? 1 : 0))
-}
-
 const recordedDate = (wageMonth: string): string => {
   const [year, month] = wageMonth.split('-').map(Number)
   const next = new Date(Date.UTC(year, month, 8))
@@ -38,24 +32,19 @@ const contributionSeries = (
   employment: Employment,
   first: string,
   last: string,
-  employeeTotal: Money,
-  employerTotal: Money,
-  epsTotal: Money,
 ): ContributionRecord[] => {
   const months = monthsBetween(first, last)
-  const employees = apportioned(employeeTotal, months.length)
-  const employers = apportioned(employerTotal, months.length)
-  const eps = apportioned(epsTotal, months.length)
-  return months.map((wageMonth, index) => ({
+  return months.map((wageMonth) => ({
     id: `${employment.id}-${wageMonth}`,
     employmentId: employment.id,
     memberId: employment.memberId,
     wageMonth,
     recordedOn: recordedDate(wageMonth),
-    pfWage: null,
-    employeeEpf: employees[index],
-    employerEpf: employers[index],
-    eps: eps[index],
+    pfWage: 15_000,
+    employeeEpf: 1_800,
+    voluntaryEpf: 0,
+    employerEpf: 550,
+    eps: 1_250,
     status: 'recorded-correctly',
     explanation: 'The employee EPF, employer EPF and EPS amounts are recorded for this wage month.',
   }))
@@ -113,52 +102,57 @@ const [northstar, bluekite, harbor, vertex] = employments
 const vertexContributions: ContributionRecord[] = [
   {
     id: 'vertex-2026-03', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-03', recordedOn: '2026-04-08',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
-    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: 'Employee EPF is ₹1,800, VPF is ₹1,200, employer EPF is ₹550 and EPS is ₹1,250.',
   },
   {
     id: 'vertex-2026-04', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-04', recordedOn: '2026-05-12',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-late',
-    explanation: 'This contribution is complete. It was recorded later than the usual date for this account.',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, status: 'recorded-late',
+    explanation: 'This contribution is complete, including ₹1,200 VPF. It was recorded later than usual.',
     transactionReference: 'TXN-VTX-2026-04-0512',
-    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-04', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-04', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: [] },
+    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-04', pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-04', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: [] },
   },
   {
     id: 'vertex-2026-05', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-05', recordedOn: '2026-06-08',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
-    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: 'Employee EPF is ₹1,800, VPF is ₹1,200, employer EPF is ₹550 and EPS is ₹1,250.',
   },
   {
     id: 'vertex-2026-06', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-06', recordedOn: '2026-07-08',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
-    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: 'Employee EPF is ₹1,800, VPF is ₹1,200, employer EPF is ₹550 and EPS is ₹1,250.',
   },
   {
     id: 'vertex-2026-07', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-07', recordedOn: '2026-08-08',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
-    explanation: '₹1,250 was allocated to EPS. The remaining employer contribution of ₹550 was credited to EPF.',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, status: 'recorded-correctly',
+    explanation: 'Employee EPF is ₹1,800, VPF is ₹1,200, employer EPF is ₹550 and EPS is ₹1,250.',
   },
   {
     id: 'vertex-2026-08', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-08', recordedOn: '2026-09-08',
-    pfWage: 15_000, employeeEpf: 1_800, employerEpf: null, eps: 1_250, status: 'amount-needs-review',
+    pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: null, eps: 1_250, status: 'amount-needs-review',
     explanation: 'The employer EPF amount is not currently recorded. This does not establish why the amount is missing.',
     transactionReference: 'TXN-VTX-2026-08-0908',
-    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-08', pfWage: 15_000, employeeEpf: 1_800, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-08', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['August 2026 payslip or employer PF contribution statement'] },
+    expectedRecord: { employmentId: vertex.id, wageMonth: '2026-08', pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-08', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['August 2026 payslip or employer PF contribution statement'] },
   },
 ]
 
+// Synthetic source records use monthly running balances and the notified annual
+// EPF rates through FY 2024–25. Broken-period settlements use the last declared
+// rate and stop before the transfer month. No FY 2025–26 credit is inferred.
 const officialInterestCredits: InterestCredit[] = [
-  { id: 'interest-northstar-2019', memberId: northstar.memberId, financialYear: '2018–19', creditedOn: '2019-06-30', amount: 7_530, kind: 'official-credit' },
-  { id: 'interest-bluekite-2020', memberId: bluekite.memberId, financialYear: '2019–20', creditedOn: '2020-03-31', amount: 12_400, kind: 'official-credit' },
-  { id: 'interest-bluekite-2021', memberId: bluekite.memberId, financialYear: '2020–21', creditedOn: '2021-03-31', amount: 17_500, kind: 'official-credit' },
-  { id: 'interest-bluekite-2022', memberId: bluekite.memberId, financialYear: '2021–22', creditedOn: '2022-03-31', amount: 20_200, kind: 'official-credit' },
-  { id: 'interest-bluekite-2023', memberId: bluekite.memberId, financialYear: '2022–23', creditedOn: '2023-03-31', amount: 23_707, kind: 'official-credit' },
-  { id: 'interest-harbor-2024', memberId: harbor.memberId, financialYear: '2023–24', creditedOn: '2024-03-31', amount: 18_600, kind: 'official-credit' },
-  { id: 'interest-harbor-2025', memberId: harbor.memberId, financialYear: '2024–25', creditedOn: '2025-03-31', amount: 23_280, kind: 'official-credit' },
+  { id: 'interest-northstar-2019', memberId: northstar.memberId, financialYear: '2018–19', creditedOn: '2019-03-31', amount: 356, annualRateBasisPoints: 865, monthlyBalanceTotal: 49_350, kind: 'official-credit' },
+  { id: 'interest-northstar-settlement-2019', memberId: northstar.memberId, financialYear: '2019–20', creditedOn: '2019-07-24', amount: 414, annualRateBasisPoints: 865, monthlyBalanceTotal: 57_468, kind: 'official-credit' },
+  { id: 'interest-bluekite-2020', memberId: bluekite.memberId, financialYear: '2019–20', creditedOn: '2020-03-31', amount: 1_975, annualRateBasisPoints: 850, monthlyBalanceTotal: 278_760, kind: 'official-credit' },
+  { id: 'interest-bluekite-2021', memberId: bluekite.memberId, financialYear: '2020–21', creditedOn: '2021-03-31', amount: 5_127, annualRateBasisPoints: 850, monthlyBalanceTotal: 723_840, kind: 'official-credit' },
+  { id: 'interest-bluekite-2022', memberId: bluekite.memberId, financialYear: '2021–22', creditedOn: '2022-03-31', amount: 7_585, annualRateBasisPoints: 810, monthlyBalanceTotal: 1_123_764, kind: 'official-credit' },
+  { id: 'interest-bluekite-settlement-2023', memberId: bluekite.memberId, financialYear: '2022–23', creditedOn: '2023-01-28', amount: 6_130, annualRateBasisPoints: 810, monthlyBalanceTotal: 908_163, kind: 'official-credit' },
+  { id: 'interest-harbor-2023', memberId: harbor.memberId, financialYear: '2022–23', creditedOn: '2023-03-31', amount: 1_390, annualRateBasisPoints: 815, monthlyBalanceTotal: 204_624, kind: 'official-credit' },
+  { id: 'interest-harbor-2024', memberId: harbor.memberId, financialYear: '2023–24', creditedOn: '2024-03-31', amount: 9_913, annualRateBasisPoints: 825, monthlyBalanceTotal: 1_441_824, kind: 'official-credit' },
+  { id: 'interest-harbor-2025', memberId: harbor.memberId, financialYear: '2024–25', creditedOn: '2025-03-31', amount: 12_604, annualRateBasisPoints: 825, monthlyBalanceTotal: 1_833_380, kind: 'official-credit' },
 ]
 
 export const initialAccount: AccountState = {
-  version: 4,
+  version: 6,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -188,20 +182,17 @@ export const initialAccount: AccountState = {
   employmentGaps: [{ startsOn: '2024-07-01', endsOn: '2026-02-28', label: 'No EPF-Covered Employment Recorded' }],
   ledger: {
     contributions: [
-      ...contributionSeries(northstar, '2018-08', '2019-06', 27_000, 8_250, 13_750),
-      ...contributionSeries(bluekite, '2019-07', '2022-12', 132_000, 40_333, 52_500),
-      ...contributionSeries(harbor, '2023-01', '2024-06', 144_000, 44_000, 22_500),
+      ...contributionSeries(northstar, '2018-08', '2019-06'),
+      ...contributionSeries(bluekite, '2019-07', '2022-12'),
+      ...contributionSeries(harbor, '2023-01', '2024-06'),
       ...vertexContributions,
     ],
     officialInterestCredits,
-    estimatedInterestAccruals: [{
-      id: 'estimate-vertex-2026', memberId: vertex.memberId, calculatedThrough: '2026-07-31', amount: 6_480, kind: 'estimate',
-      explanation: 'This is an estimate for explanation only. It is not included in the official EPF balance until credited.',
-    }],
+    estimatedInterestAccruals: [],
     transfers: [
-      { id: 'transfer-northstar-bluekite', fromMemberId: northstar.memberId, toMemberId: bluekite.memberId, amount: 42_780, initiatedOn: '2019-07-05', completedOn: '2019-07-24', state: 'completed', source: 'exempted-pf-trust', explanation: 'The PF trust transferred the recorded closing balance to the EPFO-linked Member ID.' },
-      { id: 'transfer-bluekite-harbor', fromMemberId: bluekite.memberId, toMemberId: harbor.memberId, amount: 243_920, initiatedOn: '2023-01-09', completedOn: '2023-01-28', state: 'completed', source: 'epfo', explanation: 'The previous EPF balance moved to the next Member ID. This did not create a new contribution.' },
-      { id: 'transfer-harbor-vertex-partial', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 435_350, initiatedOn: '2026-03-08', completedOn: '2026-04-01', state: 'completed', source: 'epfo', explanation: 'Part of the Waystar Royco balance was transferred to the current Member ID.' },
+      { id: 'transfer-northstar-bluekite', fromMemberId: northstar.memberId, toMemberId: bluekite.memberId, amount: 26_620, initiatedOn: '2019-07-05', completedOn: '2019-07-24', state: 'completed', source: 'exempted-pf-trust', explanation: 'The PF trust transferred the recorded closing balance to the EPFO-linked Member ID.' },
+      { id: 'transfer-bluekite-harbor', fromMemberId: bluekite.memberId, toMemberId: harbor.memberId, amount: 101_137, initiatedOn: '2023-01-09', completedOn: '2023-01-28', state: 'completed', source: 'epfo', explanation: 'The previous EPF balance moved to the next Member ID. This did not create a new contribution.' },
+      { id: 'transfer-harbor-vertex-partial', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 128_894, initiatedOn: '2026-03-08', completedOn: '2026-04-01', state: 'completed', source: 'epfo', explanation: 'Part of the Waystar Royco balance was transferred to the current Member ID.' },
       { id: 'transfer-harbor-vertex-2026-06-18', fromMemberId: harbor.memberId, toMemberId: vertex.memberId, amount: 38_450, initiatedOn: '2026-06-18', state: 'submitted', source: 'epfo', relatedRequestId: 'request-transfer-2026', pensionServiceState: 'linked-employment-record', explanation: 'This transfer is in employment record verification. The balance remains under the previous Member ID until completion.' },
     ],
     withdrawals: [{ id: 'withdrawal-bluekite-2022', memberId: bluekite.memberId, claimReference: 'CLM-2022-18421', processedOn: '2022-08-19', amount: 45_000, state: 'completed', explanation: 'A completed partial withdrawal reduced this Member ID balance.' }],

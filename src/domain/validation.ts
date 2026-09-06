@@ -22,9 +22,10 @@ export function validateContribution(record: ContributionRecord): string[] {
   const issues: string[] = []
   if (record.recordedOn === null && record.status !== 'awaiting-record' && record.status !== 'missing-contribution') issues.push('A recorded contribution needs a Recorded On date.')
   if (record.employeeEpf === null && record.status !== 'awaiting-record' && record.status !== 'missing-contribution') issues.push('Employee EPF is unavailable.')
+  if (record.voluntaryEpf === null && record.status !== 'awaiting-record' && record.status !== 'missing-contribution') issues.push('VPF is unavailable.')
   if (record.employerEpf === null && record.status !== 'awaiting-record' && record.status !== 'missing-contribution' && record.status !== 'amount-needs-review') issues.push('Employer EPF is unavailable.')
   if (record.eps === null && record.status !== 'awaiting-record' && record.status !== 'missing-contribution') issues.push('EPS is unavailable.')
-  if ([record.employeeEpf, record.employerEpf, record.eps, record.pfWage].some((amount) => amount !== null && amount < 0)) issues.push('Contribution amounts cannot be negative.')
+  if ([record.employeeEpf, record.voluntaryEpf, record.employerEpf, record.eps, record.pfWage].some((amount) => amount !== null && amount < 0)) issues.push('Contribution amounts cannot be negative.')
   if (!/^\d{4}-\d{2}$/.test(record.wageMonth)) issues.push('Wage Month must use YYYY-MM format.')
   return issues
 }

@@ -58,6 +58,7 @@ export const issueContentCatalogue: IssueContentCatalogue = {
   },
   contributionComponents: {
     'employee-epf': 'Employee EPF',
+    'voluntary-epf': 'VPF',
     'employer-epf': 'Employer EPF',
     eps: 'EPS',
   },
