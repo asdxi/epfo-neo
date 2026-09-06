@@ -30,7 +30,7 @@ export const acknowledgementMissingScenario = (): AccountState => {
   request.currentResponsibleParty = 'member'
   request.externalReference = undefined
   request.timeline = [
-    { id: 'transfer-attempt-2026', label: 'Submission Attempted', date: '2026-06-18', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+    { id: 'transfer-attempt-2026', label: 'Request Filed', date: '2026-06-18', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
     { id: 'transfer-receipt-2026', label: 'Member portal receipt', date: null, state: 'current', kind: 'channel-receipt', confirmation: 'missing', party: 'portal', channel: 'Member portal' },
     { id: 'transfer-acknowledgement-2026', label: 'EPFO acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
   ]

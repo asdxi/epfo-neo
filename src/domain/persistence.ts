@@ -23,9 +23,9 @@ function updateSavedPortalCopy(value: unknown): unknown {
     const employerUpdated = Object.entries(employerNameChanges).reduce((copy, [before, after]) => copy.replaceAll(before, after), value)
     return employerUpdated
       .replaceAll('Employer contribution record received by Neo', 'Employer contribution record')
-      .replaceAll('Submitted from Neo', 'Submission Attempted')
+      .replaceAll('Submitted from Neo', 'Request Filed')
       .replaceAll('Neo recorded the submission attempt, but ', '')
-      .replaceAll('Member portal receipt', 'Member Portal Receipt')
+      .replaceAll('Member portal receipt', 'Request Filed')
       .replaceAll('EPFO acknowledgement', 'EPFO Acknowledgement')
       .replaceAll('Employer review', 'Employer Review')
       .replaceAll('Transfer processing', 'Transfer Processing')

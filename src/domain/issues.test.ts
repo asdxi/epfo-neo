@@ -92,11 +92,7 @@ describe('PF record issue derivation', () => {
     const after = submitGrievance(before, { submittedOn: '2026-09-08', employmentId: 'vertex', contributionId: 'vertex-2026-08', category: 'Contribution Amount Needs Review', description: 'Please review the employer EPF amount shown as not recorded.' })
     const issue = contributionIssue(after)
 
-    expect(issue.code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
-    expect(issue.status).toBe('action-required')
-    expect(issue.responsiblePartyCode).toBe('member')
-    expect(issue.action).toMatchObject({ availability: 'available', code: 'CHECK_EXISTING_ATTEMPT' })
-    expect(issue.currentStage).toMatchObject({ code: 'SOURCE_EVENT', label: 'Grievance Portal Receipt' })
+    expect(issue.code).toBe('CONTRIBUTION_COMPONENT_MISSING')
     expect(totalEpfBalance(after)).toBe(188_094)
     expect(totalEpsServiceMonths(after)).toBe(serviceMonths)
   })

@@ -19,6 +19,14 @@ export type ReportFormat = 'pdf' | 'excel'
 export type ReportState = 'preparing' | 'ready' | 'failed' | 'expired'
 export type AttentionPriority = 'action-required' | 'in-progress' | 'good-to-know'
 export type NoticeAttachment = 'pdf' | 'none'
+export type TransferInitiationMethod = 'automatic' | 'manual'
+export type TransferPreflightState =
+  | 'no-previous-balance'
+  | 'automatic-completed'
+  | 'automatic-in-progress'
+  | 'existing-manual-request'
+  | 'manual-required'
+  | 'blocked-record-or-identity'
 
 export interface ContactChannel {
   value: string
@@ -68,6 +76,7 @@ export interface KycRecord {
   maskedValue: string
   updatedOn: string
   explanation: string
+  institutionName?: string
 }
 
 export interface Employment {
@@ -160,6 +169,7 @@ export interface TransferRecord {
   initiatedOn: string
   completedOn?: string
   state: 'pending' | 'submitted' | 'processing' | 'completed'
+  initiationMethod: TransferInitiationMethod
   source: EstablishmentType
   explanation: string
   relatedRequestId?: string

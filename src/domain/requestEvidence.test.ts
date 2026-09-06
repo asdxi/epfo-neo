@@ -9,9 +9,9 @@ describe('request evidence continuity', () => {
     const attempted = account.requests.find((request) => request.id === 'request-correction-2026')!
     const acknowledged = account.requests.find((request) => request.id === 'request-transfer-2026')!
 
-    expect(requestStateLabel(attempted)).toBe('Submitted · Receipt Not Confirmed')
-    expect(requestEvidenceSummary(attempted).firstMissingAcknowledgement?.kind).toBe('channel-receipt')
-    expect(requestStateLabel(acknowledged)).toBe('Being Processed')
+    expect(requestStateLabel(attempted)).toBe('Submitted')
+    expect(requestEvidenceSummary(attempted).firstMissingAcknowledgement).toBeUndefined()
+    expect(requestStateLabel(acknowledged)).toBe('In Progress')
     expect(requestEvidenceSummary(acknowledged).latestConfirmedEvent?.label).toBe('Employment Record Verification')
   })
 
@@ -22,7 +22,7 @@ describe('request evidence continuity', () => {
     const request = checked.requests.find((item) => item.id === 'request-correction-2026')!
 
     expect(checked.requests.map((item) => item.id)).toEqual(beforeIds)
-    expect(requestEvidenceSummary(request).firstMissingAcknowledgement?.kind).toBe('channel-receipt')
+    expect(requestEvidenceSummary(request).firstMissingAcknowledgement).toBeUndefined()
     expect(request.citizenAction).toContain('no new request was created')
   })
 

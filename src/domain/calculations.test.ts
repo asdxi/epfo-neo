@@ -219,7 +219,7 @@ describe('derived attention and connected request state', () => {
     const loaded = loadPersistedAccount(storage)
     expect(loaded.requests.find((item) => item.type === 'transfer')?.state).toBe('submitted')
     expect(loaded.exceptions.find((item) => item.kind === 'previous-balance')?.issueSnapshot).toMatchObject({ ruleVersion: 'record-issue-rules/1.0.0', sourceSnapshotAt: '2026-08-28' })
-    expect(deriveRecordIssues(loaded)[0].code).toBe('REQUEST_ACKNOWLEDGEMENT_MISSING')
+    expect(deriveRecordIssues(loaded)[0].code).toBe('TRANSFER_IN_PROGRESS')
     stored = '{invalid json'
     expect(loadPersistedAccount(storage).version).toBe(6)
   })
@@ -253,7 +253,7 @@ describe('derived attention and connected request state', () => {
     const loaded = loadPersistedAccount(storage)
     expect(loaded.employments[0].employer).toBe('Stark Industries')
     expect(loaded.employments[2].employer).toBe('Waystar Royco')
-    expect(loaded.requests[0].timeline[0].label).toBe('Submission Attempted')
+    expect(loaded.requests[0].timeline[0].label).toBe('Request Filed')
   })
 
   it('clears only the persisted account key when resetting the demo', () => {

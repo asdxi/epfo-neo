@@ -382,9 +382,10 @@ describe('v0.2 application surfaces', () => {
     expect(requests).toContain('<span>Grievances</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
-    expect(requests).toContain('Recommended Next Step')
-    expect(requests).toContain('Search by request ID')
-    expect(requests).toContain('Enter request ID')
+    expect(requests).toContain('Next Step')
+    expect(requests).not.toContain('Recommended Next Step')
+    expect(requests).toContain('Search requests')
+    expect(requests).toContain('Search requests')
     expect(requests).toContain('class="ux4g-input ux4g-input-md"')
     expect(requests).not.toContain('Operational history')
     expect(requests).not.toContain('Track services that take time')
@@ -457,9 +458,9 @@ describe('v0.2 application surfaces', () => {
   it('renders acknowledgement evidence and recoverable rejection in the existing Requests detail', () => {
     const account = createInitialAccount()
     const missing = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-correction-2026" onCitizenAction={noop} />)
-    expect(missing).toContain('Submitted · Receipt Not Confirmed')
-    expect(missing).toContain('Request Not Confirmed')
-    expect(missing).toContain('Check Existing Request')
+    expect(missing).toContain('Submitted')
+    expect(missing).not.toContain('Request Not Confirmed')
+    expect(missing).not.toContain('Check Existing Request')
 
     const rejected = {
       ...account.requests[0], id: 'request-rejected', state: 'rejected' as const,
@@ -697,15 +698,8 @@ describe('v0.2 application surfaces', () => {
       />,
     ))
 
-    await clickButton('Continue')
-    await clickButton('Continue')
-    expect(buttonNamed('Confirm and Submit Transfer')?.disabled).toBe(true)
-    await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
-    await clickButton('Confirm and Submit Transfer')
-
-    expect(container.textContent).toContain('Transfer Attempt Saved')
-    expect(container.textContent).toContain('Request ID')
-    expect(account.requests.find((request) => request.type === 'transfer')?.state).toBe('submitted')
+    expect(container.textContent).toContain('Automatic Transfer Completed')
+    expect(buttonNamed('View Transfer')).toBeDefined()
     await act(async () => root.unmount())
     container.remove()
   })
