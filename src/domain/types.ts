@@ -408,7 +408,7 @@ export interface Ledger {
 }
 
 export interface AccountState {
-  version: 6
+  version: 7
   member: Member
   kyc: KycRecord[]
   employments: Employment[]

@@ -152,7 +152,7 @@ const officialInterestCredits: InterestCredit[] = [
 ]
 
 export const initialAccount: AccountState = {
-  version: 6,
+  version: 7,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -175,7 +175,7 @@ export const initialAccount: AccountState = {
   },
   kyc: [
     { type: 'aadhaar', state: 'verified', maskedValue: '•••• •••• 4821', updatedOn: '2026-02-12', explanation: 'Aadhaar is verified.' },
-    { type: 'pan', state: 'pending', maskedValue: 'ARJ•••21K', updatedOn: '2026-02-12', explanation: 'PAN verification is in progress.' },
+    { type: 'pan', state: 'unverified', maskedValue: 'ARJ•••21K', updatedOn: '2026-02-12', explanation: 'PAN is associated with this account and needs verification.' },
     { type: 'bank', state: 'verified', maskedValue: '•••• 7314', institutionName: 'HDFC Bank', updatedOn: '2026-03-02', explanation: 'This bank account is verified for online services.' },
   ],
   employments,
@@ -230,9 +230,9 @@ export const initialAccount: AccountState = {
       id: 'request-claim-2022', type: 'claim', service: 'Claims & Withdrawals', reference: 'CLM-2022-18421', title: 'Partial Withdrawal', state: 'completed', submittedOn: '2022-08-05', updatedOn: '2022-08-19', amount: 45_000,
       nextExpectedStep: 'No action is required. The request is complete.',
       timeline: [
-        { id: 'claim-submitted', label: 'Submitted', date: '2022-08-05', state: 'completed' },
+        { id: 'claim-submitted', label: 'Request Filed', date: '2022-08-05', state: 'completed' },
         { id: 'claim-reviewed', label: 'EPFO Review', date: '2022-08-12', state: 'completed' },
-        { id: 'claim-paid', label: 'Transfer to Verified Bank Account', date: '2022-08-19', state: 'completed', explanation: 'HDFC Bank · •••• 7314' },
+        { id: 'claim-paid', label: 'Transfer to Verified Bank Account', date: '2022-08-19', state: 'completed', kind: 'bank-handoff', confirmation: 'confirmed', party: 'bank' },
         { id: 'claim-completed', label: 'Request Completed', date: '2022-08-19', state: 'completed' },
       ],
     },

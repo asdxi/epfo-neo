@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { DEMO_OTP } from '../domain/demoCredentials'
 import type { AccountState, MemberRequest } from '../domain/types'
 import { contributionDiscrepancyLabel, deriveContributionResolution } from '../domain/contributionResolution'
 import { formatWageMonth } from '../domain/calculations'
@@ -27,17 +28,17 @@ const today = () => new Date().toISOString().slice(0, 10)
 const formatMoney = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 const formatDate = (value: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${value}T00:00:00`))
 const serviceNames: Record<ServiceId, string> = {
-  transfer: 'Transfer Previous PF', claim: 'Claims & Withdrawals', kyc: 'KYC & Verification',
+  transfer: 'Transfer Previous PF', claim: 'Withdrawal Claim', kyc: 'KYC & Verification',
   correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Exit from EPFO Scheme',
 }
 
 const serviceCopy: Record<ServiceId, { description: string; action: string }> = {
   transfer: { description: 'Move an eligible balance from a previous Member ID to your current PF account.', action: 'View Service' },
-  claim: { description: 'Choose a claim type, check the information available, and submit it for review.', action: 'View Service' },
+  claim: { description: 'Check your eligibility and request an eligible withdrawal from your EPF balance', action: 'View Service' },
   kyc: { description: 'Review Aadhaar, PAN and bank verification used for online member services.', action: 'View Service' },
   correction: { description: 'Request a correction when an employment record does not match your documents.', action: 'View Service' },
-  grievance: { description: 'Request a review of a contribution or service issue and track the response.', action: 'View Service' },
-  exit: { description: 'Record the date and reason for leaving a previous EPF-covered employment.', action: 'Exit' },
+  grievance: { description: 'Ask EPFO to review a contribution, transfer, claim or employment-record issue', action: 'View Service' },
+  exit: { description: 'Use this when you have left an EPF-covered job and its date of exit is still missing. A correct exit date is required for transfers and can affect online claims.', action: 'Exit' },
 }
 
 function StatusTag({ state }: { state: 'ready' | 'verified' | 'pending' | 'unverified' | 'available' }) {
@@ -53,7 +54,7 @@ function Field({ label, children, error, help, id, kind = 'select' }: { label: s
 }
 
 function FlowProgress({ service, step }: { service: ServiceId; step: FlowStep }) {
-  const labels = service === 'exit' ? ['Understand', 'Enter details', 'Review', 'Aadhaar OTP'] : ['Understand', 'Your Details', 'Review', 'Outcome']
+  const labels = service === 'exit' ? ['Understand', 'Enter Details', 'Review', 'Complete'] : ['Understand', 'Your Details', 'Review', 'Complete']
   const active = service === 'exit' ? { explain: 0, details: 1, review: 2, verify: 3, outcome: 3 }[step] : { explain: 0, details: 1, review: 2, verify: 2, outcome: 3 }[step]
   return <div className="service-progress-wrap">
     <p className="service-progress-current">Step {active + 1} of {labels.length} · {labels[active]}</p>
@@ -81,13 +82,6 @@ export function ServicesPage(props: ServicesPageProps) {
     setStep('explain')
     window.scrollTo({ top: 0 })
   }
-  const returnToCatalogue = () => {
-    window.history.pushState({ ...window.history.state, epfoService: null, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/services')
-    setService(null)
-    setStep('explain')
-    window.scrollTo({ top: 0 })
-  }
-
   useEffect(() => {
     const restoreServiceView = (event: PopStateEvent) => {
       const nextService = event.state?.epfoService
@@ -110,7 +104,6 @@ export function ServicesPage(props: ServicesPageProps) {
         <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md service-exit-action" type="button" onClick={() => choose('exit')}>{serviceCopy.exit.action}</button>
       </section>
     </> : <>
-      <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-sm service-back-button" type="button" onClick={returnToCatalogue}>← Back to Services</button>
       <header className="service-page-heading"><h1 id="services-title">{serviceNames[service]}</h1><p>{serviceCopy[service].description}</p></header>
       <FlowProgress service={service} step={step} />
       {service === 'transfer' && <TransferFlow {...props} step={step} setStep={setStep} />}
@@ -163,22 +156,26 @@ function ClaimFlow({ account, step, setStep, onSubmitClaim, onViewRequests }: Fl
   const amountError = !Number.isFinite(numericAmount) || numericAmount <= 0 ? 'Enter an amount greater than zero.' : numericAmount > 25_000 ? 'Enter no more than ₹25,000.' : ''
   const ineligible = intent !== 'advance'
   const submit = () => { const result = onSubmitClaim({ submittedOn: today(), amount: numericAmount, title: 'PF Advance Request' }); if (result) setRequest(result); setStep('outcome') }
-  return <article className="service-flow">{step === 'explain' && <div className="service-flow-body"><h2>Choose a Claim Intent</h2><p>Eligibility depends on the claim type and member circumstances. This account view can only pre-check the records it holds; EPFO review determines the outcome.</p><FlowActions step={step} setStep={setStep} /></div>}
-    {step === 'details' && <form className="service-flow-body" onSubmit={(event) => event.preventDefault()}><Field id="claim-intent" label="Claim intent"><select id="claim-intent" className="service-select" value={intent} onChange={(event) => setIntent(event.target.value)}><option value="advance">Request a PF Advance</option><option value="final">Final EPF Settlement</option><option value="pension">Pension-related Claim</option></select></Field>{ineligible ? <div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Cannot Be Submitted from This Account State</p><p className="ux4g-alert-message">The current employment record is active. There is not enough verified information to establish eligibility for this claim intent. Choose PF Advance to continue.</p></div></div> : <><div className="service-readiness-line"><span>Verified bank {bank?.maskedValue}</span><StatusTag state={bank?.state ?? 'unverified'} /></div><Field id="claim-amount" label="Amount requested" error={amountError} help="Amount available for this scenario: up to ₹25,000."><input id="claim-amount" className={`ux4g-input ux4g-input-md ${amountError ? 'ux4g-input-error' : ''}`} inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} aria-invalid={Boolean(amountError)} aria-describedby={`claim-amount-${amountError ? 'error' : 'help'}`} /></Field></>}<FlowActions step={step} setStep={setStep} disabled={ineligible || Boolean(amountError)} /></form>}
+  return <article className="service-flow">{step === 'explain' && <div className="service-flow-body"><h2>Choose a Withdrawal Type</h2><p>Select why you need to withdraw, then review the amount and account that EPFO will use for the claim.</p><p>Eligibility depends on the claim type and member circumstances. This account view can only pre-check the records it holds; EPFO review determines the outcome.</p><FlowActions step={step} setStep={setStep} /></div>}
+    {step === 'details' && <form className="service-flow-body" onSubmit={(event) => event.preventDefault()}><Field id="claim-intent" label="Withdrawal Type"><select id="claim-intent" className="service-select" value={intent} onChange={(event) => setIntent(event.target.value)}><option value="advance">Request a PF Advance</option><option value="final">Final EPF Settlement</option><option value="pension">Pension-related Claim</option></select></Field>{ineligible ? <div className="ux4g-alert ux4g-alert-warning"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Cannot Be Submitted from This Account State</p><p className="ux4g-alert-message">The current employment record is active. There is not enough verified information to establish eligibility for this withdrawal type. Choose PF Advance to continue.</p></div></div> : <><div className="service-readiness-line"><span>Verified bank {bank?.maskedValue}</span><StatusTag state={bank?.state ?? 'unverified'} /></div><Field id="claim-amount" label="Amount requested" error={amountError} help="Amount available for this scenario: up to ₹25,000."><input id="claim-amount" className={`ux4g-input ux4g-input-md ${amountError ? 'ux4g-input-error' : ''}`} inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} aria-invalid={Boolean(amountError)} aria-describedby={`claim-amount-${amountError ? 'error' : 'help'}`} /></Field></>}<FlowActions step={step} setStep={setStep} disabled={ineligible || Boolean(amountError)} /></form>}
     {step === 'review' && <div className="service-flow-body"><h2>Review Claim</h2><dl className="service-review-list"><div><dt>Claim Type</dt><dd>PF Advance</dd></div><div><dt>Amount Requested</dt><dd>{formatMoney(numericAmount)}</dd></div><div><dt>Payment Account</dt><dd>{bank?.maskedValue ?? 'Unavailable'}<small>{bank?.state === 'verified' ? 'Verified' : 'Needs verification'}</small></dd></div></dl><label className="ux4g-checkbox ux4g-checkbox-md"><input className="ux4g-checkbox-input" type="checkbox" checked={declaration} onChange={(event) => setDeclaration(event.target.checked)} /><span className="ux4g-checkbox-control"><span className="ux4g-checkmark" /></span><span className="ux4g-checkbox-content">I confirm the information shown is correct for this request.</span></label><FlowActions step={step} setStep={setStep} disabled={!declaration} onConfirm={submit} confirmLabel="Verify and Submit Claim" /></div>}
     {step === 'outcome' && <div className="service-flow-body"><Outcome request={request} title="Request Filed" message={`Your ${formatMoney(numericAmount)} claim request is filed. Track its progress in Requests.`} onViewRequests={onViewRequests} alertClass="ux4g-alert-info" /></div>}
   </article>
 }
 
 function KycFlow({ account, step, setStep, onSubmitPanVerification }: FlowProps) {
-  const [pan, setPan] = useState('ARJPM4321K')
+  const panRecord = account.kyc.find((record) => record.type === 'pan')
   const [consent, setConsent] = useState(false)
-  const panError = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan) ? '' : 'Enter a PAN in the format ABCDE1234F.'
+  const [otp, setOtp] = useState('')
+  const [otpError, setOtpError] = useState('')
   const submit = () => { onSubmitPanVerification(today()); setStep('outcome') }
-  return <article className="service-flow">{step === 'explain' && <div className="service-flow-body"><h2>Verification Status</h2><div className="service-kyc-grid">{account.kyc.map((record) => <div key={record.type}><div><strong>{record.type === 'aadhaar' ? 'Aadhaar' : record.type === 'pan' ? 'PAN' : 'Bank Account'}</strong><span>{record.maskedValue}</span></div><StatusTag state={record.state} /></div>)}</div><p>Aadhaar and bank are already verified. PAN is the incomplete item available to complete in this flow.</p><FlowActions step={step} setStep={setStep} /></div>}
-    {step === 'details' && <form className="service-flow-body" onSubmit={(event) => event.preventDefault()}><h2>Enter PAN</h2><Field id="pan-number" label="Permanent Account Number (PAN)" error={panError} help="Use uppercase letters and numbers."><input id="pan-number" className={`ux4g-input ux4g-input-md ${panError ? 'ux4g-input-error' : ''}`} value={pan} maxLength={10} autoCapitalize="characters" onChange={(event) => setPan(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))} aria-invalid={Boolean(panError)} aria-describedby={`pan-number-${panError ? 'error' : 'help'}`} /></Field><div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Verification Takes Time</p><p className="ux4g-alert-message">Submitting PAN changes its state to Pending. It is not shown as verified until processing completes.</p></div></div><FlowActions step={step} setStep={setStep} disabled={Boolean(panError)} /></form>}
-    {step === 'review' && <div className="service-flow-body"><h2>Review PAN Submission</h2><dl className="service-review-list"><div><dt>PAN</dt><dd>{pan.slice(0, 3)}•••{pan.slice(-2)}</dd></div><div><dt>Next State</dt><dd>Pending Verification</dd></div></dl><label className="ux4g-checkbox ux4g-checkbox-md"><input className="ux4g-checkbox-input" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span className="ux4g-checkbox-control"><span className="ux4g-checkmark" /></span><span className="ux4g-checkbox-content">I confirm this PAN belongs to the member in this account.</span></label><FlowActions step={step} setStep={setStep} disabled={!consent} onConfirm={submit} confirmLabel="Submit for Verification" /></div>}
-    {step === 'outcome' && <div className="service-flow-body"><Outcome title="PAN verification started" message="PAN remains pending verification. You can continue using services that do not require completed PAN verification." alertClass="ux4g-alert-info" /></div>}
+  if (!panRecord) return null
+  if (panRecord.state === 'pending') return <article className="service-flow"><div className="service-flow-body"><div className="ux4g-alert ux4g-alert-info"><div className="ux4g-alert-content"><p className="ux4g-alert-title">PAN Verification Is Already In Progress</p><p className="ux4g-alert-message">A verification request for {panRecord.maskedValue} is already being processed.</p></div></div></div></article>
+  return <article className="service-flow">{step === 'explain' && <div className="service-flow-body"><h2>Verification Status</h2><div className="service-kyc-grid">{account.kyc.map((record) => <div key={record.type}><div><strong>{record.type === 'aadhaar' ? 'Aadhaar' : record.type === 'pan' ? 'PAN' : 'Bank Account'}</strong><span>{record.maskedValue}</span></div><StatusTag state={record.state} /></div>)}</div><p>Confirm the PAN already associated with this account, then verify the mobile OTP before it is submitted.</p><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => setStep('details')}>Continue</button></div>}
+    {step === 'details' && <div className="service-flow-body"><h2>Confirm PAN</h2><dl className="service-review-list"><div><dt>PAN</dt><dd>{panRecord.maskedValue}</dd></div></dl><label className="ux4g-checkbox ux4g-checkbox-md"><input className="ux4g-checkbox-input" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span className="ux4g-checkbox-control"><span className="ux4g-checkmark" /></span><span className="ux4g-checkbox-content">I confirm this PAN belongs to me.</span></label><div className="service-flow-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => setStep('explain')}>Back</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" disabled={!consent} onClick={() => setStep('verify')}>Continue</button></div></div>}
+    {step === 'verify' && <form className="service-flow-body" onSubmit={(event) => { event.preventDefault(); if (otp !== DEMO_OTP) { setOtpError('We could not verify this OTP. Check the code and try again.'); return } setOtpError(''); setStep('review') }}><h2>Verify Mobile OTP</h2><p>A one-time password was sent to your registered mobile number.</p><Field id="pan-otp" label="Mobile OTP" error={otpError} help="Enter the six-digit demo OTP."><input id="pan-otp" className={`ux4g-input ux4g-input-md ${otpError ? 'ux4g-input-error' : ''}`} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(event) => { setOtp(event.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError('') }} /></Field><div className="service-flow-actions"><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={() => setStep('details')}>Back</button><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="submit">Verify OTP</button></div></form>}
+    {step === 'review' && <div className="service-flow-body"><h2>Review PAN Submission</h2><dl className="service-review-list"><div><dt>PAN</dt><dd>{panRecord.maskedValue}</dd></div><div><dt>Next State</dt><dd>Pending Verification</dd></div></dl><FlowActions step={step} setStep={setStep} onConfirm={submit} confirmLabel="Submit for Verification" /></div>}
+    {step === 'outcome' && <div className="service-flow-body"><Outcome title="PAN Verification Started" message="PAN verification is in progress." alertClass="ux4g-alert-info" /></div>}
   </article>
 }
 

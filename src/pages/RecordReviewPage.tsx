@@ -6,10 +6,9 @@ import {
   issueContentFor,
   issueStageLabel,
   issueStatusLabel,
-  pensionServiceStateLabel,
-  responsiblePartyLabel,
 } from '../domain/issueContent'
 import { deriveRecordIssues } from '../domain/issues'
+import { requestStateLabel } from '../domain/requestEvidence'
 import type { AccountState, ContributionRecord, RecordIssue, RecordIssueAction } from '../domain/types'
 import './financial-pages.css'
 
@@ -35,7 +34,7 @@ const stageLabel = (issue: RecordIssue): string => {
   return issueStageLabel(issue.currentStage.code)
 }
 
-export function RecordReviewPage({ account, onBack, onTrackRequest, onStartTransfer, onRaiseContributionGrievance }: RecordReviewPageProps) {
+export function RecordReviewPage({ account, onTrackRequest, onStartTransfer, onRaiseContributionGrievance }: RecordReviewPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const issues = deriveRecordIssues(account)
 
@@ -52,21 +51,21 @@ export function RecordReviewPage({ account, onBack, onTrackRequest, onStartTrans
   }
 
   return <section className="financial-page record-review-page" aria-labelledby="record-review-title">
-    <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-lg record-review-back" type="button" onClick={onBack}>← Back</button>
     <header className="financial-heading">
       <h1 id="record-review-title" ref={headingRef} tabIndex={-1}>Needs Attention</h1>
-      <p>Review items that need action or are still in progress.</p>
+      <p>Review items that need action or are still in progress</p>
     </header>
 
     {issues.length === 0
       ? <div className="ux4g-empty-state record-review-empty" role="status"><div className="ux4g-empty-state-content"><h2>No Items Need Attention</h2><p>No transfer or contribution issues are currently recorded.</p></div></div>
-      : <ol className="record-issue-list">{issues.map((issue, index) => <li key={issue.id}><IssueDetail issue={issue} principal={index === 0} onAction={performAction} /></li>)}</ol>}
+      : <ol className="record-issue-list">{issues.map((issue, index) => <li key={issue.id}><IssueDetail issue={issue} account={account} principal={index === 0} onAction={performAction} /></li>)}</ol>}
   </section>
 }
 
-function IssueDetail({ issue, principal, onAction }: { issue: RecordIssue; principal: boolean; onAction: (action: RecordIssueAction) => void }) {
+function IssueDetail({ issue, account, principal, onAction }: { issue: RecordIssue; account: AccountState; principal: boolean; onAction: (action: RecordIssueAction) => void }) {
   const content = issueContentFor(issue.code)
   const actionContent = issueActionContent(issue.actionCode)
+  const relatedRequest = issue.relatedRequestId ? account.requests.find((request) => request.id === issue.relatedRequestId) : undefined
   return <article className={`record-issue ${principal ? 'record-issue--principal' : ''}`} aria-labelledby={`${issue.id}-title`}>
     <header className="record-issue-heading">
       <div className="record-issue-labels">{principal && <span className="record-issue-principal">Primary Issue</span>}<span className={`ux4g-tag ${statusClassName[issue.status]} ux4g-tag-s`}>{issueStatusLabel(issue.status)}</span></div>
@@ -74,7 +73,7 @@ function IssueDetail({ issue, principal, onAction }: { issue: RecordIssue; princ
       <p>{content.shortExplanation}</p>
     </header>
 
-    {issue.facts.kind === 'transfer' && <TransferIssueSummary issue={issue} />}
+    {issue.facts.kind === 'transfer' && <TransferIssueSummary issue={issue} requestState={relatedRequest ? requestStateLabel(relatedRequest) : undefined} />}
     {issue.facts.kind === 'contribution' && <ContributionIssueSummary issue={issue} />}
     {issue.facts.kind === 'unavailable' && <div className="record-unavailable" role="status"><strong>Source Record Not Available</strong><p>The {issue.facts.missingSource} record needed for this review is not available. No financial or pension result has been assumed.</p></div>}
 
@@ -91,22 +90,18 @@ function IssueDetail({ issue, principal, onAction }: { issue: RecordIssue; princ
   </article>
 }
 
-function TransferIssueSummary({ issue }: { issue: RecordIssue }) {
+function TransferIssueSummary({ issue, requestState }: { issue: RecordIssue; requestState?: string }) {
   if (issue.facts.kind !== 'transfer') return null
   const facts = issue.facts
-  const countedEmployment = facts.currentlyCountedUnderEmploymentId === facts.sourceEmployment.id ? facts.sourceEmployment : facts.destinationEmployment
   return <>
     <div className="record-transfer-identity">
       <p className="record-transfer-route"><span>{facts.sourceEmployment.employer}</span><span aria-hidden="true">→</span><span>{facts.destinationEmployment.employer}</span></p>
       <p className="record-transfer-amount">{formatMoney(facts.amount)}</p>
     </div>
     <dl className="record-issue-facts record-issue-facts--transfer">
-      <div><dt>Current Stage</dt><dd>{stageLabel(issue)}</dd></div>
-      <div><dt>Responsible Party</dt><dd>{responsiblePartyLabel(issue.responsiblePartyCode)}</dd></div>
+      <div><dt>Current State</dt><dd>{requestState ?? stageLabel(issue)}</dd></div>
       <div><dt>Last Confirmed Event</dt><dd>{issue.lastConfirmedEvent.label}<time dateTime={issue.lastConfirmedEvent.date ?? undefined}>{confirmedDate(issue.lastConfirmedEvent.date)}</time></dd></div>
     </dl>
-    <section className="record-balance-treatment" aria-labelledby={`${issue.id}-balance-treatment`}><h3 id={`${issue.id}-balance-treatment`}>Balance Treatment</h3><dl><div><dt>Currently Counted Under</dt><dd>{countedEmployment.employer}</dd></div><div><dt>Added to {facts.destinationEmployment.employer}</dt><dd>{facts.addedToDestination === 'after-completion' ? 'After Completion' : 'Completed'}</dd></div><div><dt>Duplicate Amount in Total</dt><dd>{facts.duplicateAmountInTotal ? 'Yes' : 'No'}</dd></div></dl></section>
-    <section className="record-pension-service" aria-labelledby={`${issue.id}-pension-service`}><h3 id={`${issue.id}-pension-service`}>Pension Service</h3><dl><div><dt>State</dt><dd>{pensionServiceStateLabel(facts.pensionServiceState)}</dd></div></dl><p>EPS is a service record. It is not transferred as cash.</p></section>
   </>
 }
 
@@ -120,7 +115,6 @@ function ContributionIssueSummary({ issue }: { issue: RecordIssue }) {
       <div><dt>Salary Month</dt><dd>{formatWageMonth(facts.wageMonth)}</dd></div>
       <div><dt>Recorded On</dt><dd>{confirmedDate(facts.recordedOn)}</dd></div>
       <div><dt>Missing Amount</dt><dd>{missing.length > 0 ? missing.join(', ') : 'Not confirmed'}</dd></div>
-      <div><dt>Responsible Party</dt><dd>{responsiblePartyLabel(issue.responsiblePartyCode)}</dd></div>
       <div><dt>Current Stage</dt><dd>{stageLabel(issue)}</dd></div>
     </dl>
     <section className="record-component-comparison" aria-labelledby={`${issue.id}-comparison`}><div className="record-section-heading"><div><h3 id={`${issue.id}-comparison`}>Expected and Recorded PF</h3><p>{issue.discrepancy?.expectationBasis}</p></div></div><div className="record-component-grid"><div><h4>Expected Amounts</h4><dl>{facts.components.map((component) => <div key={component.code}><dt>{contributionComponentLabel(component.code)}</dt><dd>{component.expected === null ? 'Not confirmed' : formatMoney(component.expected)}</dd></div>)}</dl></div><div><h4>Recorded Amounts</h4><dl>{facts.components.map((component) => <div key={component.code}><dt>{contributionComponentLabel(component.code)}</dt><dd>{component.recorded === null ? <span className="record-missing-value">Not Recorded</span> : formatMoney(component.recorded)}</dd></div>)}</dl></div></div></section>

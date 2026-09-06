@@ -318,7 +318,11 @@ export default function App() {
       onOpenTerms={() => applyLocation({ surface: 'terms' })}
       onOpenPrivacy={() => applyLocation({ surface: 'privacy' })}
       onResetDemo={resetDemo}
-      breadcrumbs={surface === 'record-review' ? [{ label: 'Home', href: '/home', onClick: () => applyLocation({ surface: 'home' }) }, { label: 'Needs Attention' }] : undefined}
+      breadcrumbs={surface === 'record-review'
+        ? [{ label: 'Home', href: '/home', onClick: () => applyLocation({ surface: 'home' }) }, { label: 'Needs Attention' }]
+        : surface === 'services' && serviceContext.service
+          ? [{ label: 'Services', href: '/services', onClick: () => applyLocation({ surface: 'services' }) }, { label: ({ transfer: 'Transfer Previous PF', claim: 'Withdrawal Claim', kyc: 'KYC & Verification', correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Exit from EPFO Scheme' } as const)[serviceContext.service] }]
+          : undefined}
     >
       {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
       {page}

@@ -45,8 +45,7 @@ describe('Services page navigation', () => {
     expect(container.textContent).toContain('Correct a Recorded Employment Detail')
     expect(container.querySelector('.ux4g-breadcrumb')).toBeNull()
     expect(container.textContent).not.toContain('Member service')
-    expect(container.textContent).toContain('Back to Services')
-    expect(container.querySelector('.service-back-button')?.classList.contains('ux4g-btn-sm')).toBe(true)
+    expect(container.textContent).not.toContain('Back to Services')
 
     await act(async () => window.dispatchEvent(new PopStateEvent('popstate', { state: null })))
     expect(container.textContent).toContain('Manage claims, transfers, verification and record updates.')

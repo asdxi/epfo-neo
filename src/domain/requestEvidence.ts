@@ -9,7 +9,10 @@ export function requestEvidenceSummary(request: MemberRequest): RequestEvidenceS
   const confirmed = request.timeline
     .filter((event) => event.confirmation === 'confirmed' || (!event.confirmation && event.date !== null))
     .filter((event) => event.date !== null)
-    .sort((first, second) => (second.date ?? '').localeCompare(first.date ?? ''))
+    .sort((first, second) => {
+      const dateComparison = (second.date ?? '').localeCompare(first.date ?? '')
+      return dateComparison || request.timeline.indexOf(second) - request.timeline.indexOf(first)
+    })
   const firstMissingAcknowledgement = request.timeline.find((event) =>
     event.confirmation === 'missing' && (event.kind === 'channel-receipt' || event.kind === 'epfo-acknowledgement'))
   return { latestConfirmedEvent: confirmed[0], firstMissingAcknowledgement }
