@@ -73,6 +73,15 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.transfer-explain-layout {
+  display: grid;
+  gap: var(--ux4g-stack-m);
+}
+
+.transfer-automatic-nudge {
+  margin: 0;
+}
+
 .service-hero-card {
   display: grid;
   min-height: 100%;
@@ -737,6 +746,21 @@
 }
 
 @media (min-width: 48rem) {
+  .transfer-explain-layout {
+    align-items: start;
+    grid-template-areas: 'selection nudge';
+    grid-template-columns: minmax(0, 3fr) minmax(17rem, 2fr);
+  }
+
+  .transfer-selection-card { grid-area: selection; }
+  .transfer-automatic-nudge { grid-area: nudge; }
+
+  .service-flow--hero .service-flow-body > .ux4g-alert > .ux4g-alert-content > .ux4g-btn {
+    align-self: flex-end;
+    justify-self: end;
+    width: auto;
+  }
+
   .profile-layout, .profile-section > header { align-items: start; column-gap: var(--ux4g-section-m); grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem); }
   .profile-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
