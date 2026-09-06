@@ -152,7 +152,7 @@ const officialInterestCredits: InterestCredit[] = [
 ]
 
 export const initialAccount: AccountState = {
-  version: 7,
+  version: 8,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -170,6 +170,7 @@ export const initialAccount: AccountState = {
     differentlyAbled: false,
     passportPhotoUrl: defaultProfilePhoto,
     profileUpdatedOn: '2026-04-08',
+    faceAuthenticationState: 'pending',
     nominees: [],
     communicationPreferences: { contributionRecorded: true, requestUpdates: true, reportReady: true },
   },

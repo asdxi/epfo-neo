@@ -9,6 +9,11 @@ export type TransferPreflightResult =
   | { state: 'manual-required'; amount: Money; sourceMemberId: string; destinationMemberId: string }
   | { state: 'blocked-record-or-identity'; reason: string; sourceMemberId?: string; destinationMemberId?: string }
 
+export interface TransferCandidate {
+  employment: Employment
+  result: TransferPreflightResult
+}
+
 const currentEmployment = (account: AccountState): Employment | undefined =>
   account.employments.find((employment) => employment.status === 'current')
 
@@ -33,4 +38,23 @@ export function deriveTransferPreflight(account: AccountState): TransferPrefligh
   if (automatic && sourceBalance <= 0) return { state: 'automatic-completed', transferId: automatic.id, amount: automatic.amount, sourceMemberId: source.memberId, destinationMemberId: destination.memberId }
   if (sourceBalance <= 0) return { state: 'no-previous-balance', sourceMemberId: source.memberId, destinationMemberId: destination.memberId, amount: 0 }
   return { state: 'manual-required', amount: exception?.amount ?? sourceBalance, sourceMemberId: source.memberId, destinationMemberId: destination.memberId }
+}
+
+export function deriveTransferCandidates(account: AccountState): TransferCandidate[] {
+  const destination = currentEmployment(account)
+  if (!destination) return []
+  return account.employments.filter((employment) => employment.id !== destination.id).flatMap<TransferCandidate>((employment): TransferCandidate[] => {
+    const balance = reconcileMemberId(account, employment.memberId).closingBalance
+    const transfers = account.ledger.transfers.filter((transfer) => transfer.fromMemberId === employment.memberId && transfer.toMemberId === destination.memberId)
+    const openTransfer = transfers.find((transfer) => transfer.state !== 'completed')
+    const openRequest = account.requests.find((request) => request.type === 'transfer' && request.state !== 'completed' && (request.employmentId === employment.id || request.id === openTransfer?.relatedRequestId))
+    const completedAutomatic = transfers.find((transfer) => transfer.state === 'completed' && transfer.initiationMethod === 'automatic')
+    if (openRequest) return [
+      { employment, result: { state: 'existing-manual-request', requestId: openRequest.id, transferId: openTransfer?.id, amount: openRequest.amount ?? balance, sourceMemberId: employment.memberId, destinationMemberId: destination.memberId } },
+      ...(completedAutomatic ? [{ employment, result: { state: 'automatic-completed' as const, transferId: completedAutomatic.id, amount: completedAutomatic.amount, sourceMemberId: employment.memberId, destinationMemberId: destination.memberId } }] : []),
+    ]
+    if (openTransfer?.initiationMethod === 'automatic') return [{ employment, result: { state: 'automatic-in-progress', transferId: openTransfer.id, amount: openTransfer.amount, sourceMemberId: employment.memberId, destinationMemberId: destination.memberId } }]
+    if (balance <= 0) return completedAutomatic ? [{ employment, result: { state: 'automatic-completed', transferId: completedAutomatic.id, amount: completedAutomatic.amount, sourceMemberId: employment.memberId, destinationMemberId: destination.memberId } }] : []
+    return [{ employment, result: { state: 'manual-required', amount: balance, sourceMemberId: employment.memberId, destinationMemberId: destination.memberId } }]
+  })
 }

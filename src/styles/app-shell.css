@@ -159,8 +159,8 @@
 }
 
 .app-breadcrumb {
-  display: none;
-  margin-block-end: var(--ux4g-space-7);
+  display: block;
+  margin-block-end: var(--ux4g-space-4);
 }
 
 .app-breadcrumb ol {

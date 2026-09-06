@@ -431,7 +431,7 @@ describe('v0.2 application surfaces', () => {
 
     expect(grievance).toContain('Step 1 of 4 · Understand')
     expect(grievance).toContain('service-progress-step-number')
-    expect(grievance).toContain('choose the employment or transaction you want EPFO to review')
+    expect(grievance).toContain('Choose the affected employment or transaction and describe what appears incorrect')
     expect(grievance).not.toContain('Record selected')
     expect(grievance).not.toContain('The Record Does Not Explain the Cause')
     expect(grievance).not.toContain('ux4g-alert-warning')
@@ -525,9 +525,8 @@ describe('v0.2 application surfaces', () => {
       <PassbookPage account={account} initialView="employers" initialContextId="harbor" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
     )
 
-    expect(services).toContain('Transfer Is Already in Progress')
-    expect(services).toContain('Track Transfer')
-    expect(services).toContain('service-transfer-progress-alert')
+    expect(services).toContain('Transfer Already in Progress')
+    expect(services).toContain('Track Request')
     expect(passbook).toContain('Transfer Is in Progress')
     expect(passbook).not.toContain('>Transfer Previous PF</button>')
   })
@@ -710,8 +709,8 @@ describe('v0.2 application surfaces', () => {
       <ServicesPage
         account={account}
         initialService="transfer"
-        onSubmitTransfer={(submittedOn) => {
-          account = submitTransfer(account, submittedOn)
+        onSubmitTransfer={(submittedOn, sourceMemberId) => {
+          account = submitTransfer(account, submittedOn, sourceMemberId)
           return account.requests.find((request) => request.type === 'transfer')
         }}
         onSubmitClaim={noop}
@@ -722,8 +721,12 @@ describe('v0.2 application surfaces', () => {
       />,
     ))
 
-    expect(container.textContent).toContain('Automatic Transfer Completed')
-    expect(buttonNamed('View Transfer')).toBeDefined()
+    expect(container.textContent).toContain('Select a Previous Employment')
+    await clickButton('Continue')
+    await clickButton('Continue')
+    await act(async () => container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
+    await clickButton('Confirm and Submit Transfer')
+    expect(container.textContent).toContain('Request Filed')
     await act(async () => root.unmount())
     container.remove()
   })

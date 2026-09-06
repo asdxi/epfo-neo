@@ -16,6 +16,7 @@ import {
   submitTransfer,
   submitExit,
   updateMemberProfile,
+  updateFaceAuthentication,
   saveNominees,
   prepareOrCheckExistingRequest,
   updateContact,
@@ -184,9 +185,9 @@ export default function App() {
     return request
   }
 
-  const handleTransfer = (submittedOn: string) => submitAndFind(
-    submitTransfer(account, submittedOn),
-    (request) => request.type === 'transfer' && request.submittedOn === submittedOn,
+  const handleTransfer = (submittedOn: string, sourceMemberId: string) => submitAndFind(
+    submitTransfer(account, submittedOn, sourceMemberId),
+    (request) => request.type === 'transfer' && request.submittedOn === submittedOn && request.employmentId === account.employments.find((employment) => employment.memberId === sourceMemberId)?.id,
   )
 
   const handleClaim = (input: { submittedOn: string; amount: number; title: string }) => submitAndFind(
@@ -233,8 +234,8 @@ export default function App() {
   }
 
   if (!authenticated) {
-    if (authView === 'register') return <OnboardingScreen onBack={() => { setAuthView('login'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/login') }} onComplete={(profile) => {
-      setAccount((current) => updateMemberProfile(current, { ...profile, updatedOn: demoToday }))
+    if (authView === 'register') return <OnboardingScreen onBack={() => { setAuthView('login'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/login') }} onComplete={(profile, faceAuthenticationState) => {
+      setAccount((current) => updateFaceAuthentication(updateMemberProfile(current, { ...profile, updatedOn: demoToday }), faceAuthenticationState, demoToday))
       authenticate()
     }} />
     return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => { setAuthView('register'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/register') }} />
@@ -300,6 +301,7 @@ export default function App() {
                     }}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
                     onStartPanVerification={() => applyLocation({ surface: 'services', service: 'kyc' })}
+                    onCompleteFaceAuthentication={() => setAccount((current) => updateFaceAuthentication(current, 'verified', demoToday))}
                     onNavigateLegal={(legalSurface) => applyLocation({ surface: legalSurface })}
                   />
                 : <LegalPage page={surface} onBack={() => applyLocation({ surface: 'account' })} onNavigate={(legalSurface) => applyLocation({ surface: legalSurface })} />

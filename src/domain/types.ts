@@ -62,6 +62,7 @@ export interface Member {
   differentlyAbled: boolean
   passportPhotoUrl: string
   profileUpdatedOn: string
+  faceAuthenticationState: 'verified' | 'pending'
   communicationPreferences: {
     contributionRecorded: boolean
     requestUpdates: boolean
@@ -408,7 +409,7 @@ export interface Ledger {
 }
 
 export interface AccountState {
-  version: 7
+  version: 8
   member: Member
   kyc: KycRecord[]
   employments: Employment[]

@@ -1,6 +1,6 @@
 import { reconcileMemberId } from './calculations'
 import { RECORD_ISSUE_RULE_VERSION } from './issues'
-import { deriveTransferPreflight } from './transferPreflight'
+import { deriveTransferCandidates, deriveTransferPreflight } from './transferPreflight'
 import type { AccountState, MemberRequest, Nominee, RequestState } from './types'
 
 const requestNumber = (account: AccountState, type: MemberRequest['type']): string => {
@@ -14,21 +14,23 @@ const withRequest = (account: AccountState, request: MemberRequest): AccountStat
   requests: [request, ...account.requests],
 })
 
-export function submitTransfer(account: AccountState, submittedOn: string): AccountState {
-  const preflight = deriveTransferPreflight(account)
+export function submitTransfer(account: AccountState, submittedOn: string, sourceMemberId?: string): AccountState {
+  const preflight = sourceMemberId
+    ? deriveTransferCandidates(account).find((candidate) => candidate.employment.memberId === sourceMemberId)?.result
+    : deriveTransferPreflight(account)
+  if (!preflight) return account
   if (preflight.state !== 'manual-required') return account
-  const exception = account.exceptions.find((item) => item.kind === 'previous-balance')
-  if (!exception || exception.state !== 'open' || !exception.employmentId || !exception.amount) return account
-  const source = account.employments.find((item) => item.id === exception.employmentId)
+  const source = account.employments.find((item) => item.memberId === preflight.sourceMemberId)
   const destination = account.employments.find((item) => item.status === 'current')
   if (!source || !destination) return account
-  const requestId = `request-transfer-${submittedOn}`
+  const exception = account.exceptions.find((item) => item.kind === 'previous-balance' && item.employmentId === source.id)
+  const requestId = `request-transfer-${source.id}-${submittedOn}`
   const transferId = `transfer-${source.id}-${destination.id}-${submittedOn}`
   const reference = requestNumber(account, 'transfer')
   const request: MemberRequest = {
     id: requestId, type: 'transfer', service: 'Transfer Previous PF', reference,
     title: `Transfer from ${source.employer}`, state: 'submitted', submittedOn, updatedOn: submittedOn,
-    amount: exception.amount, employmentId: source.id,
+    amount: preflight.amount, employmentId: source.id,
     channel: 'Member portal', currentResponsibleParty: 'member',
     nextExpectedStep: 'EPFO will acknowledge the request before it moves to employer review.',
     timeline: [
@@ -47,17 +49,17 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
         id: transferId,
         fromMemberId: source.memberId,
         toMemberId: destination.memberId,
-        amount: exception.amount,
+        amount: preflight.amount,
         initiatedOn: submittedOn,
         state: 'submitted',
         source: source.establishmentType,
         initiationMethod: 'manual',
         relatedRequestId: requestId,
-        pensionServiceState: exception.pensionServiceState ?? 'not-confirmed',
+        pensionServiceState: exception?.pensionServiceState ?? 'not-confirmed',
         explanation: 'This transfer request is submitted. The balance remains under the previous Member ID until the transfer completes.',
       }],
     },
-    exceptions: account.exceptions.map((item) => item.id === exception.id ? {
+    exceptions: exception ? account.exceptions.map((item) => item.id === exception.id ? {
       ...item,
       state: 'in-progress',
       relatedRequestId: requestId,
@@ -72,7 +74,7 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
           { kind: 'request', id: requestId },
         ],
       },
-    } : item),
+    } : item) : account.exceptions,
   }, request)
 }
 
@@ -115,7 +117,7 @@ export function submitClaim(account: AccountState, input: { submittedOn: string;
   const reference = requestNumber(account, 'claim')
   const requestId = `request-claim-${reference}`
   return withRequest(account, {
-    id: requestId, type: 'claim', service: 'Claims & Withdrawals', reference,
+    id: requestId, type: 'claim', service: 'Withdrawal Claim', reference,
     title: input.title, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     amount: input.amount,
     channel: 'Claims portal', currentResponsibleParty: 'member',
@@ -169,6 +171,10 @@ export function updateContact(account: AccountState, input: { type: 'mobile' | '
 export function updateMemberProfile(account: AccountState, input: Partial<AccountState['member']> & { updatedOn: string }): AccountState {
   const { updatedOn, ...changes } = input
   return { ...account, member: { ...account.member, ...changes, profileUpdatedOn: updatedOn } }
+}
+
+export function updateFaceAuthentication(account: AccountState, state: AccountState['member']['faceAuthenticationState'], updatedOn: string): AccountState {
+  return { ...account, member: { ...account.member, faceAuthenticationState: state, profileUpdatedOn: updatedOn } }
 }
 
 export function submitExit(account: AccountState, input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }): AccountState {
