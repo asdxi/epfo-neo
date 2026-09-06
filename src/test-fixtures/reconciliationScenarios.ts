@@ -44,7 +44,7 @@ export const rejectedRequestScenario = (): AccountState => {
   request.state = 'rejected'
   request.currentResponsibleParty = 'member'
   request.rejection = {
-    originalRemark: 'Supporting wage month does not match selected contribution.',
+    originalRemark: 'Supporting salary month does not match selected contribution.',
     plainLanguageMeaning: 'The attached evidence points to a different month.',
     mismatch: 'Evidence says May 2026; request says June 2026.',
     correctableBy: 'Member',

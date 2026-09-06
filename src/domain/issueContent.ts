@@ -66,7 +66,7 @@ export const issueContentCatalogue: IssueContentCatalogue = {
     'missing-contribution': 'Contribution Not Recorded',
     'incorrect-amount': 'Recorded Amount Does Not Match',
     'wrong-employer': 'Wrong Employer',
-    'incorrect-wage-month': 'Wrong Wage Month',
+    'incorrect-wage-month': 'Wrong Salary Month',
     'late-recording': 'Contribution Recorded Late',
     'inconsistent-epf-eps-component': 'Employer PF Not Recorded',
   },

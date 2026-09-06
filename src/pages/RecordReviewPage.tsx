@@ -117,7 +117,7 @@ function ContributionIssueSummary({ issue }: { issue: RecordIssue }) {
   return <>
     <dl className="record-issue-facts record-issue-facts--contribution">
       <div><dt>Employer</dt><dd>{facts.employment.employer}</dd></div>
-      <div><dt>Wage Month</dt><dd>{formatWageMonth(facts.wageMonth)}</dd></div>
+      <div><dt>Salary Month</dt><dd>{formatWageMonth(facts.wageMonth)}</dd></div>
       <div><dt>Recorded On</dt><dd>{confirmedDate(facts.recordedOn)}</dd></div>
       <div><dt>Missing Amount</dt><dd>{missing.length > 0 ? missing.join(', ') : 'Not confirmed'}</dd></div>
       <div><dt>Responsible Party</dt><dd>{responsiblePartyLabel(issue.responsiblePartyCode)}</dd></div>

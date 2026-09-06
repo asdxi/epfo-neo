@@ -174,7 +174,7 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
     state: record.status,
     title: `Contribution for ${formatWageMonth(record.wageMonth)}`,
     explanation: record.explanation,
-    recordedDateExplanation: record.recordedOn ? 'Recorded On is when the ledger received this entry. It is different from the Wage Month the contribution relates to.' : 'This contribution is still awaiting a recorded date.',
+    recordedDateExplanation: record.recordedOn ? 'Recorded On is when the ledger received this entry. It is different from the Salary Month the contribution relates to.' : 'This contribution is still awaiting a recorded date.',
     needsAttention: contributionNeedsAttention(record),
   }))
 

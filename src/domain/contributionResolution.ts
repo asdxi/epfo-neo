@@ -50,8 +50,8 @@ export function deriveContributionResolution(account: AccountState, contribution
   const memberImpact = category === 'late-recording'
     ? 'The contribution is complete and recorded. No correction is required.'
     : recordedEpf === null
-      ? 'EPF is not recorded for this Wage Month. Review is needed before any effect can be confirmed.'
-      : `${formatMoney(recordedEpf)} of EPF is currently recorded for this Wage Month. Review is needed before any remaining effect can be confirmed.`
+      ? 'EPF is not recorded for this Salary Month. Review is needed before any effect can be confirmed.'
+      : `${formatMoney(recordedEpf)} of EPF is currently recorded for this Salary Month. Review is needed before any remaining effect can be confirmed.`
 
   return {
     category,
@@ -66,7 +66,7 @@ export function deriveContributionResolution(account: AccountState, contribution
     references: [contribution.transactionReference, expectation.reference].filter((item): item is string => Boolean(item)),
     evidenceHeld: expectation.evidenceHeld,
     evidenceMemberMayNeed: expectation.evidenceMemberMayNeed,
-    preparedDescription: `${contributionDiscrepancyLabel(category)} for ${expectedEmployment.employer}, Wage Month ${formatWageMonth(expectation.wageMonth)}. Recorded on ${formatDate(contribution.recordedOn)}. ${recordedComponents.map((item) => `${contributionComponentLabel(item.code)}: ${item.amount === null ? 'not recorded' : formatMoney(item.amount)}`).join('; ')}.`,
+    preparedDescription: `${contributionDiscrepancyLabel(category)} for ${expectedEmployment.employer}, Salary Month ${formatWageMonth(expectation.wageMonth)}. Recorded on ${formatDate(contribution.recordedOn)}. ${recordedComponents.map((item) => `${contributionComponentLabel(item.code)}: ${item.amount === null ? 'not recorded' : formatMoney(item.amount)}`).join('; ')}.`,
     responsibleParty: category === 'late-recording' ? 'none' : 'member',
     memberImpact,
   }

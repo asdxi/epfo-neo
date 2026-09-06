@@ -112,7 +112,6 @@ describe('v0.2 application surfaces', () => {
     expect(html).not.toContain('Next step')
     expect(html).toContain('Employer PF Not Recorded')
     expect(html).toContain('View Details')
-    expect(html).toContain('Employer EPF</dt><dd><span class="record-missing-value">Not Recorded</span>')
     expect(html).toContain('EPF Contributions')
     expect(html).toContain('₹25,850')
     expect(html).toContain('No EPF-Covered Employment Recorded')
@@ -192,9 +191,8 @@ describe('v0.2 application surfaces', () => {
     latest.eps = null
     const html = renderToStaticMarkup(<HomePage account={account} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
-    expect(html).toContain('Employee EPF</dt><dd><span class="record-missing-value">Not Recorded</span>')
-    expect(html).toContain('Employer EPF</dt><dd>₹0')
-    expect(html).toContain('EPS Recorded</dt><dd><span class="record-missing-value">Not Recorded</span>')
+    expect(html).toContain('Salary Month')
+    expect(html).not.toContain('Employee EPF')
   })
 
   it('renders the evidence-first PF record review and routes both issue actions', async () => {
@@ -215,7 +213,7 @@ describe('v0.2 application surfaces', () => {
     expect(container.textContent).toContain('Responsible PartyEPFO')
     expect(container.textContent).toContain('Balance TreatmentCurrently Counted UnderWaystar RoycoAdded to Pied PiperAfter CompletionDuplicate Amount in TotalNo')
     expect(container.textContent).toContain('Pension ServiceStateLinked Employment Record IncludedEPS is a service record. It is not transferred as cash.')
-    expect(container.textContent).toContain('EmployerPied PiperWage MonthAugust 2026Recorded On8 September 2026Missing AmountEmployer EPF')
+    expect(container.textContent).toContain('EmployerPied PiperSalary MonthAugust 2026Recorded On8 September 2026Missing AmountEmployer EPF')
     expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800VPF₹1,200Employer EPF₹550EPS₹1,250')
     expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800VPF₹1,200Employer EPFNot RecordedEPS₹1,250')
     expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')
@@ -482,7 +480,7 @@ describe('v0.2 application surfaces', () => {
     await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-08" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
 
     await clickButton('Continue')
-    expect(container.textContent).toContain('Wage MonthAugust 2026')
+    expect(container.textContent).toContain('Salary MonthAugust 2026')
     expect(container.textContent).toContain('Employer PF Not Recorded')
     expect(container.querySelector<HTMLInputElement>('#grievance-support')?.value).toContain('Employer contribution record')
     expect(container.textContent).not.toContain('TXN-VTX-2026-08-0908')

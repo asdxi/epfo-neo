@@ -6,6 +6,7 @@
 .financial-heading h1[tabindex='-1']:focus { outline: none; }
 .financial-heading > p:last-child, .financial-section-heading p, .financial-panel > p, .home-balance p, .attention-item p { color: var(--ux4g-text-neutral-secondary); }
 .financial-panel .financial-eyebrow { color: var(--ux4g-text-brand-primary-default); font-size: var(--ux4g-size-12); font-weight: var(--ux4g-font-weight-semibold); letter-spacing: var(--ux4g-space-1); text-transform: uppercase; }
+.financial-page .ux4g-tag { white-space: nowrap; }
 .financial-balance { color: var(--ux4g-text-neutral-primary) !important; font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); line-height: var(--ux4g-line-height-44); }
 .financial-panel { background: var(--ux4g-bg-neutral); border: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); border-radius: var(--ux4g-radius-m); display: grid; gap: var(--ux4g-stack-m); padding: var(--ux4g-padding-m); }
 .financial-panel-heading { display: grid; gap: var(--ux4g-stack-xs); }
@@ -26,7 +27,7 @@
 .home-pension-summary p { grid-column: 1 / -1; }
 .home-attention-inner, .compact-description-list, .balance-composition, .filter-stack, .employer-metrics { display: grid; gap: var(--ux4g-stack-m); }
 .attention-list, .employment-timeline, .activity-list, .service-shortcuts, .transaction-list, .contribution-summary-grid { list-style: none; margin: 0; padding: 0; }
-.attention-list { border-block: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
+.attention-list { border-block-start: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); }
 .notice-board { display: grid; gap: var(--ux4g-stack-s); }
 .notice-board-list { align-content: start; block-size: 35rem; display: grid; gap: var(--ux4g-stack-m); grid-auto-rows: max-content; overflow-y: auto; overscroll-behavior: contain; padding-inline-end: var(--ux4g-space-2); scrollbar-color: var(--ux4g-border-color-neutral-strong) transparent; scrollbar-width: thin; }
 .notice-board-list::-webkit-scrollbar { width: var(--ux4g-space-2); }
@@ -111,6 +112,7 @@
 .timeline-contribution > span { font-size: var(--ux4g-size-12); }
 .timeline-contribution > strong { color: var(--ux4g-text-neutral-primary); font-variant-numeric: tabular-nums; }
 .timeline-identity span, .timeline-period, .timeline-contribution > span, .timeline-gap span, .activity-list span, .service-shortcuts span, .transaction-summary p, .employer-selector button span, .financial-empty p { color: var(--ux4g-text-neutral-secondary); }
+.timeline-identity .timeline-status-pending { color: var(--ux4g-text-brand-primary-default); font-weight: var(--ux4g-font-weight-semibold); }
 .timeline-gap { background: var(--ux4g-bg-neutral-soft); display: grid; gap: var(--ux4g-stack-xs); margin-bottom: var(--ux4g-stack-xs); padding: var(--ux4g-padding-s); }
 .activity-list li { align-items: start; border-top: 0; border-bottom: var(--ux4g-border-thin) solid var(--ux4g-border-color-neutral-subtle); display: flex; gap: var(--ux4g-stack-s); justify-content: space-between; padding: var(--ux4g-padding-m) 0; }
 .activity-list li > strong, .transaction-summary > strong { text-align: end; }
@@ -193,6 +195,7 @@
 .context-target-highlight { animation: context-target-highlight var(--ux4g-transition-duration-slow) ease-in-out 6 alternate forwards; outline: var(--ux4g-border-width-md) solid transparent; outline-offset: var(--ux4g-space-2); }
 .transaction-table tr.context-target-highlight td { animation: context-row-highlight var(--ux4g-transition-duration-slow) ease-in-out 6 alternate forwards; }
 .transaction-table td:nth-child(2), .transaction-table td:nth-child(3) { min-width: 12rem; }
+.transaction-table th:nth-child(4), .transaction-table td:nth-child(4) { min-width: 8.5rem; white-space: nowrap; }
 .transaction-amount-column { font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
 .transaction-pagination-summary { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
 .transaction-pagination-footer { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-stack-m); justify-content: space-between; }

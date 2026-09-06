@@ -30,7 +30,7 @@ const providerLabel = (employment: Employment): string =>
   employment.establishmentType === 'exempted-pf-trust' ? 'Employer PF Trust' : 'EPFO'
 
 const statusLabel = (status: Employment['status']): string => ({
-  current: 'Current', closed: 'Closed', transferred: 'Transferred', 'balance-remaining': 'Balance Remaining',
+  current: 'Current', closed: 'Closed', transferred: 'PF Transferred', 'balance-remaining': 'PF Transfer Pending',
 })[status]
 
 export function HomePage({ account, onNavigate, onReviewIssues }: HomePageProps) {
@@ -96,33 +96,19 @@ export function HomePage({ account, onNavigate, onReviewIssues }: HomePageProps)
               <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md home-panel-action" type="button" onClick={() => onNavigate('passbook', employment.id)}>View Details</button>
             </article>
             <article className="financial-panel" aria-labelledby="latest-contribution-title">
-              <p className="financial-eyebrow">Latest Contribution</p>
-              {latestContribution ? <><h2 id="latest-contribution-title">{[latestContribution.employeeEpf, latestContribution.voluntaryEpf, latestContribution.employerEpf, latestContribution.eps].some((amount) => amount !== null) ? formatMoney(totalDepositedForContribution(latestContribution)) : 'Not Recorded'}</h2><p className="latest-contribution-total">Total currently recorded for this wage month</p><StatusTag status={latestContribution.status} /><dl className="compact-description-list"><div><dt>Wage Month</dt><dd>{formatWageMonth(latestContribution.wageMonth)}</dd></div><div><dt>Recorded On</dt><dd>{formatDate(latestContribution.recordedOn)}</dd></div><div><dt>Employee EPF</dt><dd>{formatRecordedMoney(latestContribution.employeeEpf)}</dd></div><div><dt>VPF</dt><dd>{formatRecordedMoney(latestContribution.voluntaryEpf)}</dd></div><div><dt>Employer EPF</dt><dd>{formatRecordedMoney(latestContribution.employerEpf)}</dd></div><div><dt>EPS Recorded</dt><dd>{formatRecordedMoney(latestContribution.eps)}</dd></div></dl><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md home-panel-action" type="button" onClick={() => onNavigate('passbook', latestContribution.id)}>View Contribution</button></> : <div className="financial-empty" id="latest-contribution-title"><h2>No Contribution Recorded</h2></div>}
+              {latestContribution ? <><div className="financial-panel-heading"><p className="financial-eyebrow">Latest Contribution</p><h2 id="latest-contribution-title">{[latestContribution.employeeEpf, latestContribution.voluntaryEpf, latestContribution.employerEpf, latestContribution.eps].some((amount) => amount !== null) ? formatMoney(totalDepositedForContribution(latestContribution)) : 'Not Recorded'}</h2></div><dl className="compact-description-list"><div><dt>Salary Month</dt><dd>{formatWageMonth(latestContribution.wageMonth)}</dd></div><div><dt>Recorded On</dt><dd>{formatDate(latestContribution.recordedOn)}</dd></div></dl><button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md home-panel-action" type="button" onClick={() => onNavigate('passbook', latestContribution.id)}>View Contribution</button></> : <div className="financial-empty" id="latest-contribution-title"><h2>No Contribution Recorded</h2></div>}
             </article>
           </div>
 
           <section className="financial-section" aria-labelledby="employment-history-title">
             <div className="financial-section-heading"><h2 id="employment-history-title">Employment History</h2></div>
-            {employmentTimeline.length === 0 ? <div className="financial-empty"><h3>No Employment Records</h3><p>No EPF-covered employment is recorded.</p></div> : <ol className="employment-timeline">{employmentTimeline.map((summary, index) => { const item = summary.employment; const nextOlderEmployment = employmentTimeline[index + 1]?.employment; const gaps = nextOlderEmployment ? account.employmentGaps.filter((gap) => gap.startsOn > (nextOlderEmployment.exitedOn ?? nextOlderEmployment.joinedOn) && gap.endsOn < item.joinedOn) : []; return <li key={item.id}><button className="timeline-employment" type="button" onClick={() => onNavigate('passbook', item.id)}><span className="timeline-year">{item.joinedOn.slice(0, 4)}</span><span className="timeline-identity"><strong>{item.employer}</strong><span>{providerLabel(item)} · {statusLabel(item.status)}</span></span><span className="timeline-period">{formatDate(item.joinedOn)} to {item.exitedOn ? formatDate(item.exitedOn) : 'Present'}</span><span className="timeline-contribution"><span>EPF Contributions</span><strong>{formatMoney(summary.employeeContributions + summary.voluntaryContributions + summary.employerEpfContributions)}</strong></span></button>{gaps.map((gap) => <div className="timeline-gap" key={`${gap.startsOn}-${gap.endsOn}`}><strong>{gap.label}</strong><span>{formatDate(gap.startsOn)} to {formatDate(gap.endsOn)}</span></div>)}</li> })}</ol>}
+            {employmentTimeline.length === 0 ? <div className="financial-empty"><h3>No Employment Records</h3><p>No EPF-covered employment is recorded.</p></div> : <ol className="employment-timeline">{employmentTimeline.map((summary, index) => { const item = summary.employment; const nextOlderEmployment = employmentTimeline[index + 1]?.employment; const gaps = nextOlderEmployment ? account.employmentGaps.filter((gap) => gap.startsOn > (nextOlderEmployment.exitedOn ?? nextOlderEmployment.joinedOn) && gap.endsOn < item.joinedOn) : []; return <li key={item.id}><button className="timeline-employment" type="button" onClick={() => onNavigate('passbook', item.id)}><span className="timeline-year">{item.joinedOn.slice(0, 4)}</span><span className="timeline-identity"><strong>{item.employer}</strong><span className={item.status === 'balance-remaining' ? 'timeline-status-pending' : undefined}>{statusLabel(item.status)}</span></span><span className="timeline-period">{formatDate(item.joinedOn)} to {item.exitedOn ? formatDate(item.exitedOn) : 'Present'}</span><span className="timeline-contribution"><span>EPF Contributions</span><strong>{formatMoney(summary.employeeContributions + summary.voluntaryContributions + summary.employerEpfContributions)}</strong></span></button>{gaps.map((gap) => <div className="timeline-gap" key={`${gap.startsOn}-${gap.endsOn}`}><strong>{gap.label}</strong><span>{formatDate(gap.startsOn)} to {formatDate(gap.endsOn)}</span></div>)}</li> })}</ol>}
           </section>
 
         </div>
       </div>
     </section>
   )
-}
-
-const formatRecordedMoney = (amount: number | null) => amount === null ? <span className="record-missing-value">Not Recorded</span> : formatMoney(amount)
-
-function StatusTag({ status }: { status: AccountState['ledger']['contributions'][number]['status'] }) {
-  const value = {
-    'recorded-correctly': ['Recorded', 'ux4g-tag-filled-success'],
-    'recorded-late': ['Recorded Late', 'ux4g-tag-filled-info'],
-    'amount-needs-review': ['Amount Needs Review', 'ux4g-tag-filled-warning'],
-    'missing-contribution': ['Missing Contribution', 'ux4g-tag-filled-error'],
-    'awaiting-record': ['Awaiting Record', 'ux4g-tag-filled-neutral'],
-  }[status]
-  return <span className={`ux4g-tag ${value[1]} ux4g-tag-s`}>{value[0]}</span>
 }
 
 function NoticeBoard() {

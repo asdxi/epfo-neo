@@ -46,7 +46,7 @@ const contributionSeries = (
     employerEpf: 550,
     eps: 1_250,
     status: 'recorded-correctly',
-    explanation: 'The employee EPF, employer EPF and EPS amounts are recorded for this wage month.',
+    explanation: 'The employee EPF, employer EPF and EPS amounts are recorded for this salary month.',
   }))
 }
 

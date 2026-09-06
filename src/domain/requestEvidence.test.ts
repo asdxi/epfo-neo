@@ -28,7 +28,7 @@ describe('request evidence continuity', () => {
 
   it('prepares a recoverable rejection on the same request', () => {
     const account = createInitialAccount()
-    const rejected = { ...account.requests[0], id: 'request-rejected', state: 'rejected' as const, rejection: { originalRemark: 'Supporting wage month does not match selected contribution.', plainLanguageMeaning: 'The attached evidence points to a different month.', mismatch: 'Evidence says May 2026; request says June 2026.', correctableBy: 'Member', evidenceNeeded: ['June 2026 wage record'], recoveryAction: 'prepare' as const, requiresFreshSubmission: false } }
+    const rejected = { ...account.requests[0], id: 'request-rejected', state: 'rejected' as const, rejection: { originalRemark: 'Supporting salary month does not match selected contribution.', plainLanguageMeaning: 'The attached evidence points to a different month.', mismatch: 'Evidence says May 2026; request says June 2026.', correctableBy: 'Member', evidenceNeeded: ['June 2026 wage record'], recoveryAction: 'prepare' as const, requiresFreshSubmission: false } }
     account.requests = [rejected]
 
     const prepared = prepareOrCheckExistingRequest(account, rejected.id, '2026-09-04').requests[0]

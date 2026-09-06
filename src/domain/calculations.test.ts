@@ -54,7 +54,7 @@ describe('v0.2 financial reconciliation', () => {
     expect(totalEpfBalance(account)).not.toBe(188_094 + 96_250)
   })
 
-  it('uses the approved statutory split for every wage month and VPF only at Pied Piper', () => {
+  it('uses the approved statutory split for every salary month and VPF only at Pied Piper', () => {
     const contributions = createInitialAccount().ledger.contributions
     expect(contributions).toHaveLength(77)
 
@@ -122,7 +122,7 @@ describe('v0.2 financial reconciliation', () => {
 })
 
 describe('record integrity and validation', () => {
-  it('stores Wage Month and Recorded On as distinct values', () => {
+  it('stores Salary Month and Recorded On as distinct values', () => {
     const record = createInitialAccount().ledger.contributions.find((item) => item.id === 'vertex-2026-05')!
     expect(record.wageMonth).toBe('2026-05')
     expect(record.recordedOn).toBe('2026-06-08')
@@ -188,7 +188,7 @@ describe('derived attention and connected request state', () => {
     expect(new TextDecoder().decode(buildPdfStatement(account, pdfReport))).toMatch(/^%PDF-1\.4/)
     expect(new TextDecoder().decode(buildPdfStatement(account, pdfReport))).toContain('%%EOF')
     expect(buildExcelStatement(account, excelReport)).toContain('<?mso-application progid="Excel.Sheet"?>')
-    expect(buildExcelStatement(account, excelReport)).toContain('Wage Month')
+    expect(buildExcelStatement(account, excelReport)).toContain('Salary Month')
     expect(buildExcelStatement(account, excelReport)).toContain('VPF')
   })
 

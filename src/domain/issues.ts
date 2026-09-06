@@ -299,7 +299,7 @@ function deriveContributionIssue(account: AccountState, exception: AccountExcept
       ...(contribution.employeeEpf === null ? [] : [{ label: 'Employee EPF recorded', amount: contribution.employeeEpf }]),
       ...(contribution.voluntaryEpf === null ? [] : [{ label: 'VPF recorded', amount: contribution.voluntaryEpf }]),
       ...(contribution.employerEpf === null ? [] : [{ label: 'Employer EPF recorded', amount: contribution.employerEpf }]),
-      ...(knownRecordedEpf === null ? [] : [{ label: 'Known EPF recorded for this Wage Month', amount: knownRecordedEpf }]),
+      ...(knownRecordedEpf === null ? [] : [{ label: 'Known EPF recorded for this Salary Month', amount: knownRecordedEpf }]),
     ],
     discrepancy,
   }

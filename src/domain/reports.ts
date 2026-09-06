@@ -93,7 +93,7 @@ export function buildPdfStatement(account: AccountState, report: GeneratedReport
       `Period: ${report.periodLabel} | Page ${pageIndex + 1} of ${pageCount}`,
       `Generated: ${formatDate(report.generatedOn ?? report.requestedOn)}`,
       '',
-      transactionExport ? 'Date | Employer | Type | Description | Employee EPF | VPF | Employer EPF | EPF Total | State' : 'Wage Month | Recorded On | Employer | Employee EPF | VPF | Employer EPF | EPS | Status',
+      transactionExport ? 'Date | Employer | Type | Description | Employee EPF | VPF | Employer EPF | EPF Total | State' : 'Salary Month | Recorded On | Employer | Employee EPF | VPF | Employer EPF | EPS | Status',
       ...pageRows.map((row) => transactionExport
         ? `${row[0]} | ${String(row[1]).slice(0, 20)} | ${row[2]} | ${String(row[3]).slice(0, 20)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]} | ${row[8]}`
         : `${row[0]} | ${row[1]} | ${String(row[2]).slice(0, 20)} | ${row[4]} | ${row[5]} | ${row[6]} | ${row[7]} | ${row[8]}`),
@@ -125,7 +125,7 @@ const xmlEscape = (value: unknown): string => String(value)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 export function buildExcelStatement(account: AccountState, report: GeneratedReport): string {
-  const headings = report.transactionIds ? ['Date', 'Employer', 'Type', 'Description', 'Employee EPF', 'VPF', 'Employer EPF', 'EPF Total', 'State'] : ['Wage Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'VPF', 'Employer EPF', 'EPS', 'Status']
+  const headings = report.transactionIds ? ['Date', 'Employer', 'Type', 'Description', 'Employee EPF', 'VPF', 'Employer EPF', 'EPF Total', 'State'] : ['Salary Month', 'Recorded On', 'Employer', 'PF Wage', 'Employee EPF', 'VPF', 'Employer EPF', 'EPS', 'Status']
   const rows = report.transactionIds ? transactionRows(account, report) : reportRows(account, report.startsOn, report.endsOn)
   const rowXml = [headings, ...rows].map((row) => `<Row>${row.map((cell) => `<Cell><Data ss:Type="${typeof cell === 'number' ? 'Number' : 'String'}">${xmlEscape(cell)}</Data></Cell>`).join('')}</Row>`).join('')
   return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>${xmlEscape(report.name)}</Title></DocumentProperties><Worksheet ss:Name="Passbook"><Table>${rowXml}</Table></Worksheet></Workbook>`
