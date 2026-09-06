@@ -11,7 +11,7 @@ describe('contribution discrepancy resolution', () => {
     expect(resolution.recordedComponents).toContainEqual({ code: 'voluntary-epf', amount: 1_200 })
     expect(resolution.expectedComponents).toContainEqual({ code: 'employer-epf', amount: 550 })
     expect(resolution.missingComponents).toEqual(['employer-epf'])
-    expect(resolution.references).toEqual(['TXN-VTX-2026-08-0908', 'ECR-VTX-2026-08'])
+    expect(resolution.references).toEqual(['TXN-VTX-2026-08-0907', 'ECR-VTX-2026-08'])
     expect(resolution.preparedDescription).not.toMatch(/fraud|wrongdoing/i)
   })
 

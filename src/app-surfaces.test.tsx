@@ -213,7 +213,7 @@ describe('v0.2 application surfaces', () => {
     expect(container.textContent).not.toContain('Responsible Party')
     expect(container.textContent).not.toContain('Balance Treatment')
     expect(container.textContent).not.toContain('Pension Service')
-    expect(container.textContent).toContain('EmployerPied PiperSalary MonthAugust 2026Recorded On8 September 2026Missing AmountEmployer EPF')
+    expect(container.textContent).toContain('EmployerPied PiperSalary MonthAugust 2026Recorded On7 September 2026Missing AmountEmployer EPF')
     expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800VPF₹1,200Employer EPF₹550EPS₹1,250')
     expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800VPF₹1,200Employer EPFNot RecordedEPS₹1,250')
     expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')

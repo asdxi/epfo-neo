@@ -128,10 +128,10 @@ const vertexContributions: ContributionRecord[] = [
     explanation: 'Employee EPF is ₹1,800, VPF is ₹1,200, employer EPF is ₹550 and EPS is ₹1,250.',
   },
   {
-    id: 'vertex-2026-08', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-08', recordedOn: '2026-09-08',
+    id: 'vertex-2026-08', employmentId: vertex.id, memberId: vertex.memberId, wageMonth: '2026-08', recordedOn: '2026-09-07',
     pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: null, eps: 1_250, status: 'amount-needs-review',
     explanation: 'The employer EPF amount is not currently recorded. This does not establish why the amount is missing.',
-    transactionReference: 'TXN-VTX-2026-08-0908',
+    transactionReference: 'TXN-VTX-2026-08-0907',
     expectedRecord: { employmentId: vertex.id, wageMonth: '2026-08', pfWage: 15_000, employeeEpf: 1_800, voluntaryEpf: 1_200, employerEpf: 550, eps: 1_250, basis: 'Employer contribution record', reference: 'ECR-VTX-2026-08', evidenceHeld: ['Employer contribution record', 'Recorded ledger transaction'], evidenceMemberMayNeed: ['August 2026 payslip or employer PF contribution statement'] },
   },
 ]
@@ -152,7 +152,7 @@ const officialInterestCredits: InterestCredit[] = [
 ]
 
 export const initialAccount: AccountState = {
-  version: 8,
+  version: 9,
   member: {
     id: 'member-arjun-mehta',
     name: 'Arjun Mehta',
@@ -200,13 +200,13 @@ export const initialAccount: AccountState = {
   },
   exceptions: [
     { id: 'exception-previous-balance', kind: 'previous-balance', state: 'in-progress', title: 'Previous PF Balance Transfer Is in Progress', explanation: '₹38,450 remains under Waystar Royco while the transfer is processed.', amount: 38_450, employmentId: harbor.id, relatedRequestId: 'request-transfer-2026', currentResponsibleParty: 'epfo', pensionServiceState: 'linked-employment-record', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-06-24', sourceRecordReferences: [{ kind: 'employment', id: harbor.id }, { kind: 'employment', id: vertex.id }, { kind: 'transfer', id: 'transfer-harbor-vertex-2026-06-18' }, { kind: 'request', id: 'request-transfer-2026' }] } },
-    { id: 'exception-august-contribution', kind: 'contribution-review', state: 'open', title: 'August Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-08', employmentId: vertex.id, currentResponsibleParty: 'member', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-09-08', sourceRecordReferences: [{ kind: 'employment', id: vertex.id }, { kind: 'contribution', id: 'vertex-2026-08' }] } },
+    { id: 'exception-august-contribution', kind: 'contribution-review', state: 'open', title: 'August Contribution Needs Review', explanation: 'The employer EPF amount is not currently recorded.', contributionId: 'vertex-2026-08', employmentId: vertex.id, currentResponsibleParty: 'member', issueSnapshot: { ruleVersion: RECORD_ISSUE_RULE_VERSION, sourceSnapshotAt: '2026-09-07', sourceRecordReferences: [{ kind: 'employment', id: vertex.id }, { kind: 'contribution', id: 'vertex-2026-08' }] } },
     { id: 'exception-pan', kind: 'kyc-review', state: 'open', title: 'PAN Verification Is Incomplete', explanation: 'Complete PAN verification to keep your account information ready.', kycType: 'pan' },
   ],
   requests: [
     {
       id: 'request-transfer-2026', type: 'transfer', service: 'Transfer Previous PF', reference: 'TRF-2026-004512', title: 'Previous PF Balance Transfer', state: 'in-progress', submittedOn: '2026-06-18', updatedOn: '2026-06-24', amount: 38_450, employmentId: harbor.id,
-      nextExpectedStep: 'EPFO will acknowledge the request before it moves to employer review.',
+      nextExpectedStep: 'EPFO is verifying the employment record before transfer processing begins.',
       channel: 'Member portal', currentResponsibleParty: 'epfo',
       timeline: [
         { id: 'transfer-filed-2026', label: 'Request Filed', date: '2026-06-18', state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },

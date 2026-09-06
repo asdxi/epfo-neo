@@ -221,10 +221,10 @@ describe('derived attention and connected request state', () => {
     expect(loaded.exceptions.find((item) => item.kind === 'previous-balance')?.issueSnapshot).toMatchObject({ ruleVersion: 'record-issue-rules/1.0.0', sourceSnapshotAt: '2026-08-28' })
     expect(deriveRecordIssues(loaded)[0].code).toBe('TRANSFER_IN_PROGRESS')
     stored = '{invalid json'
-    expect(loadPersistedAccount(storage).version).toBe(8)
+    expect(loadPersistedAccount(storage).version).toBe(9)
   })
 
-  it('hydrates incomplete version 8 saved accounts before rendering', () => {
+  it('hydrates incomplete version 9 saved accounts before rendering', () => {
     const account = createInitialAccount()
     const incomplete = structuredClone(account) as Partial<typeof account>
     delete (incomplete.member as Partial<typeof account.member>).email
@@ -234,11 +234,11 @@ describe('derived attention and connected request state', () => {
   })
 
   it('resets older saved ledgers so VPF is never inferred during migration', () => {
-    const oldAccount = { ...createInitialAccount(), version: 7 }
+    const oldAccount = { ...createInitialAccount(), version: 8 }
     const storage = { getItem: () => JSON.stringify(oldAccount) }
     const loaded = loadPersistedAccount(storage)
 
-    expect(loaded.version).toBe(8)
+    expect(loaded.version).toBe(9)
     expect(loaded.ledger.contributions.every((record) => record.voluntaryEpf !== undefined)).toBe(true)
     expect(totalEpfBalance(loaded)).toBe(188_094)
   })

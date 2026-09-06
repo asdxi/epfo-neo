@@ -1,7 +1,7 @@
 import { createInitialAccount } from './data'
 import type { AccountState } from './types'
 
-export const ACCOUNT_STORAGE_KEY = 'epfo-neo-account-v8'
+export const ACCOUNT_STORAGE_KEY = 'epfo-neo-account-v9'
 export const AUTHENTICATION_STORAGE_KEY = 'epfo-neo-authenticated-v1'
 
 function removeSyntheticCopy(value: unknown): unknown {
@@ -44,7 +44,7 @@ export function loadPersistedAccount(storage: Pick<Storage, 'getItem'>): Account
   if (!stored) return createInitialAccount()
   try {
     const parsed = JSON.parse(stored) as Partial<AccountState>
-    if (parsed.version !== 8 || !parsed.member || !parsed.ledger || !Array.isArray(parsed.requests) || !Array.isArray(parsed.member.nominees)) return createInitialAccount()
+    if (parsed.version !== 9 || !parsed.member || !parsed.ledger || !Array.isArray(parsed.requests) || !Array.isArray(parsed.member.nominees)) return createInitialAccount()
     const defaults = createInitialAccount()
     const member = parsed.member
     const exceptions = Array.isArray(parsed.exceptions)

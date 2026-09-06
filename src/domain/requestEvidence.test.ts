@@ -76,6 +76,7 @@ describe('request evidence continuity', () => {
     expect(requestEvidenceSummary(attempted).firstMissingAcknowledgement).toBeUndefined()
     expect(requestStateLabel(acknowledged)).toBe('In Progress')
     expect(requestEvidenceSummary(acknowledged).latestConfirmedEvent?.label).toBe('Employment Record Verification')
+    expect(acknowledged.nextExpectedStep).toBe('EPFO is verifying the employment record before transfer processing begins.')
   })
 
   it('checks an existing attempt without creating or acknowledging another request', () => {

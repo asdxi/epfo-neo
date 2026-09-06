@@ -63,7 +63,7 @@ describe('PF record issue derivation', () => {
     expect(issue.facts).toMatchObject({
       kind: 'contribution',
       wageMonth: '2026-08',
-      recordedOn: '2026-09-08',
+      recordedOn: '2026-09-07',
       missingComponents: ['employer-epf'],
       knownRecordedEpf: 3_000,
     })
@@ -170,6 +170,6 @@ describe('PF record issue derivation', () => {
 
     expect(second).toEqual(first)
     expect(account).toEqual(before)
-    expect(first.map((issue) => issue.sourceSnapshotAt)).toEqual(['2026-06-24', '2026-09-08'])
+    expect(first.map((issue) => issue.sourceSnapshotAt)).toEqual(['2026-06-24', '2026-09-07'])
   })
 })
