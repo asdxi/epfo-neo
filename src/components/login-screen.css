@@ -122,7 +122,10 @@
 
 @media (max-width: 36rem) {
   .otp-login.onboarding { padding-block: var(--ux4g-section-s) var(--ux4g-section-l); }
-  .onboarding .otp-login__card { padding-top: var(--ux4g-stack-s); }
+  .otp-login.onboarding { gap: var(--ux4g-stack-l); }
+  .onboarding .otp-login__card { padding-top: 0; }
+  .onboarding.is-complete { gap: 0; }
+  .onboarding.is-complete .onboarding-stepper { display: none; }
   .onboarding .service-form-grid { grid-template-columns: minmax(0, 1fr); }
   .onboarding .service-form-grid > .service-field:last-child { grid-column: auto; max-width: none; }
   .onboarding .service-flow-actions { align-items: stretch; flex-direction: column-reverse; }

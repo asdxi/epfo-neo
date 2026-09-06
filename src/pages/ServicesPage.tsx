@@ -21,6 +21,7 @@ export interface ServicesPageProps {
   onSubmitExit?: (input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }) => MemberRequest | void
   onViewRequests?: (requestId?: string) => void
   onManageNomination?: () => void
+  onServiceChange?: (service: ServiceId | undefined) => void
 }
 
 type FlowStep = 'explain' | 'details' | 'review' | 'verify' | 'outcome'
@@ -75,11 +76,13 @@ function Outcome({ request, title, message, onViewRequests, alertClass = 'ux4g-a
 }
 
 export function ServicesPage(props: ServicesPageProps) {
-  const [service, setService] = useState<ServiceId | null>(props.initialService ?? null)
+  const { initialService, onServiceChange } = props
+  const [service, setService] = useState<ServiceId | null>(initialService ?? null)
   const [step, setStep] = useState<FlowStep>('explain')
   const choose = (next: ServiceId) => {
     window.history.pushState({ ...window.history.state, epfoService: next, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', `/services?service=${next}`)
     setService(next)
+    onServiceChange?.(next)
     setStep('explain')
     window.scrollTo({ top: 0 })
   }
@@ -87,13 +90,14 @@ export function ServicesPage(props: ServicesPageProps) {
     const restoreServiceView = (event: PopStateEvent) => {
       const nextService = event.state?.epfoService
       setService((Object.keys(serviceNames) as ServiceId[]).includes(nextService) ? nextService : null)
+      onServiceChange?.((Object.keys(serviceNames) as ServiceId[]).includes(nextService) ? nextService : undefined)
       setStep('explain')
       window.scrollTo({ top: 0 })
     }
 
     window.addEventListener('popstate', restoreServiceView)
     return () => window.removeEventListener('popstate', restoreServiceView)
-  }, [props.initialService])
+  }, [initialService, onServiceChange])
   return <section className="service-page services-page" aria-labelledby="services-title">
     {!service ? <>
       <header className="service-page-heading"><h1 id="services-title">Services</h1><p>Manage claims, transfers, verification and record updates.</p></header>

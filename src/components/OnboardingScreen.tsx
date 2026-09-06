@@ -84,7 +84,7 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
   }
   const verify = (event: FormEvent) => { event.preventDefault(); if (otpValue !== DEMO_OTP) return; setStep('face') }
 
-  return <main className="otp-login onboarding" aria-labelledby="onboarding-title">
+  return <main className={`otp-login onboarding ${step === 'complete' ? 'is-complete' : ''}`} aria-labelledby="onboarding-title">
     <section className="otp-login__hero"><span className="brand-mark" aria-hidden="true">EPFO</span><h1 id="onboarding-title">Activate your UAN</h1><p>Four short steps to set up access to your EPFO member account.</p></section>
     <section className="otp-login__card">
       <OnboardingStepper activeIndex={stepIndex} />

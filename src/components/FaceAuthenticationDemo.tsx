@@ -50,7 +50,7 @@ export function FaceAuthenticationDemo({ modal = false, onComplete, onContinueFo
     <p>This is a demo simulation. No camera, biometric data or UIDAI verification is used.</p>
     <div className="service-flow-actions">
       {modal && <button ref={firstButtonRef} className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md" type="button" onClick={onClose}>Cancel</button>}
-      {onContinueForNow && <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={onContinueForNow}>Continue for Now</button>}
+      {onContinueForNow && <button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={onContinueForNow}>I Will Do It Later</button>}
       <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" disabled={!aligned} onClick={onComplete}>Capture And Continue</button>
     </div>
   </div>

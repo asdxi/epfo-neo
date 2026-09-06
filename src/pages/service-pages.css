@@ -44,6 +44,9 @@
 }
 
 .service-nomination-copy { display: grid; gap: var(--ux4g-stack-xs); }
+.nominee-edli-explanation { color: var(--ux4g-text-neutral-secondary); }
+.nominee-edli-explanation summary { color: var(--ux4g-text-link-default-default); cursor: pointer; font-weight: var(--ux4g-font-weight-semibold); min-height: var(--ux4g-line-height-44); padding-block: var(--ux4g-padding-s); }
+.nominee-edli-explanation ul { display: grid; font-size: var(--ux4g-size-14); font-weight: var(--ux4g-font-weight-regular); gap: var(--ux4g-stack-xs); line-height: var(--ux4g-line-height-20); margin: 0; padding-inline-start: var(--ux4g-padding-l); }
 
 .services-page .service-transfer-progress-alert .ux4g-alert-content {
   align-items: center;
@@ -302,10 +305,13 @@
 .profile-photo-info:hover .profile-photo-tooltip, .profile-photo-info:focus-within .profile-photo-tooltip { opacity: 1; transform: translateY(0); visibility: visible; }
 
 .app-modal-backdrop { align-items: center; background: rgb(18 32 51 / 72%); display: flex; inset: 0; justify-content: center; padding: var(--ux4g-padding-m); position: fixed; z-index: 1000; }
-.ux4g-modal.app-modal { background: var(--ux4g-bg-neutral-default, #fff); border-radius: var(--ux4g-radius-lg); display: block; margin: 0; max-height: calc(100dvh - var(--ux4g-space-10)); max-width: 36rem; min-height: 0; overflow: auto; position: relative; width: 100%; }
+.ux4g-modal.app-modal { background: var(--ux4g-bg-neutral-default, #fff); block-size: auto; border-radius: var(--ux4g-radius-lg); box-sizing: border-box; display: block; flex: 0 1 auto; height: max-content; inline-size: min(36rem, 100%); margin: 0; max-block-size: calc(100dvh - var(--ux4g-space-10)); max-inline-size: 100%; min-block-size: 0; min-inline-size: 0; overflow: auto; position: relative; }
 .app-modal .ux4g-modal-header { display: block; width: 100%; }
 .app-modal .ux4g-modal-header, .app-modal .ux4g-modal-body { padding: var(--ux4g-padding-l); }
 .app-modal .ux4g-modal-body { display: grid; gap: var(--ux4g-stack-m); }
+.app-modal h2, .app-modal p { max-inline-size: 100%; overflow-wrap: anywhere; }
+.app-modal .service-flow-actions { min-inline-size: 0; }
+.app-modal .service-flow-actions .ux4g-btn { min-inline-size: 0; width: 100%; }
 .photo-crop-preview { aspect-ratio: 7 / 9; background: var(--ux4g-bg-neutral-soft); margin-inline: auto; max-height: 55vh; overflow: hidden; width: min(100%, 20rem); }
 .photo-crop-preview img { height: 100%; object-fit: cover; transform-origin: center; width: 100%; }
 .photo-crop-controls { display: grid; gap: var(--ux4g-stack-s); }
@@ -729,10 +735,18 @@
   .request-list-heading,
   .request-list-meta,
   .request-timeline-heading,
-  .account-kyc-item,
   .account-report-list article,
   .account-inline-state { align-items: flex-start; flex-direction: column; }
+  .account-kyc-item { align-items: start; display: grid; gap: var(--ux4g-space-4); grid-template-columns: minmax(0, 1fr) auto; }
+  .account-kyc-item > div:first-child { min-inline-size: 0; }
+  .account-kyc-item > div:first-child { grid-column: 1 / -1; }
+  .account-kyc-item > div:last-child { display: contents; }
+  .account-kyc-item > div:last-child > span { grid-column: 2; justify-self: end; }
+  .account-kyc-item > div:last-child > .ux4g-btn { grid-column: 1 / -1; width: 100%; }
   .service-flow-actions { flex-direction: column-reverse; }
+  .app-modal-backdrop { padding: var(--ux4g-padding-s); }
+  .ux4g-modal.app-modal { max-height: calc(100dvh - var(--ux4g-space-6)); }
+  .photo-crop-preview { max-height: 42vh; }
   .request-search { grid-template-columns: minmax(0, 1fr) auto; }
   .request-search .ux4g-btn { width: 100%; }
   .profile-section > header .profile-photo-desktop-title { display: none; }

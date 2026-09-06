@@ -282,6 +282,7 @@ export default function App() {
                 onSubmitGrievance={handleGrievance}
                 onSubmitExit={(input) => submitAndFind(submitExit(account, input), (request) => request.type === 'exit' && request.submittedOn === input.submittedOn)}
                 onViewRequests={(requestId) => applyLocation({ surface: 'requests', requestId })}
+                onServiceChange={(service) => setServiceContext((current) => ({ ...current, service }))}
                 onManageNomination={() => applyLocation({ surface: 'account', accountSection: 'nomination' })}
               />
             : surface === 'requests'
