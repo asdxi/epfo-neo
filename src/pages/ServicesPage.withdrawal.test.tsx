@@ -27,6 +27,8 @@ describe('withdrawal and Mark Exit flows', () => {
     document.body.append(container)
     const root = createRoot(container)
     await act(async () => root.render(<ServicesPage account={createInitialAccount()} initialService="claim" {...commonProps} />))
+    expect(container.textContent).toContain('Full PF Withdrawal settles your overall PF balance')
+    expect(container.textContent).not.toContain('selected, exited employment record')
     await act(async () => [...container!.querySelectorAll('button')].find((button) => button.textContent === 'Continue')?.click())
 
     expect(container.textContent).toContain('Demo KYC Allowance')
