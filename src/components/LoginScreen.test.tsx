@@ -53,8 +53,12 @@ describe('LoginScreen credentials and validation', () => {
     const scenario = container.querySelector<HTMLInputElement>('[role="switch"]')!
     expect(scenario.checked).toBe(false)
     expect(container.textContent).toContain('Happy Flow')
+    expect(container.textContent).toContain('No error screens in this flow.')
     await act(async () => scenario.click())
     expect(onDemoModeChange).toHaveBeenCalledWith('error')
+    await act(async () => root.render(<LoginScreen expectedMobile="9876543210" onAuthenticated={vi.fn()} demoMode="error" onDemoModeChange={onDemoModeChange} />))
+    expect(container.textContent).toContain('PF records fail to load after sign-in.')
+    expect(container.textContent).toContain('Face Authentication cannot be completed during activation.')
   })
 
   it('enables OTP resend after 30 seconds and restarts the cooldown without clearing digits', async () => {
