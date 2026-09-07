@@ -126,9 +126,9 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
           </dl>
           <p className="ux4g-alert-message">Enter this same OTP wherever an OTP field appears in the demo.</p>
           <p className="ux4g-alert-message">If you run into an issue, use <strong>Reset Demo</strong> in the page footer on desktop or at the bottom of the <strong>Menu</strong> on mobile.</p>
-          <div className="demo-scenario"><div><strong>Demo Scenario</strong><span>{demoMode === 'error' ? 'Error State' : 'Happy Flow'}</span></div><label className="ux4g-switch ux4g-switch-md"><input className="ux4g-switch-input" type="checkbox" role="switch" checked={demoMode === 'error'} onChange={(event) => onDemoModeChange(event.target.checked ? 'error' : 'happy')} aria-label="Use Error State demo scenario" /><span className="ux4g-switch-control"><span className="ux4g-switch-track"><span className="ux4g-switch-thumb" /></span></span></label></div>
         </div>
       </aside>
+      <section className="ux4g-card ux4g-card-solid demo-scenario" aria-labelledby="demo-scenario-title"><div><strong id="demo-scenario-title">Demo Scenario</strong><span>{demoMode === 'error' ? 'Error State' : 'Happy Flow'}</span></div><label className="ux4g-switch ux4g-switch-md"><input className="ux4g-switch-input" type="checkbox" role="switch" checked={demoMode === 'error'} onChange={(event) => onDemoModeChange(event.target.checked ? 'error' : 'happy')} aria-label="Use Error State demo scenario" /><span className="ux4g-switch-control"><span className="ux4g-switch-track"><span className="ux4g-switch-thumb" /></span></span></label></section>
       <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby={step === 'mobile' ? 'sign-in-mobile-title' : 'sign-in-otp-title'}>
         <div className="ux4g-card-body">
           {step === 'mobile' ? (

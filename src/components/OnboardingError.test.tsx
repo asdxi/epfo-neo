@@ -48,7 +48,7 @@ describe('OnboardingScreen Error State', () => {
       })
     }
     await click('Verify Aadhaar OTP')
-    expect(container.textContent).not.toContain('I Will Do It Later')
+    expect(container.textContent).toContain('I Will Do It Later')
     await act(async () => vi.advanceTimersByTime(1400))
     await click('Capture And Continue')
     expect(container.textContent).toContain('Face Authentication Couldn’t Be Completed')

@@ -1,5 +1,5 @@
 /* App-specific login composition: UX4G supplies the controls, card, OTP states and tokens. */
-.otp-login { display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
+.otp-login { align-content: start; display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "scenario" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
 .otp-login__hero { display: grid; align-content: end; gap: var(--ux4g-stack-s); padding-top: var(--ux4g-section-m); }
 .otp-login__hero { grid-area: hero; }
 .otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-xs); }
@@ -14,12 +14,12 @@
 .otp-login__credential-list > div { align-items: baseline; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2) var(--ux4g-space-4); justify-content: space-between; }
 .otp-login__credential-list dt { color: var(--ux4g-text-neutral-secondary); }
 .otp-login__credential-list dd { color: var(--ux4g-text-neutral-primary); font-variant-numeric: tabular-nums; font-weight: var(--ux4g-font-weight-semibold); margin: 0; }
-.demo-scenario { align-items: center; border-block-start: var(--ux4g-border-width-xs) solid var(--ux4g-border-color-neutral-subtle); display: flex; gap: var(--ux4g-stack-m); justify-content: space-between; padding-block-start: var(--ux4g-stack-m); }
+.demo-scenario { align-items: center; color: var(--ux4g-text-neutral-primary); display: flex; gap: var(--ux4g-stack-m); grid-area: scenario; justify-content: space-between; padding: var(--ux4g-padding-m); }
 .demo-scenario > div { display: grid; gap: var(--ux4g-space-1); }
-.demo-scenario > div > span { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
-.otp-resend { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2) var(--ux4g-space-4); justify-content: space-between; min-width: 0; }
+.demo-scenario > div > span { color: var(--ux4g-text-neutral-primary); font-size: var(--ux4g-size-14); }
+.otp-resend { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2); justify-content: flex-start; min-width: 0; }
 .otp-resend > span { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
-.otp-resend .ux4g-btn { min-width: 10.5rem; }
+.otp-resend .ux4g-btn { min-width: 0; }
 .onboarding-stepper { display: grid; gap: var(--ux4g-stack-xs); margin-block-end: var(--ux4g-section-s); }
 .onboarding-stepper__summary { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); margin: 0; }
 .onboarding-success { align-items: center; display: grid; gap: var(--ux4g-stack-l); justify-items: center; padding-block: var(--ux4g-section-m); text-align: center; }
@@ -43,7 +43,7 @@
 .otp-login__loader { animation: otp-loader-spin 700ms linear infinite; border: var(--ux4g-border-width-sm) solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; height: var(--ux4g-size-16); width: var(--ux4g-size-16); }
 @keyframes otp-loader-spin { to { transform: rotate(360deg); } }
 @media (min-width: 48rem) {
-  .otp-login { align-content: start; column-gap: var(--ux4g-section-l); grid-template-areas: "hero hero" "form credentials"; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr); max-width: 64rem; padding-top: var(--ux4g-section-xl); }
+  .otp-login { align-content: start; column-gap: var(--ux4g-section-l); grid-template-areas: "hero hero" "form credentials" "form scenario"; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr); max-width: 64rem; padding-top: var(--ux4g-section-xl); }
   .otp-login__hero { max-width: 36rem; }
 }
 @media (prefers-reduced-motion: reduce) { .otp-login__loader { animation: none; } }
@@ -138,8 +138,6 @@
   .onboarding .service-flow-actions .ux4g-btn,
   .onboarding .service-flow-actions .ux4g-btn:last-child { margin-inline-start: 0; width: 100%; }
   .onboarding .demo-error-state .service-flow-actions { flex-direction: column; }
-  .otp-resend { align-items: stretch; flex-direction: column; }
-  .otp-resend .ux4g-btn { justify-content: center; width: 100%; }
 }
 
 @media (min-width: 48rem) {
