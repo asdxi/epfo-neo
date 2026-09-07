@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { AppShell, type AppRoute } from './components/AppShell'
 import { LoginScreen } from './components/LoginScreen'
 import { OnboardingScreen } from './components/OnboardingScreen'
+import { Toast, type ToastMessage } from './components/Toast'
 import { clearPersistedAccount, clearPersistedAuthentication, loadPersistedAccount, loadPersistedAuthentication, persistAccount, persistAuthentication } from './domain/persistence'
 import { createInitialAccount } from './domain/data'
 import { buildExcelStatement, buildPdfStatement, createReportRecord } from './domain/reports'
@@ -33,6 +34,7 @@ import { contributionPassbookUrl, parsePortalLocation, portalUrl, type PortalLoc
 
 type Surface = AppRoute | 'record-review' | 'terms' | 'privacy'
 type LoadState = 'loading' | 'ready' | 'error'
+type DemoMode = 'happy' | 'error'
 
 const demoToday = '2026-08-28'
 
@@ -80,18 +82,16 @@ export default function App() {
   const [surface, setSurface] = useState<Surface>(initialLocation.surface)
   const [account, setAccount] = useState<AccountState>(safeInitialAccount)
   const [loadState, setLoadState] = useState<LoadState>('ready')
+  const [demoMode, setDemoMode] = useState<DemoMode>('happy')
   const [passbookContext, setPassbookContext] = useState<string | undefined>(initialLocation.passbookContext)
   const [serviceContext, setServiceContext] = useState<{ service?: ServiceId; employmentId?: string; contributionId?: string }>({ service: initialLocation.service as ServiceId | undefined, employmentId: initialLocation.employmentId, contributionId: initialLocation.contributionId })
   const [requestContext, setRequestContext] = useState<string | undefined>(initialLocation.requestId)
   const [accountContext, setAccountContext] = useState<'nomination' | undefined>(initialLocation.accountSection)
-  const [announcement, setAnnouncement] = useState<{ tone: 'success' | 'error'; message: string }>()
+  const [announcement, setAnnouncement] = useState<ToastMessage>()
+  const toastId = useRef(0)
   const skipNextPersistence = useRef(false)
 
-  useEffect(() => {
-    if (!announcement) return
-    const timeout = window.setTimeout(() => setAnnouncement(undefined), 5000)
-    return () => window.clearTimeout(timeout)
-  }, [announcement])
+  const notify = (toast: Omit<ToastMessage, 'id'>) => setAnnouncement({ ...toast, id: ++toastId.current })
 
   useEffect(() => {
     if (skipNextPersistence.current) {
@@ -138,7 +138,22 @@ export default function App() {
     setAuthenticated(true)
     applyLocation({ surface: 'home' }, { replace: true })
     setLoadState('loading')
-    window.setTimeout(() => setLoadState('ready'), 450)
+    window.setTimeout(() => setLoadState(demoMode === 'error' ? 'error' : 'ready'), 450)
+  }
+
+  const exitErrorState = () => {
+    const initialAccount = createInitialAccount()
+    try {
+      persistAccount(window.localStorage, initialAccount)
+      persistAuthentication(window.localStorage)
+    } catch { /* Browser storage is optional; in-memory state remains safe. */ }
+    skipNextPersistence.current = true
+    setAccount(initialAccount)
+    setDemoMode('happy')
+    setAuthView('login')
+    setAuthenticated(true)
+    setLoadState('ready')
+    applyLocation({ surface: 'home' }, { replace: true, url: '/home' })
   }
 
   const resetDemo = () => {
@@ -220,25 +235,25 @@ export default function App() {
     })
     setAccount((current) => addGeneratedReport(current, report))
     if (background) {
-      setAnnouncement({ tone: 'success', message: 'Your transaction export is being prepared. It is available under Generated Reports in Account.' })
+      notify({ tone: 'success', title: 'Export Requested', message: 'Your transaction export is being prepared. It is available under Generated Reports in Account.' })
       window.setTimeout(() => {
         setAccount((current) => markReportReady(current, report.id, demoToday))
-        setAnnouncement({ tone: 'success', message: 'Your transaction export is ready in Generated Reports.' })
+        notify({ tone: 'success', title: 'Export Ready', message: 'Your transaction export is ready in Generated Reports.' })
       }, 1400)
     } else {
       const downloaded = downloadReport(account, report)
-      setAnnouncement(downloaded
-        ? { tone: 'success', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export downloaded and added to Generated Reports.` }
-        : { tone: 'error', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export. Please try again.` })
+      notify(downloaded
+        ? { tone: 'success', title: 'Export Downloaded', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export downloaded and added to Generated Reports.` }
+        : { tone: 'error', title: 'Download Failed', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} transaction export. Please try again.` })
     }
   }
 
   if (!authenticated) {
-    if (authView === 'register') return <OnboardingScreen onBack={() => { setAuthView('login'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/login') }} onComplete={(profile, faceAuthenticationState) => {
+    if (authView === 'register') return <><OnboardingScreen demoMode={demoMode} onNotify={notify} onExitErrorState={exitErrorState} onBack={() => { setAuthView('login'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/login') }} onComplete={(profile, faceAuthenticationState) => {
       setAccount((current) => updateFaceAuthentication(updateMemberProfile(current, { ...profile, updatedOn: demoToday }), faceAuthenticationState, demoToday))
       authenticate()
-    }} />
-    return <LoginScreen expectedMobile={account.member.mobile.value} onAuthenticated={authenticate} onRegister={() => { setAuthView('register'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/register') }} />
+    }} />{announcement && <Toast key={announcement.id} toast={announcement} onDismiss={() => setAnnouncement(undefined)} />}</>
+    return <><LoginScreen expectedMobile={account.member.mobile.value} demoMode={demoMode} onDemoModeChange={setDemoMode} onNotify={notify} onAuthenticated={authenticate} onRegister={() => { setAuthView('register'); window.history.pushState({ epfoNeo: true, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', '/register') }} />{announcement && <Toast key={announcement.id} toast={announcement} onDismiss={() => setAnnouncement(undefined)} />}</>
   }
 
   const activeRoute: AppRoute = surface === 'terms' || surface === 'privacy' ? 'account' : surface === 'record-review' ? 'home' : surface
@@ -247,7 +262,7 @@ export default function App() {
   const page = loadState === 'loading'
     ? <div className="route-skeleton" aria-busy="true" aria-label="Loading account"><span /><span /><span /><span /></div>
     : loadState === 'error'
-      ? <div className="ux4g-alert ux4g-alert-error" role="alert"><div className="ux4g-alert-content"><p className="ux4g-alert-title">Account Could Not Be Loaded</p><p className="ux4g-alert-message">Your saved account data is safe. Try loading it again.</p><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => { setLoadState('loading'); window.setTimeout(() => setLoadState('ready'), 350) }}>Try Again</button></div></div>
+      ? <section className="demo-error-state records-error-state" aria-live="assertive" aria-labelledby="records-error-title"><span className="demo-error-state__icon" aria-hidden="true">!</span><div><h1 id="records-error-title">We Couldn’t Load Your PF Records</h1><p>You’re signed in, but your PF records are temporarily unavailable. You won’t need to sign in again.</p></div><div className="service-flow-actions"><button className="ux4g-btn ux4g-btn-primary ux4g-btn-md" type="button" onClick={() => { setLoadState('loading'); window.setTimeout(() => setLoadState('error'), 350) }}>Try Again</button><button className="ux4g-btn ux4g-btn-tonal-primary ux4g-btn-md" type="button" onClick={exitErrorState}>Exit Error State</button></div></section>
       : surface === 'home'
         ? <HomePage account={account} onNavigate={navigateFinancial} onOpenService={openService} onReviewIssues={() => applyLocation({ surface: 'record-review' })} />
         : surface === 'record-review'
@@ -284,9 +299,10 @@ export default function App() {
                 onViewRequests={(requestId) => applyLocation({ surface: 'requests', requestId })}
                 onServiceChange={(service) => setServiceContext((current) => ({ ...current, service }))}
                 onManageNomination={() => applyLocation({ surface: 'account', accountSection: 'nomination' })}
+                onNotify={notify}
               />
             : surface === 'requests'
-              ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" onCitizenAction={(request) => { setAccount((current) => prepareOrCheckExistingRequest(current, request.id, demoToday)); setAnnouncement({ tone: 'success', message: request.rejection ? 'Known details and evidence are prepared on this request.' : 'Existing request checked. No duplicate request was created.' }) }} />
+              ? <RequestsPage account={account} initialRequestId={requestContext} status="ready" onCitizenAction={(request) => { setAccount((current) => prepareOrCheckExistingRequest(current, request.id, demoToday)); notify({ tone: 'success', title: 'Request Ready', message: request.rejection ? 'Known details and evidence are prepared on this request.' : 'Existing request checked. No duplicate request was created.' }) }} />
               : surface === 'account'
                 ? <AccountPage
                     account={account}
@@ -296,14 +312,15 @@ export default function App() {
                     onUpdateCommunicationPreferences={(preferences: Member['communicationPreferences']) => setAccount((current) => ({ ...current, member: { ...current.member, communicationPreferences: preferences } }))}
                     onDownloadReport={(report) => {
                       const downloaded = downloadReport(account, report)
-                      setAnnouncement(downloaded
-                        ? { tone: 'success', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} report downloaded.` }
-                        : { tone: 'error', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} report. Please try again.` })
+                      notify(downloaded
+                        ? { tone: 'success', title: 'Report Downloaded', message: `${report.format === 'pdf' ? 'PDF' : 'Excel'} report downloaded.` }
+                        : { tone: 'error', title: 'Download Failed', message: `We could not download the ${report.format === 'pdf' ? 'PDF' : 'Excel'} report. Please try again.` })
                     }}
                     onSaveNominees={(nominees) => setAccount((current) => saveNominees(current, nominees))}
                     onStartPanVerification={() => applyLocation({ surface: 'services', service: 'kyc' })}
                     onCompleteFaceAuthentication={() => setAccount((current) => updateFaceAuthentication(current, 'verified', demoToday))}
                     onNavigateLegal={(legalSurface) => applyLocation({ surface: legalSurface })}
+                    onNotify={notify}
                   />
                 : <LegalPage page={surface} onBack={() => applyLocation({ surface: 'account' })} onNavigate={(legalSurface) => applyLocation({ surface: legalSurface })} />
 
@@ -327,7 +344,7 @@ export default function App() {
           ? [{ label: 'Services', href: '/services', onClick: () => applyLocation({ surface: 'services' }) }, { label: ({ transfer: 'Transfer Previous PF', claim: 'Withdrawal Claim', kyc: 'KYC & Verification', correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Exit from EPFO Scheme' } as const)[serviceContext.service] }]
           : undefined}
     >
-      {announcement && <div className={`ux4g-alert ux4g-alert-${announcement.tone} app-announcement`} role={announcement.tone === 'error' ? 'alert' : 'status'} aria-live={announcement.tone === 'error' ? 'assertive' : 'polite'}><div className="ux4g-alert-content"><p className="ux4g-alert-message">{announcement.message}</p></div></div>}
+      {announcement && <Toast key={announcement.id} toast={announcement} onDismiss={() => setAnnouncement(undefined)} />}
       {page}
     </AppShell>
   </>

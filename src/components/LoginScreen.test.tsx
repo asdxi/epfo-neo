@@ -47,6 +47,34 @@ const continueWithMobile = async (mobile = '9876543210') => {
 }
 
 describe('LoginScreen credentials and validation', () => {
+  it('switches between Happy Flow and Error State', async () => {
+    const onDemoModeChange = vi.fn()
+    await act(async () => root.render(<LoginScreen expectedMobile="9876543210" onAuthenticated={vi.fn()} demoMode="happy" onDemoModeChange={onDemoModeChange} />))
+    const scenario = container.querySelector<HTMLInputElement>('[role="switch"]')!
+    expect(scenario.checked).toBe(false)
+    expect(container.textContent).toContain('Happy Flow')
+    await act(async () => scenario.click())
+    expect(onDemoModeChange).toHaveBeenCalledWith('error')
+  })
+
+  it('enables OTP resend after 30 seconds and restarts the cooldown without clearing digits', async () => {
+    vi.useFakeTimers()
+    const onNotify = vi.fn()
+    await act(async () => root.render(<LoginScreen expectedMobile="9876543210" onAuthenticated={vi.fn()} onNotify={onNotify} />))
+    await continueWithMobile()
+    const resend = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.includes('Resend OTP'))!
+    const firstDigit = container.querySelector<HTMLInputElement>('.ux4g-otp-input')!
+    await setInput(firstDigit, '1')
+    expect(resend.disabled).toBe(true)
+    expect(resend.textContent).toBe('Resend OTP in 30s')
+    await act(async () => vi.advanceTimersByTime(30000))
+    expect(resend.disabled).toBe(false)
+    await act(async () => resend.click())
+    expect(firstDigit.value).toBe('1')
+    expect(resend.disabled).toBe(true)
+    expect(onNotify).toHaveBeenCalledWith(expect.objectContaining({ title: 'OTP Sent' }))
+  })
+
   it('explains what members can access after signing in', async () => {
     await renderLogin()
 
