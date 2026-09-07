@@ -60,6 +60,7 @@ const transferStateLabel = (state: ReturnType<typeof employerSummaries>[number][
 const formatNumericDate = (value: string): string => new Intl.DateTimeFormat('en-GB', {
   day: '2-digit', month: '2-digit', year: 'numeric',
 }).format(new Date(`${value}T00:00:00`))
+const employerQuerySlug = (employer: string): string => employer.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 const paginationItems = (currentPage: number, pageCount: number): Array<number | 'ellipsis-start' | 'ellipsis-end'> => {
   if (pageCount <= 5) return Array.from({ length: pageCount }, (_, index) => index + 1)
   if (currentPage <= 3) return [1, 2, 3, 'ellipsis-end', pageCount]
@@ -99,7 +100,7 @@ const useDesktopPassbookLayout = () => {
 
 export function PassbookPage(props: PassbookPageProps) {
   const { account, initialView = 'overview', initialContextId, onGenerateStatement, onRaiseContributionGrievance, onStartTransfer } = props
-  const initialEmployer = account.employments.some((item) => item.id === initialContextId) ? initialContextId : undefined
+  const initialEmployer = account.employments.find((item) => item.id === initialContextId || employerQuerySlug(item.employer) === initialContextId)?.id
   const initialContribution = account.ledger.contributions.some((item) => item.id === initialContextId) ? initialContextId : undefined
   const query = new URLSearchParams(window.location.search)
   const contextView = views.find((item) => item.id === initialContextId)?.id
@@ -170,7 +171,9 @@ export function PassbookPage(props: PassbookPageProps) {
   }
   const updateTransactionFilter = (update: () => void) => { update(); setTransactionsRequested(false); setTransactionPage(1) }
   const selectEmployer = (employmentId: string) => {
-    window.history.pushState({ ...window.history.state, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', `/passbook?view=employers&employment=${employmentId}`)
+    const employer = account.employments.find((item) => item.id === employmentId)
+    const queryValue = employer ? employerQuerySlug(employer.employer) : employmentId
+    window.history.pushState({ ...window.history.state, depth: Number(window.history.state?.depth ?? 0) + 1 }, '', `/passbook?view=employers&employment=${queryValue}`)
     setSelectedEmployerId(employmentId)
   }
 
