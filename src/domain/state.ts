@@ -183,8 +183,8 @@ export function submitExit(account: AccountState, input: { submittedOn: string; 
   const reference = requestNumber(account, 'exit')
   const requestId = `request-exit-${reference}`
   return withRequest(account, {
-    id: requestId, type: 'exit', service: 'Exit from EPFO Scheme', reference,
-    title: `Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
+    id: requestId, type: 'exit', service: 'Mark Exit', reference,
+    title: `Mark Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     employmentId: input.employmentId,
     channel: 'Member portal', currentResponsibleParty: 'member',
     nextExpectedStep: 'EPFO will acknowledge the request before reviewing the exit details.',

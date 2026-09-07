@@ -393,9 +393,9 @@ describe('v0.2 application surfaces', () => {
     const requests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-claim-2022" />)
     const openRequests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-transfer-2026" />)
 
-    for (const label of ['Transfer Previous PF', 'Withdrawal Claim', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Exit from EPFO Scheme']) expect(services).toContain(label)
+    for (const label of ['Transfer Previous PF', 'Withdrawal Claim', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Mark Exit']) expect(services).toContain(label)
     expect(services).toContain('>View Service</button>')
-    expect(services).toContain('>Exit</button>')
+    expect(services).toContain('>Mark Exit</button>')
     expect(requests).toContain('Requests')
     expect(requests).toContain('HDFC Bank · •••• 7314')
     expect(requests).toContain('Latest Update: <strong>Request Completed</strong> · 19 Aug 2022')

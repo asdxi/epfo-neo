@@ -341,7 +341,7 @@ export default function App() {
       breadcrumbs={surface === 'record-review'
         ? [{ label: 'Home', href: '/home', onClick: () => applyLocation({ surface: 'home' }) }, { label: 'Needs Attention' }]
         : surface === 'services' && serviceContext.service
-          ? [{ label: 'Services', href: '/services', onClick: () => applyLocation({ surface: 'services' }) }, { label: ({ transfer: 'Transfer Previous PF', claim: 'Withdrawal Claim', kyc: 'KYC & Verification', correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Exit from EPFO Scheme' } as const)[serviceContext.service] }]
+          ? [{ label: 'Services', href: '/services', onClick: () => applyLocation({ surface: 'services' }) }, { label: ({ transfer: 'Transfer Previous PF', claim: 'Withdrawal Claim', kyc: 'KYC & Verification', correction: 'Correct Employment Records', grievance: 'Raise a Grievance', exit: 'Mark Exit' } as const)[serviceContext.service] }]
           : undefined}
     >
       {announcement && <Toast key={announcement.id} toast={announcement} onDismiss={() => setAnnouncement(undefined)} />}
