@@ -167,7 +167,7 @@ function ClaimFlow({ account, step, setStep, onSubmitClaim, onViewRequests }: Fl
   const latestEmployment = [...account.employments].sort((first, second) => second.joinedOn.localeCompare(first.joinedOn))[0]
   const bank = account.kyc.find((item) => item.type === 'bank')
   const hasIncompleteKyc = account.kyc.some((item) => item.state !== 'verified')
-  const pendingTransferToLatestEmployment = Boolean(latestEmployment && (account.transfers ?? []).some((transfer) => transfer.toMemberId === latestEmployment.memberId && transfer.state !== 'completed'))
+  const pendingTransferToLatestEmployment = Boolean(latestEmployment && account.ledger.transfers.some((transfer) => transfer.toMemberId === latestEmployment.memberId && transfer.state !== 'completed'))
   const unemploymentMonths = latestEmployment?.exitedOn ? Math.max(0, (new Date(`${today()}T00:00:00`).getFullYear() - new Date(`${latestEmployment.exitedOn}T00:00:00`).getFullYear()) * 12 + new Date(`${today()}T00:00:00`).getMonth() - new Date(`${latestEmployment.exitedOn}T00:00:00`).getMonth()) : 0
   const fullSettlementEligible = Boolean(latestEmployment?.exitedOn && unemploymentMonths >= 2)
   const balanceForClaim = totalEpfBalance(account)
