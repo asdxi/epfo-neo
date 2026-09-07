@@ -131,6 +131,7 @@
 .onboarding .service-select { box-sizing: border-box; }
 
 @media (max-width: 36rem) {
+  .otp-login:not(.onboarding) { gap: var(--ux4g-stack-s); }
   .otp-login.onboarding { padding-block: var(--ux4g-section-s) var(--ux4g-section-l); }
   .otp-login.onboarding { gap: var(--ux4g-stack-l); }
   .onboarding .otp-login__card { padding-top: 0; }
