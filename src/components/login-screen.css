@@ -2,7 +2,11 @@
 .otp-login { align-content: start; display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "scenario" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
 .otp-login__hero { display: grid; align-content: end; gap: var(--ux4g-stack-s); padding-top: var(--ux4g-section-m); }
 .otp-login__hero { grid-area: hero; }
-.otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-xs); }
+.otp-login__hero .brand-mark {
+  height: 60px;
+  margin-bottom: 0;
+  width: 60px;
+}
 .otp-login h1 { color: var(--ux4g-text-brand-primary-default); font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); letter-spacing: -0.02em; line-height: 1.08; margin: 0; }
 .otp-login h2 { font-size: var(--ux4g-size-24); line-height: var(--ux4g-line-height-28); margin: 0; }
 .otp-login__hero > p:last-child, .otp-login__supporting { color: var(--ux4g-text-neutral-secondary); line-height: var(--ux4g-line-height-24); margin: 0; }
@@ -70,7 +74,10 @@
   padding-top: 0;
 }
 
-.onboarding .otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-s); }
+.onboarding .otp-login__hero .brand-mark {
+  margin-bottom: 0;
+}
+
 .onboarding .otp-login__hero > p:last-child { max-width: 52ch; }
 
 .onboarding .otp-login__card {

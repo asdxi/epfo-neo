@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import logoEpfoNeo from '../assets/logo-epfo-neo.png'
 
 export type AppRoute =
   | 'home'
@@ -146,7 +147,7 @@ export function AppShell({
             </svg>
           </button>
           <button className="shell-brand shell-brand-mobile" type="button" onClick={() => navigate('home')}>
-            <span className="brand-mark" aria-hidden="true">EPFO</span>
+            <img className="brand-mark" src={logoEpfoNeo} alt="" aria-hidden="true" />
             <span className="brand-copy">EPFO Neo</span>
           </button>
         </div>
@@ -155,7 +156,7 @@ export function AppShell({
       <header className="desktop-header ux4g-navbar">
         <div className="ux4g-navbar-wrap shell-navbar-wrap">
           <button className="shell-brand" type="button" onClick={() => navigate('home')} aria-label="EPFO Neo home">
-            <span className="brand-mark" aria-hidden="true">EPFO</span>
+            <img className="brand-mark" src={logoEpfoNeo} alt="" aria-hidden="true" />
             <span className="brand-copy">EPFO Neo</span>
           </button>
           <nav className="ux4g-navbar-right" aria-label="Primary navigation">

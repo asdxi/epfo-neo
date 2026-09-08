@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import logoEpfoNeo from '../assets/logo-epfo-neo.png'
 import { DEMO_OTP } from '../domain/demoCredentials'
 import { validateIndianMobile } from '../domain/validation'
 import { OtpResend } from './OtpResend'
@@ -113,7 +114,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
   return (
     <main className="otp-login" aria-labelledby="login-title">
       <section className="otp-login__hero">
-        <span className="brand-mark" aria-hidden="true">EPFO</span>
+        <img className="brand-mark" src={logoEpfoNeo} alt="" aria-hidden="true" />
         <h1 id="login-title">EPFO Neo</h1>
         <p>Sign in to view your EPF balance, contribution history and requests in one place.</p>
       </section>
