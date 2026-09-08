@@ -276,10 +276,20 @@ keeping UX4G components as the default whenever they genuinely fit.
   inspect the complete ledger. EPFO Neo therefore presents contribution records
   from the current six-month ledger window as an application-owned responsive
   list. Each item shows
-  wage month, EPF credited, employer and recorded date using semantic tokens and
+  wage month, statutory employee EPF, VPF, employer EPF, employer and recorded date using semantic tokens and
   tabular numerals. It renders one column on mobile, two on intermediate widths
   and six compact columns on wide screens. Full synthetic ledger data remains available to
   the explicitly requested transaction view and its filtered download.
+- **Consolidated Employer PF Accounts:** One employer journey may contain several
+  legal entities and PF accounts. Passbook keeps one employer-level summary and
+  lists every recorded PF Trust or EPFO account beneath it, so organisational
+  movements do not appear as unrelated employers. Employer totals remain derived
+  from the ledger; account labels and identifiers do not alter financial truth.
+- **Passbook Pension Eligibility Summary:** The EPS information alert keeps
+  pension service separate from EPF cash and shows progress toward 10 years of
+  eligible service plus the member's normal pension date at age 58. It also
+  names reduced pension from age 50 only as a conditional route after leaving
+  employment; the interface does not claim that age alone establishes eligibility.
 - **On-demand Transaction Results:** Detailed ledger rows remain hidden until a
   member chooses filters and requests results. The application-owned compact
   list shows at most twelve matching entries with employer, recorded date, type
@@ -299,6 +309,36 @@ keeping UX4G components as the default whenever they genuinely fit.
   hover, with no internal dividers, so the feed remains distinct from the
   action-oriented divided list above it. Mobile keeps the same DOM and scroll
   behavior; the visible height remains sufficient for three compact entries.
+- **PF Record Review:** UX4G has no single component that presents a domain
+  issue label, route, financial facts, responsible party and resolution action
+  in an evidence-first order. EPFO Neo therefore uses an application-owned,
+  unboxed divided issue list. Each issue exposes its stable catalogue label,
+  decision-relevant facts and action owner. Technical rule records, source IDs,
+  calculation trails and chronology remain in the domain model and tests rather
+  than the citizen-facing screen. The pending transfer is first. On mobile all
+  facts and actions stack in one column with 48px UX4G
+  large buttons; wider
+  layouts use two columns only for compact facts and evidence. Empty, resolved
+  and unavailable-action states retain explicit text and semantics. Financial
+  values, employer names, dates, stages and actions are read from structured
+  domain records; content templates supply only controlled generic labels and
+  short explanations. Contribution discrepancies extend this composition with
+  a two-column expected-versus-recorded comparison sourced from an explicit
+  expectation record; it stacks on mobile and renders missing values as “Not
+  recorded” or “Not confirmed,” never zero. A warning Alert appears for a
+  possible multiple-UAN record only when explicit synthetic UAN evidence is
+  attached to the transfer.
+- **Request Evidence Chain:** UX4G has no request-chain component that separates
+  a member attempt, channel receipt, EPFO acknowledgement, assignment and bank
+  hand-off. EPFO Neo extends the existing application-owned Requests timeline
+  instead of adding another tracker. Semantic event kinds and confirmation
+  states drive the labels; a UX4G warning Alert names the first missing
+  acknowledgement. Rejection recovery stays inside the same request detail and
+  uses an error Alert for the original remark, plain-language mismatch and one
+  large primary recovery action. Alternative wait or escalation guidance remains
+  secondary copy. Mobile preserves the same evidence order and stacks facts and
+  actions without horizontal scrolling.
+
 - **Editable Profile Layout:** UX4G has no member-record editor with a
   persistent supporting rail. EPFO Neo uses an application-owned two-column
   composition: member details and the edit form are primary content, while a
@@ -312,6 +352,39 @@ keeping UX4G components as the default whenever they genuinely fit.
   remain available after selection.
 - Status words use filled UX4G Tag variants, not icon badges. Icon badges are
   intentionally tiny indicators and are not suitable containers for text.
+
+### Deterministic issue architecture
+
+- Contribution records keep statutory employee EPF, voluntary PF (VPF),
+  employer EPF and EPS as separate typed amounts. The default account uses the
+  explicit ₹15,000 contribution wage, ₹1,800 employee EPF, ₹550 employer EPF
+  and ₹1,250 EPS source split for every recorded month. Pied Piper additionally
+  records ₹1,200 VPF per month. VPF is included in EPF balances and transfers,
+  never in EPS, and is never presented as an employer-matched amount.
+- The synthetic interest ledger contains credited source records only. Its seed
+  values use monthly running balances and notified annual rates through FY
+  2024–25; broken-period settlements use the last declared rate. A recommended
+  FY 2025–26 rate is not treated as a credit. Each credit persists its rate and
+  monthly-balance total so the rounded amount can be reproduced. Completed
+  transfer amounts equal the source Member ID balance at the transfer point;
+  pending transfers remain at source and are counted once.
+
+- PF Record Review issues are produced by versioned deterministic domain rules.
+  The same source account state produces the same issue code, structured facts,
+  status and action code.
+- Issue records persist the rule version, source-snapshot timestamp and exact
+  source-record references needed to audit a classification. Existing
+  transfer, contribution, employment and request records remain the financial
+  and workflow truth.
+- The versioned content catalogue contains only generic labels and short
+  explanations. Changing a template cannot change calculations, financial
+  values or issue classification.
+- An LLM is not required to derive, explain or route a supported issue. No
+  runtime LLM is part of the reconciliation or resolution path.
+- Production data sources, submission channels and identity services would sit
+  behind explicit adapters so domain rules remain deterministic and testable.
+  The current prototype uses synthetic local records and does not perform real
+  external submissions or identity verification.
 
 ### Interaction requirements for this application
 

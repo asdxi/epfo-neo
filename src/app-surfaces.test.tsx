@@ -10,7 +10,9 @@ import { HomePage } from './pages/HomePage'
 import { LegalPage } from './pages/LegalPage'
 import { PassbookPage } from './pages/PassbookPage'
 import { RequestsPage } from './pages/RequestsPage'
+import { RecordReviewPage } from './pages/RecordReviewPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { noActiveIssueScenario, transferCompletedScenario, unavailableSourceScenario } from './test-fixtures/reconciliationScenarios'
 
 const noop = vi.fn()
 
@@ -98,24 +100,27 @@ describe('v0.2 application surfaces', () => {
   })
 
   it('renders the decision-oriented home workspace from reconciled account data', () => {
-    const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} />)
+    const html = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
-    expect(html).toContain('₹4,82,650')
+    expect(html).toContain('₹1,88,094')
     expect(html).toContain('EPS')
     expect(html.match(/ux4g-btn-text-primary ux4g-btn-md home-panel-action/g)).toHaveLength(2)
-    expect(html).toContain('Vertex Mobility')
-    expect(html).toContain('June contribution')
-    expect(html).toContain('Employee EPF and EPS are recorded. Employer EPF is not recorded.')
-    expect(html).toContain('Employer EPF</dt><dd>Not recorded')
+    expect(html).toContain('Pied Piper')
+    expect(html).toContain('Pending PF Transfer')
+    expect(html).toContain('Your PF transfer from Waystar Royco is still being processed.')
+    expect(html).not.toContain('Current employer')
+    expect(html).not.toContain('Next step')
+    expect(html).toContain('Employer PF Not Recorded')
+    expect(html).toContain('View Details')
     expect(html).toContain('EPF Contributions')
-    expect(html).toContain('₹35,250')
-    expect(html).toContain('No EPF-covered employment recorded')
-    expect(html.indexOf('Vertex Mobility')).toBeLessThan(html.indexOf('Northstar Consumer Technologies'))
+    expect(html).toContain('₹25,850')
+    expect(html).toContain('No EPF-Covered Employment Recorded')
+    expect(html.indexOf('Pied Piper')).toBeLessThan(html.indexOf('Stark Industries'))
     expect(html).toContain('id="notice-board-title">Notices</h2>')
     expect(html.match(/>New<\/span>/g)).toHaveLength(2)
     expect(html).toContain('aria-label="Notices, newest first"')
     expect(html).toContain('target="_blank"')
-    expect(html.indexOf('Keep your Aadhaar-linked mobile number active')).toBeLessThan(html.indexOf('Updates are available in Requests'))
+    expect(html.indexOf('Keep Your Aadhaar-Linked Mobile Number Active')).toBeLessThan(html.indexOf('Updates Are Available in Requests'))
     expect(html).not.toContain('Recent Activity')
     expect(html).not.toContain('What Would You Like to Do?')
     expect(html).not.toContain('Action Required')
@@ -128,10 +133,120 @@ describe('v0.2 application surfaces', () => {
       exceptions: [],
       ledger: { ...account.ledger, contributions: [] },
     }
-    const html = renderToStaticMarkup(<HomePage account={emptyAccount} onNavigate={noop} onOpenService={noop} />)
+    const html = renderToStaticMarkup(<HomePage account={emptyAccount} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
 
     expect(html).toContain('You’re All Caught Up')
     expect(html).toContain('No Contribution Recorded')
+  })
+
+  it('keeps balance calculations in Passbook rather than Home', () => {
+    const home = renderToStaticMarkup(<HomePage account={createInitialAccount()} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
+    const passbook = renderToStaticMarkup(<PassbookPage account={createInitialAccount()} initialView="overview" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />)
+
+    expect(home).not.toContain('How This Is Calculated')
+    expect(home).not.toContain('balance-calculation-dialog')
+    expect(passbook).toContain('class="ux4g-btn ux4g-btn-text-primary ux4g-btn-md passbook-calculation-link"')
+    expect(passbook).toContain('id="balance-composition-title">Current EPF Balance Calculation</h2>')
+    expect(passbook).toContain('Interest Credited')
+    expect(passbook).toContain('PF received from earlier Member IDs.')
+    expect(passbook).toContain('PF moved to later Member IDs.')
+    expect(passbook).toContain('Accrued Pension Corpus Till Date')
+    expect(passbook).toContain('<strong>₹96,250</strong>')
+    expect(passbook).toContain('aria-expanded="false" aria-controls="eps-disclosure-body"')
+    expect(passbook.indexOf('overview-eps eps-disclosure')).toBeLessThan(passbook.indexOf('Passbook views'))
+    expect(passbook).toContain('<strong>Your Service:</strong> 6 years 5 months.')
+    expect(passbook).not.toContain('to reach 10 years')
+    expect(passbook).toContain('<strong>Before 10 Years of Service:</strong>')
+    expect(passbook).toContain('not from ₹96,250. If you take it, these service years will no longer count toward a future pension.')
+    expect(passbook).toContain('<strong>After 10 Years of Service:</strong> You cannot withdraw EPS as a lump sum.')
+    expect(passbook).toContain('permanently reduced by 4% for each year before 58')
+    expect(passbook).toContain('<strong>Interest:</strong> EPS does not credit interest to this contribution record.')
+    expect(passbook).toContain('aria-label="Explain EPS"')
+    expect(passbook).not.toContain('financial-explanation')
+  })
+
+  it('opens a home contribution in the filtered transaction ledger', async () => {
+    window.history.replaceState(null, '', '/passbook?view=transactions&employer=vertex&type=contribution&period=6-months&load=1&highlight=vertex-2026-08')
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<PassbookPage account={createInitialAccount()} initialContextId="vertex-2026-08" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />))
+
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Transactions')
+    expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:first-child select')?.value).toBe('vertex')
+    expect(container.querySelector<HTMLSelectElement>('.transaction-filters label:nth-child(2) select')?.value).toBe('contribution')
+    expect(container.querySelector('#transaction-vertex-2026-08')?.classList.contains('context-target-highlight')).toBe(true)
+    expect(container.querySelector('#transaction-vertex-2026-08')?.textContent).toContain('Contribution for August 2026')
+
+    await act(async () => root.unmount())
+    container.remove()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('renders missing contribution components as missing while preserving an explicit zero', () => {
+    const account = createInitialAccount()
+    const latest = account.ledger.contributions.find((item) => item.id === 'vertex-2026-08')!
+    latest.employeeEpf = null
+    latest.employerEpf = 0
+    latest.eps = null
+    const html = renderToStaticMarkup(<HomePage account={account} onNavigate={noop} onOpenService={noop} onReviewIssues={noop} />)
+
+    expect(html).toContain('Salary Month')
+    expect(html).not.toContain('Employee EPF')
+  })
+
+  it('renders the evidence-first PF record review and routes both issue actions', async () => {
+    const account = createInitialAccount()
+    const trackRequest = vi.fn()
+    const raiseGrievance = vi.fn()
+    const back = vi.fn()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<RecordReviewPage account={account} onBack={back} onTrackRequest={trackRequest} onStartTransfer={noop} onRaiseContributionGrievance={raiseGrievance} />))
+
+    expect(container.textContent).toContain('Needs Attention')
+    expect(container.textContent).toContain('Review items that need action or are still in progress')
+    expect(container.textContent).toContain('Pending PF Transfer')
+    expect(container.textContent).toContain('Waystar Royco→Pied Piper₹38,450')
+    expect(container.textContent).toContain('Employment Record Verification')
+    expect(container.textContent).not.toContain('Responsible Party')
+    expect(container.textContent).not.toContain('Balance Treatment')
+    expect(container.textContent).not.toContain('Pension Service')
+    expect(container.textContent).toContain('EmployerPied PiperSalary MonthAugust 2026Recorded On7 September 2026Missing AmountEmployer EPF')
+    expect(container.textContent).toContain('Expected AmountsEmployee EPF₹1,800VPF₹1,200Employer EPF₹550EPS₹1,250')
+    expect(container.textContent).toContain('Recorded AmountsEmployee EPF₹1,800VPF₹1,200Employer EPFNot RecordedEPS₹1,250')
+    expect(container.querySelector('.record-missing-value')?.textContent).toBe('Not Recorded')
+    expect(container.querySelector('.record-missing-value')?.classList.contains('ux4g-tag')).toBe(false)
+    expect(container.textContent).not.toContain('Rule record')
+    expect(container.textContent).not.toContain('Supporting records')
+    expect(container.textContent).not.toContain('Calculation trail')
+    expect(container.querySelector('details.record-evidence')).toBeNull()
+    expect(document.activeElement).toBe(container.querySelector('#record-review-title'))
+
+    await clickButton('Track Transfer')
+    expect(trackRequest).toHaveBeenCalledWith('request-transfer-2026')
+    await clickButton('Request Review')
+    expect(raiseGrievance).toHaveBeenCalledWith(expect.objectContaining({ id: 'vertex-2026-08' }))
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('renders empty, resolved and unavailable record-review states without inventing outcomes', () => {
+    const renderReview = (account: ReturnType<typeof createInitialAccount>) => renderToStaticMarkup(<RecordReviewPage account={account} onBack={noop} onTrackRequest={noop} onStartTransfer={noop} onRaiseContributionGrievance={noop} />)
+    const empty = renderReview({ ...noActiveIssueScenario(), exceptions: [] })
+    const resolved = renderReview(transferCompletedScenario())
+    const unavailableAccount = unavailableSourceScenario()
+    unavailableAccount.exceptions = unavailableAccount.exceptions.filter((exception) => exception.kind === 'previous-balance')
+    const unavailable = renderReview(unavailableAccount)
+
+    expect(empty).toContain('No Items Need Attention')
+    expect(resolved).toContain('PF Transfer Completed')
+    expect(resolved).toContain('No Action Needed')
+    expect(unavailable).toContain('Record Unavailable')
+    expect(unavailable).toContain('No financial or pension result has been assumed.')
+    expect(unavailable).not.toContain('₹38,450')
   })
 
   it('renders passbook dates, EPF and EPS as distinct concepts', () => {
@@ -147,10 +262,10 @@ describe('v0.2 application surfaces', () => {
 
     expect(html).toContain('Recent Contributions')
     expect(html).toContain('Recorded 8 July 2026')
-    expect(html).not.toContain('Harbor Foods India')
+    expect(html).not.toContain('Waystar Royco')
     expect(html).toContain('Employer EPF')
     expect(html).toContain('Employee EPF')
-    expect(html).toContain('Employer EPF: Not recorded')
+    expect(html).toContain('Employer EPF</span><strong><span class="record-missing-value">Not Recorded</span>')
     expect(html).toContain('EPS')
     expect(html).not.toContain('Generate Statement')
     expect(html).not.toContain('Contributions</button>')
@@ -158,13 +273,38 @@ describe('v0.2 application surfaces', () => {
     expect(html).not.toContain('Estimated Interest Accrued')
   })
 
-  it('shows PF account numbers for employers', () => {
+  it('shows Member IDs for employers', () => {
     const html = renderToStaticMarkup(
-      <PassbookPage account={createInitialAccount()} initialView="employers" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+      <PassbookPage account={createInitialAccount()} initialView="employers" initialContextId="bluekite" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
     )
 
-    expect(html).toContain('PF Account Number · KA/VTX/0048291')
-    expect(html).toContain('PF Account Number · DL/BLK/0019274')
+    expect(html).toContain('Member ID · KA/VTX/0048291')
+    expect(html).toContain('Member ID · DL/BLK/0019274')
+    expect(html).toContain('Dunder Mifflin Paper Co.')
+    expect(html).toContain('Transfer Completed')
+    expect(html).not.toContain('No Transfer Needed')
+
+    const stark = renderToStaticMarkup(
+      <PassbookPage account={createInitialAccount()} initialView="employers" initialContextId="northstar" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    )
+    expect(stark).toContain('Stark Defence Systems')
+    expect(stark).toContain('SDS/PF-TRUST/001842')
+    expect(stark).toContain('Stark IT Services')
+    expect(stark).toContain('Stark Digital Platforms')
+    expect(stark).not.toContain('Historical Data Is Partial')
+    expect(stark).toContain('Closing Balance: ₹0')
+  })
+
+  it('uses member-facing transaction filters and contribution breakup columns', () => {
+    const html = renderToStaticMarkup(
+      <PassbookPage account={createInitialAccount()} initialView="transactions" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    )
+
+    expect(html).toContain('<option value="official-interest">Interest Credit</option>')
+    expect(html).toContain('<option value="transfers">Transfers</option>')
+    expect(html).not.toContain('<option value="estimated-interest">')
+    expect(html).not.toContain('<option value="transfer-in">')
+    expect(html).not.toContain('<option value="transfer-out">')
   })
 
   it('disables transaction download only when a custom range is incomplete', async () => {
@@ -207,10 +347,39 @@ describe('v0.2 application surfaces', () => {
     })
     await act(async () => container.querySelector<HTMLButtonElement>('.transaction-actions .ux4g-btn-primary')?.click())
 
-    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Amount'])
+    expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual(['Date', 'Transaction', 'Employer', 'Type', 'Employee EPF', 'VPF', 'Employer EPF', 'EPF Total'])
     expect(container.querySelectorAll('.transaction-table tbody tr')).toHaveLength(10)
-    expect(container.querySelector('.transaction-pagination')?.textContent).toContain('Next')
+    expect(container.querySelector('.transaction-pagination [aria-label="Next transaction page"] svg')).not.toBeNull()
     expect(container.querySelector('.transaction-pagination-summary')?.textContent).toContain('Showing 1–10')
+    expect(container.querySelector('.transaction-pagination-footer')).not.toBeNull()
+    expect(container.querySelector('.transaction-pagination .ux4g-page-number.active')?.textContent).toBe('1')
+    expect(container.querySelectorAll('.transaction-pagination .ux4g-page-number')).toHaveLength(4)
+    expect(container.querySelector('.transaction-table .ux4g-tag-filled-success')?.textContent).toBe('Contribution')
+    expect(container.querySelector('.transaction-table .ux4g-tag-filled-primary')?.textContent).toBe('Transfer')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('labels transfer rows by initiation method on both sides without changing posted amounts', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(
+      <PassbookPage account={createInitialAccount()} initialView="transactions" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
+    ))
+    await act(async () => container.querySelector<HTMLButtonElement>('.transaction-actions .ux4g-btn-primary')?.click())
+
+    const rows = [...container.querySelectorAll<HTMLTableRowElement>('.transaction-table tbody tr')]
+    const completedRows = rows.filter((row) => row.textContent?.includes('₹1,28,894'))
+    const pendingRows = rows.filter((row) => row.textContent?.includes('₹0'))
+    expect(completedRows).toHaveLength(2)
+    expect(completedRows.every((row) => row.textContent?.includes('Automatic Transfer'))).toBe(true)
+    expect(pendingRows).toHaveLength(2)
+    expect(pendingRows.every((row) => row.textContent?.includes('Manual Transfer'))).toBe(true)
+    expect(container.querySelectorAll('.transaction-secondary-line')).toHaveLength(4)
+    expect(container.textContent).not.toContain('System Transfer')
+    expect(container.textContent).not.toContain('Member Transfer')
 
     await act(async () => root.unmount())
     container.remove()
@@ -224,10 +393,12 @@ describe('v0.2 application surfaces', () => {
     const requests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-claim-2022" />)
     const openRequests = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-transfer-2026" />)
 
-    for (const label of ['Transfer Previous PF', 'Claims &amp; Withdrawals', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Exit from EPFO Scheme']) expect(services).toContain(label)
+    for (const label of ['Transfer Previous PF', 'Withdrawal Claim', 'KYC &amp; Verification', 'Correct Employment Records', 'Raise a Grievance', 'Mark Exit']) expect(services).toContain(label)
     expect(services).toContain('>View Service</button>')
-    expect(services).toContain('>Exit</button>')
+    expect(services).toContain('>Mark Exit</button>')
     expect(requests).toContain('Requests')
+    expect(requests).toContain('HDFC Bank · •••• 7314')
+    expect(requests).toContain('Latest Update: <strong>Request Completed</strong> · 19 Aug 2022')
     expect(requests).toContain('Open')
     expect(requests).toContain('Completed')
     expect(requests).toContain('Claims')
@@ -235,20 +406,21 @@ describe('v0.2 application surfaces', () => {
     expect(requests).toContain('<span>Grievances</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Transfers</span><span class="request-tab-count">1</span>')
     expect(openRequests).toContain('<span>Corrections</span><span class="request-tab-count">1</span>')
-    expect(requests).toContain('Next Expected Step')
-    expect(requests).toContain('Search by request ID')
-    expect(requests).toContain('Enter request ID')
+    expect(requests).toContain('Next Step')
+    expect(requests).not.toContain('Recommended Next Step')
+    expect(requests).toContain('Search requests')
+    expect(requests).toContain('Search requests')
     expect(requests).toContain('class="ux4g-input ux4g-input-md"')
     expect(requests).not.toContain('Operational history')
     expect(requests).not.toContain('Track services that take time')
     expect(requests).not.toContain('<p class="service-eyebrow">')
 
     const emptyRequests = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [] }} />)
-    expect(emptyRequests).toContain('No open requests')
+    expect(emptyRequests).toContain('No Open Requests')
 
     const actionRequest = { ...account.requests[0], state: 'action-required' as const, citizenAction: 'Confirm the requested details.' }
     const actionRequired = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [actionRequest] }} initialRequestId={actionRequest.id} />)
-    expect(actionRequired).toContain('Action required')
+    expect(actionRequired).toContain('Action Required')
     expect(actionRequired).not.toContain('Your Action Is Required')
   })
 
@@ -259,7 +431,7 @@ describe('v0.2 application surfaces', () => {
 
     expect(grievance).toContain('Step 1 of 4 · Understand')
     expect(grievance).toContain('service-progress-step-number')
-    expect(grievance).toContain('choose the employment or transaction you want EPFO to review')
+    expect(grievance).toContain('Choose the affected employment or transaction and describe what appears incorrect')
     expect(grievance).not.toContain('Record selected')
     expect(grievance).not.toContain('The Record Does Not Explain the Cause')
     expect(grievance).not.toContain('ux4g-alert-warning')
@@ -294,6 +466,56 @@ describe('v0.2 application surfaces', () => {
     container.remove()
   })
 
+  it('restores keyboard focus at Requests after a record-review hand-off', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<RequestsPage account={createInitialAccount()} initialRequestId="request-transfer-2026" />))
+
+    expect(document.activeElement).toBe(container.querySelector('#requests-title'))
+    expect(container.querySelector('.request-detail')?.textContent).toContain('TRF-2026-004512')
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('renders acknowledgement evidence and recoverable rejection in the existing Requests detail', () => {
+    const account = createInitialAccount()
+    const missing = renderToStaticMarkup(<RequestsPage account={account} initialRequestId="request-correction-2026" onCitizenAction={noop} />)
+    expect(missing).toContain('Submitted')
+    expect(missing).not.toContain('Request Not Confirmed')
+    expect(missing).not.toContain('Check Existing Request')
+
+    const rejected = {
+      ...account.requests[0], id: 'request-rejected', state: 'rejected' as const,
+      rejection: { originalRemark: 'Supporting wage month does not match selected contribution.', plainLanguageMeaning: 'The evidence points to a different month.', mismatch: 'Evidence says May 2026; request says June 2026.', correctableBy: 'Member', evidenceNeeded: ['June 2026 wage record'], recoveryAction: 'prepare' as const, requiresFreshSubmission: false },
+    }
+    const rejection = renderToStaticMarkup(<RequestsPage account={{ ...account, requests: [rejected] }} initialRequestId={rejected.id} onCitizenAction={noop} />)
+    expect(rejection).toContain('Original rejection remark')
+    expect(rejection).toContain('Evidence says May 2026; request says June 2026.')
+    expect(rejection).toContain('A fresh submission is not required')
+    expect(rejection).toContain('Prepare correction')
+  })
+
+  it('prefills the contextual contribution review without unrelated categories or re-entry', async () => {
+    const account = createInitialAccount()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => root.render(<ServicesPage account={account} initialService="grievance" initialEmploymentId="vertex" initialContributionId="vertex-2026-08" onSubmitTransfer={noop} onSubmitClaim={noop} onSubmitPanVerification={noop} onSubmitCorrection={noop} onSubmitGrievance={noop} onViewRequests={noop} />))
+
+    await clickButton('Continue')
+    expect(container.textContent).toContain('Salary MonthAugust 2026')
+    expect(container.textContent).toContain('Employer PF Not Recorded')
+    expect(container.querySelector<HTMLInputElement>('#grievance-support')?.value).toContain('Employer contribution record')
+    expect(container.textContent).not.toContain('TXN-VTX-2026-08-0908')
+    expect(container.textContent).not.toContain('Transfer Delay')
+    expect(container.querySelector<HTMLSelectElement>('#grievance-category')?.disabled).toBe(true)
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
   it('shows a submitted transfer as in progress without offering a duplicate action', () => {
     const account = submitTransfer(createInitialAccount(), '2026-08-28')
     const services = renderToStaticMarkup(
@@ -303,9 +525,8 @@ describe('v0.2 application surfaces', () => {
       <PassbookPage account={account} initialView="employers" initialContextId="harbor" onGenerateStatement={noop} onRaiseContributionGrievance={noop} onStartTransfer={noop} />,
     )
 
-    expect(services).toContain('Transfer Is Already in Progress')
-    expect(services).toContain('Track Transfer')
-    expect(services).toContain('service-transfer-progress-alert')
+    expect(services).toContain('Transfer Already in Progress')
+    expect(services).toContain('Track Request')
     expect(passbook).toContain('Transfer Is in Progress')
     expect(passbook).not.toContain('>Transfer Previous PF</button>')
   })
@@ -323,22 +544,23 @@ describe('v0.2 application surfaces', () => {
     expect(accountHtml).toContain('Add Nominee')
     expect(accountHtml).toContain('Your profile information is used to match your EPFO member record.')
     expect(accountHtml).toContain('Father’s/Husband’s name')
-    expect(accountHtml).toContain('Locked after UAN activation')
+    expect(accountHtml).not.toContain('Cannot be changed after UAN activation')
+    expect(accountHtml).toContain('What is EDLI?')
     expect(accountHtml).toContain('Change Photograph')
     expect(accountHtml).toContain('profile-photo-card')
     expect(accountHtml).toContain('profile-updated-panel')
     expect(accountHtml).toContain('src/assets/ade4f4eb-8a5e-4290-b28f-f12b5db4ebb9.png')
     expect(accountHtml).toContain('account-report-actions')
-    expect(accountHtml).toContain('Passport Photograph')
+    expect(accountHtml).not.toContain('Passport Photograph')
     expect(accountHtml).toContain('Photograph requirements')
-    expect(accountHtml).toContain('JPEG or PNG format')
+    expect(accountHtml).toContain('JPEG or PNG')
     expect(accountHtml).toContain('Edit profile')
     expect(accountHtml).not.toContain('Choose photograph')
     expect(accountHtml).toContain('Contact Details')
     expect(accountHtml).toContain('Review the verification status of your identity and bank details.')
     expect(accountHtml).toContain('Download reports within 90 days of generation.')
-    expect(accountHtml).toContain('PAN verification is in progress.')
-    expect(accountHtml).toContain('Pending Verification')
+    expect(accountHtml).toContain('PAN is associated with this account and needs verification.')
+    expect(accountHtml).toContain('Unverified')
     expect(accountHtml).not.toContain('read-only in this prototype')
     expect(accountHtml).not.toContain('Mock delivery recorded')
     expect(accountHtml).not.toContain('synthetic account')
@@ -360,7 +582,7 @@ describe('v0.2 application surfaces', () => {
     const html = renderToStaticMarkup(<AccountPage account={account} onUpdateContact={noop} onUpdateCommunicationPreferences={noop} onDownloadReport={noop} onNavigateLegal={noop} />)
 
     expect(html).toContain('Profile Last Updated</p><p class="ux4g-alert-message"><time>Not available')
-    expect(html).toContain('Profile and account')
+    expect(html).toContain('Profile and Account')
   })
 
   it('reveals photo instructions on demand and allows only the intended profile fields to be edited', async () => {
@@ -374,7 +596,7 @@ describe('v0.2 application surfaces', () => {
     const click = vi.spyOn(photoInput!, 'click')
     await act(async () => buttonNamed('Change Photograph')?.click())
     expect(click).toHaveBeenCalledOnce()
-    expect(container.querySelector('[role="tooltip"]')?.textContent).toContain('JPEG or PNG format')
+    expect(container.querySelector('[role="tooltip"]')?.textContent).toContain('JPEG or PNG')
 
     await act(async () => buttonNamed('Edit profile')?.click())
     expect(container.querySelector('#profile-name')).not.toBeNull()
@@ -488,8 +710,8 @@ describe('v0.2 application surfaces', () => {
       <ServicesPage
         account={account}
         initialService="transfer"
-        onSubmitTransfer={(submittedOn) => {
-          account = submitTransfer(account, submittedOn)
+        onSubmitTransfer={(submittedOn, sourceMemberId) => {
+          account = submitTransfer(account, submittedOn, sourceMemberId)
           return account.requests.find((request) => request.type === 'transfer')
         }}
         onSubmitClaim={noop}
@@ -500,15 +722,12 @@ describe('v0.2 application surfaces', () => {
       />,
     ))
 
+    expect(container.textContent).toContain('Select a Previous Employment')
     await clickButton('Continue')
     await clickButton('Continue')
-    expect(buttonNamed('Confirm and Submit Transfer')?.disabled).toBe(true)
-    await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
+    await act(async () => container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Confirm and Submit Transfer')
-
-    expect(container.textContent).toContain('Transfer Request Submitted')
-    expect(container.textContent).toContain('Reference Number')
-    expect(account.requests.find((request) => request.type === 'transfer')?.state).toBe('submitted')
+    expect(container.textContent).toContain('Request Filed')
     await act(async () => root.unmount())
     container.remove()
   })
@@ -524,7 +743,7 @@ describe('v0.2 application surfaces', () => {
         account={account}
         initialService="grievance"
         initialEmploymentId="vertex"
-        initialContributionId="vertex-2026-06"
+        initialContributionId="vertex-2026-08"
         onSubmitTransfer={noop}
         onSubmitClaim={noop}
         onSubmitPanVerification={noop}
@@ -543,9 +762,9 @@ describe('v0.2 application surfaces', () => {
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click())
     await clickButton('Submit Grievance')
 
-    expect(container.textContent).toContain('Grievance Submitted')
-    expect(container.textContent).toContain('Reference Number')
-    expect(account.requests.find((request) => request.contributionId === 'vertex-2026-06')?.reference).toMatch(/^GRV-/)
+    expect(container.textContent).toContain('Grievance Attempt Saved')
+    expect(container.textContent).toContain('Request ID')
+    expect(account.requests.find((request) => request.contributionId === 'vertex-2026-08')?.reference).toMatch(/^GRV-/)
     await act(async () => root.unmount())
     container.remove()
   })

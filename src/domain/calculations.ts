@@ -12,8 +12,11 @@ import type {
 const sum = (values: ReadonlyArray<Money | null | undefined>): Money =>
   values.reduce<number>((total, value) => total + (value ?? 0), 0)
 
+export const interestFromMonthlyBalances = (monthlyBalanceTotal: Money, annualRateBasisPoints: number): Money =>
+  Math.round((monthlyBalanceTotal * annualRateBasisPoints) / 120_000)
+
 export const epfAmountForContribution = (record: ContributionRecord): Money =>
-  (record.employeeEpf ?? 0) + (record.employerEpf ?? 0)
+  (record.employeeEpf ?? 0) + (record.voluntaryEpf ?? 0) + (record.employerEpf ?? 0)
 
 export const totalDepositedForContribution = (record: ContributionRecord): Money =>
   epfAmountForContribution(record) + (record.eps ?? 0)
@@ -21,6 +24,7 @@ export const totalDepositedForContribution = (record: ContributionRecord): Money
 export function reconcileMemberId(account: AccountState, memberId: string): Reconciliation {
   const contributions = account.ledger.contributions.filter((item) => item.memberId === memberId)
   const employeeContributions = sum(contributions.map((item) => item.employeeEpf))
+  const voluntaryContributions = sum(contributions.map((item) => item.voluntaryEpf))
   const employerEpfContributions = sum(contributions.map((item) => item.employerEpf))
   const officialInterestCredits = sum(account.ledger.officialInterestCredits.filter((item) => item.memberId === memberId).map((item) => item.amount))
   const transfersIn = sum(account.ledger.transfers.filter((item) => item.toMemberId === memberId && item.state === 'completed').map((item) => item.amount))
@@ -31,12 +35,13 @@ export function reconcileMemberId(account: AccountState, memberId: string): Reco
   return {
     openingBalance,
     employeeContributions,
+    voluntaryContributions,
     employerEpfContributions,
     officialInterestCredits,
     transfersIn,
     transfersOut,
     withdrawals,
-    closingBalance: openingBalance + employeeContributions + employerEpfContributions + officialInterestCredits + transfersIn - transfersOut - withdrawals,
+    closingBalance: openingBalance + employeeContributions + voluntaryContributions + employerEpfContributions + officialInterestCredits + transfersIn - transfersOut - withdrawals,
   }
 }
 
@@ -49,13 +54,14 @@ export function accountReconciliation(account: AccountState): Reconciliation {
   const result = summaries.reduce<Reconciliation>((totals, item) => ({
     openingBalance: totals.openingBalance + item.openingBalance,
     employeeContributions: totals.employeeContributions + item.employeeContributions,
+    voluntaryContributions: totals.voluntaryContributions + item.voluntaryContributions,
     employerEpfContributions: totals.employerEpfContributions + item.employerEpfContributions,
     officialInterestCredits: totals.officialInterestCredits + item.officialInterestCredits,
     transfersIn: totals.transfersIn + item.transfersIn,
     transfersOut: totals.transfersOut + item.transfersOut,
     withdrawals: totals.withdrawals + item.withdrawals,
     closingBalance: totals.closingBalance + item.closingBalance,
-  }), { openingBalance: 0, employeeContributions: 0, employerEpfContributions: 0, officialInterestCredits: 0, transfersIn: 0, transfersOut: 0, withdrawals: 0, closingBalance: 0 })
+  }), { openingBalance: 0, employeeContributions: 0, voluntaryContributions: 0, employerEpfContributions: 0, officialInterestCredits: 0, transfersIn: 0, transfersOut: 0, withdrawals: 0, closingBalance: 0 })
   return result
 }
 
@@ -101,9 +107,9 @@ export function contributionNeedsAttention(record: ContributionRecord): boolean 
 
 export function contributionIsReconciled(record: ContributionRecord): boolean {
   if (record.status === 'awaiting-record') return true
-  if (record.employeeEpf === null || record.employerEpf === null || record.eps === null) return false
+  if (record.employeeEpf === null || record.voluntaryEpf === null || record.employerEpf === null || record.eps === null) return false
   if (record.pfWage === null) return record.status !== 'amount-needs-review' && record.status !== 'missing-contribution'
-  return record.employeeEpf + record.employerEpf + record.eps >= 0
+  return record.employeeEpf + record.voluntaryEpf + record.employerEpf + record.eps >= 0
 }
 
 export function deriveAttentionItems(account: AccountState): AttentionItem[] {
@@ -111,12 +117,16 @@ export function deriveAttentionItems(account: AccountState): AttentionItem[] {
     .filter((exception) => exception.state !== 'resolved')
     .map((exception): AttentionItem => {
       if (exception.kind === 'previous-balance') {
+        const source = account.employments.find((employment) => employment.id === exception.employmentId)
+        const amount = exception.amount === undefined ? 'Amount not confirmed' : formatMoney(exception.amount)
         return exception.state === 'in-progress'
-          ? { id: exception.id, priority: 'in-progress', title: 'Previous PF Transfer', explanation: `${formatMoney(exception.amount ?? 0)} is being processed.`, actionLabel: 'Track Transfer', route: 'requests', contextId: exception.relatedRequestId }
-          : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${formatMoney(exception.amount ?? 0)} remains with Harbor Foods.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
+          ? { id: exception.id, priority: 'in-progress', title: 'Previous PF Transfer', explanation: `${amount} is being processed.`, actionLabel: 'Track Transfer', route: 'requests', contextId: exception.relatedRequestId }
+          : { id: exception.id, priority: 'action-required', title: 'Previous PF balance', explanation: `${amount} remains under ${source?.employer ?? 'the previous Member ID'}.`, actionLabel: 'Transfer Balance', route: 'services', contextId: 'transfer' }
       }
       if (exception.kind === 'contribution-review') {
-        return { id: exception.id, priority: 'action-required', title: 'June contribution', explanation: 'Employee EPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
+        const contribution = account.ledger.contributions.find((item) => item.id === exception.contributionId)
+        const month = contribution ? formatWageMonth(contribution.wageMonth).split(' ')[0] : ''
+        return { id: exception.id, priority: 'action-required', title: `${month} Contribution`.trim(), explanation: 'Employee EPF, VPF and EPS are recorded. Employer EPF is not recorded.', actionLabel: 'Review Contribution', route: 'passbook', contextId: exception.contributionId }
       }
       const kycLabel = (exception.kycType ?? 'pan').toUpperCase()
       return { id: exception.id, priority: exception.state === 'in-progress' ? 'in-progress' : 'action-required', title: `${kycLabel} verification`, explanation: 'Not yet complete.', actionLabel: exception.state === 'in-progress' ? 'View Status' : `Verify ${kycLabel}`, route: 'account', contextId: exception.kycType }
@@ -158,10 +168,13 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
     employmentId: record.employmentId,
     type: 'contribution',
     amount: epfAmountForContribution(record),
+    employeeEpf: record.employeeEpf,
+    voluntaryEpf: record.voluntaryEpf,
+    employerEpf: record.employerEpf,
     state: record.status,
     title: `Contribution for ${formatWageMonth(record.wageMonth)}`,
     explanation: record.explanation,
-    recordedDateExplanation: record.recordedOn ? 'Recorded On is when the ledger received this entry. It is different from the Wage Month the contribution relates to.' : 'This contribution is still awaiting a recorded date.',
+    recordedDateExplanation: record.recordedOn ? 'Recorded On is when the ledger received this entry. It is different from the Salary Month the contribution relates to.' : 'This contribution is still awaiting a recorded date.',
     needsAttention: contributionNeedsAttention(record),
   }))
 
@@ -170,15 +183,10 @@ export function ledgerTransactions(account: AccountState): LedgerTransaction[] {
     transactions.push({ id: credit.id, date: credit.creditedOn, memberId: credit.memberId, employmentId: employment.id, type: 'official-interest', amount: credit.amount, state: 'officially-credited', title: `Official Interest Credit ${credit.financialYear}`, explanation: 'This amount is an official ledger credit and is included in the EPF balance.', recordedDateExplanation: 'The date shown is the date of the official interest credit in this ledger.', needsAttention: false })
   }
 
-  for (const estimate of account.ledger.estimatedInterestAccruals) {
-    const employment = employmentForMemberId(account, estimate.memberId)
-    transactions.push({ id: estimate.id, date: estimate.calculatedThrough, memberId: estimate.memberId, employmentId: employment.id, type: 'estimated-interest', amount: estimate.amount, state: 'estimate-not-credited', title: 'Estimated Interest Accrued', explanation: estimate.explanation, recordedDateExplanation: 'Calculated Through is an estimate date, not an official credit date.', needsAttention: false })
-  }
-
   for (const transfer of account.ledger.transfers) {
     const from = employmentForMemberId(account, transfer.fromMemberId)
     const to = employmentForMemberId(account, transfer.toMemberId)
-    transactions.push({ id: `${transfer.id}-out`, date: transfer.completedOn ?? transfer.initiatedOn, memberId: transfer.fromMemberId, employmentId: from.id, type: 'transfer-out', amount: -transfer.amount, state: transfer.state, title: `Transfer to ${to.employer}`, explanation: transfer.explanation, recordedDateExplanation: transfer.completedOn ? 'This is the date the transfer completed.' : 'This is the date the transfer was started. The money has not moved yet.', needsAttention: transfer.state !== 'completed' })
+    transactions.push({ id: `${transfer.id}-out`, date: transfer.completedOn ?? transfer.initiatedOn, memberId: transfer.fromMemberId, employmentId: from.id, type: 'transfer-out', amount: transfer.state === 'completed' ? -transfer.amount : 0, state: transfer.state, title: `Transfer to ${to.employer}`, explanation: transfer.explanation, recordedDateExplanation: transfer.completedOn ? 'This is the date the transfer completed.' : `This is the date the ${formatMoney(transfer.amount)} transfer was started. The posted amount is zero because the money has not moved yet.`, needsAttention: transfer.state !== 'completed' })
     transactions.push({ id: `${transfer.id}-in`, date: transfer.completedOn ?? transfer.initiatedOn, memberId: transfer.toMemberId, employmentId: to.id, type: 'transfer-in', amount: transfer.state === 'completed' ? transfer.amount : 0, state: transfer.state, title: `Transfer from ${from.employer}`, explanation: transfer.explanation, recordedDateExplanation: transfer.completedOn ? 'This is the date the transfer completed.' : 'This is the date the transfer was started. The money has not moved yet.', needsAttention: false })
   }
 

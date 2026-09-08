@@ -1,8 +1,12 @@
 /* App-specific login composition: UX4G supplies the controls, card, OTP states and tokens. */
-.otp-login { display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
+.otp-login { align-content: start; display: grid; gap: var(--ux4g-section-m); grid-template-areas: "hero" "credentials" "scenario" "form"; margin: 0 auto; max-width: 32rem; min-height: 100dvh; padding: var(--ux4g-padding-l) var(--ux4g-padding-m); }
 .otp-login__hero { display: grid; align-content: end; gap: var(--ux4g-stack-s); padding-top: var(--ux4g-section-m); }
 .otp-login__hero { grid-area: hero; }
-.otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-xs); }
+.otp-login__hero .brand-mark {
+  height: 60px;
+  margin-bottom: 0;
+  width: 60px;
+}
 .otp-login h1 { color: var(--ux4g-text-brand-primary-default); font-size: clamp(var(--ux4g-size-32), 8vw, var(--ux4g-size-40)); font-weight: var(--ux4g-font-weight-bold); letter-spacing: -0.02em; line-height: 1.08; margin: 0; }
 .otp-login h2 { font-size: var(--ux4g-size-24); line-height: var(--ux4g-line-height-28); margin: 0; }
 .otp-login__hero > p:last-child, .otp-login__supporting { color: var(--ux4g-text-neutral-secondary); line-height: var(--ux4g-line-height-24); margin: 0; }
@@ -14,6 +18,16 @@
 .otp-login__credential-list > div { align-items: baseline; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2) var(--ux4g-space-4); justify-content: space-between; }
 .otp-login__credential-list dt { color: var(--ux4g-text-neutral-secondary); }
 .otp-login__credential-list dd { color: var(--ux4g-text-neutral-primary); font-variant-numeric: tabular-nums; font-weight: var(--ux4g-font-weight-semibold); margin: 0; }
+.demo-scenario { color: var(--ux4g-text-neutral-primary); display: grid; gap: var(--ux4g-stack-s); grid-area: scenario; padding: var(--ux4g-padding-m); }
+.demo-scenario__header { align-items: center; display: flex; gap: var(--ux4g-stack-m); justify-content: space-between; }
+.demo-scenario__header > div { display: grid; gap: var(--ux4g-space-1); }
+.demo-scenario__header > div > span { color: var(--ux4g-text-neutral-primary); font-size: var(--ux4g-size-14); }
+.demo-scenario__details { font-size: var(--ux4g-size-14); line-height: var(--ux4g-line-height-20); }
+.demo-scenario__details p { margin: 0; }
+.demo-scenario__details ul { display: grid; gap: var(--ux4g-space-1); margin: 0; padding-inline-start: var(--ux4g-space-5); }
+.otp-resend { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ux4g-space-2); justify-content: flex-start; min-width: 0; }
+.otp-resend > span { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); }
+.otp-resend .ux4g-btn { min-width: 0; }
 .onboarding-stepper { display: grid; gap: var(--ux4g-stack-xs); margin-block-end: var(--ux4g-section-s); }
 .onboarding-stepper__summary { color: var(--ux4g-text-neutral-secondary); font-size: var(--ux4g-size-14); margin: 0; }
 .onboarding-success { align-items: center; display: grid; gap: var(--ux4g-stack-l); justify-items: center; padding-block: var(--ux4g-section-m); text-align: center; }
@@ -37,7 +51,7 @@
 .otp-login__loader { animation: otp-loader-spin 700ms linear infinite; border: var(--ux4g-border-width-sm) solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; height: var(--ux4g-size-16); width: var(--ux4g-size-16); }
 @keyframes otp-loader-spin { to { transform: rotate(360deg); } }
 @media (min-width: 48rem) {
-  .otp-login { align-content: start; column-gap: var(--ux4g-section-l); grid-template-areas: "hero hero" "form credentials"; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr); max-width: 64rem; padding-top: var(--ux4g-section-xl); }
+  .otp-login { align-content: start; column-gap: var(--ux4g-section-l); grid-template-areas: "hero hero" "form credentials" "form scenario"; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr); max-width: 64rem; padding-top: var(--ux4g-section-xl); }
   .otp-login__hero { max-width: 36rem; }
 }
 @media (prefers-reduced-motion: reduce) { .otp-login__loader { animation: none; } }
@@ -60,7 +74,10 @@
   padding-top: 0;
 }
 
-.onboarding .otp-login__hero .brand-mark { margin-bottom: var(--ux4g-stack-s); }
+.onboarding .otp-login__hero .brand-mark {
+  margin-bottom: 0;
+}
+
 .onboarding .otp-login__hero > p:last-child { max-width: 52ch; }
 
 .onboarding .otp-login__card {
@@ -121,13 +138,18 @@
 .onboarding .service-select { box-sizing: border-box; }
 
 @media (max-width: 36rem) {
+  .otp-login:not(.onboarding) { gap: var(--ux4g-stack-s); }
   .otp-login.onboarding { padding-block: var(--ux4g-section-s) var(--ux4g-section-l); }
-  .onboarding .otp-login__card { padding-top: var(--ux4g-stack-s); }
+  .otp-login.onboarding { gap: var(--ux4g-stack-l); }
+  .onboarding .otp-login__card { padding-top: 0; }
+  .onboarding.is-complete { gap: 0; }
+  .onboarding.is-complete .onboarding-stepper { display: none; }
   .onboarding .service-form-grid { grid-template-columns: minmax(0, 1fr); }
   .onboarding .service-form-grid > .service-field:last-child { grid-column: auto; max-width: none; }
   .onboarding .service-flow-actions { align-items: stretch; flex-direction: column-reverse; }
   .onboarding .service-flow-actions .ux4g-btn,
   .onboarding .service-flow-actions .ux4g-btn:last-child { margin-inline-start: 0; width: 100%; }
+  .onboarding .demo-error-state .service-flow-actions { flex-direction: column; }
 }
 
 @media (min-width: 48rem) {

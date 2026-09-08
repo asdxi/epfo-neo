@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import logoEpfoNeo from '../assets/logo-epfo-neo.png'
 import { DEMO_OTP } from '../domain/demoCredentials'
 import { validateIndianMobile } from '../domain/validation'
+import { OtpResend } from './OtpResend'
+import type { ToastMessage } from './Toast'
 import './login-screen.css'
 
 interface LoginScreenProps {
   expectedMobile: string
   onAuthenticated: () => void
   onRegister?: () => void
+  demoMode?: 'happy' | 'error'
+  onDemoModeChange?: (mode: 'happy' | 'error') => void
+  onNotify?: (toast: Omit<ToastMessage, 'id'>) => void
 }
 
 type Step = 'mobile' | 'otp'
@@ -15,7 +21,7 @@ const invalidMobileMessage = 'Please enter a valid 10-digit mobile number.'
 const mismatchedMobileMessage = 'This mobile number does not match the fictional account.'
 const invalidOtpMessage = 'We could not verify this OTP. Check the code and try again.'
 
-export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () => undefined }: LoginScreenProps) {
+export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () => undefined, demoMode = 'happy', onDemoModeChange = () => undefined, onNotify = () => undefined }: LoginScreenProps) {
   const [step, setStep] = useState<Step>('mobile')
   const [mobile, setMobile] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -108,7 +114,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
   return (
     <main className="otp-login" aria-labelledby="login-title">
       <section className="otp-login__hero">
-        <span className="brand-mark" aria-hidden="true">EPFO</span>
+        <img className="brand-mark" src={logoEpfoNeo} alt="" aria-hidden="true" />
         <h1 id="login-title">EPFO Neo</h1>
         <p>Sign in to view your EPF balance, contribution history and requests in one place.</p>
       </section>
@@ -123,6 +129,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
           <p className="ux4g-alert-message">If you run into an issue, use <strong>Reset Demo</strong> in the page footer on desktop or at the bottom of the <strong>Menu</strong> on mobile.</p>
         </div>
       </aside>
+      <section className="ux4g-card ux4g-card-solid demo-scenario" aria-labelledby="demo-scenario-title"><div className="demo-scenario__header"><div><strong id="demo-scenario-title">Demo Scenario</strong><span>{demoMode === 'error' ? 'Error State' : 'Happy Flow'}</span></div><label className="ux4g-switch ux4g-switch-md"><input className="ux4g-switch-input" type="checkbox" role="switch" checked={demoMode === 'error'} onChange={(event) => onDemoModeChange(event.target.checked ? 'error' : 'happy')} aria-label="Use Error State demo scenario" /><span className="ux4g-switch-control"><span className="ux4g-switch-track"><span className="ux4g-switch-thumb" /></span></span></label></div><div className="demo-scenario__details">{demoMode === 'error' ? <ul><li>PF records fail to load after sign-in.</li><li>Face Authentication cannot be completed during activation.</li></ul> : <p>No error screens in this flow.</p>}</div></section>
       <section className="ux4g-card ux4g-card-solid otp-login__card" aria-labelledby={step === 'mobile' ? 'sign-in-mobile-title' : 'sign-in-otp-title'}>
         <div className="ux4g-card-body">
           {step === 'mobile' ? (
@@ -147,6 +154,7 @@ export function LoginScreen({ expectedMobile, onAuthenticated, onRegister = () =
                 {verificationState === 'success' && <p className="ux4g-otp-status" role="status">Aadhaar OTP verified. Checking your details…</p>}
                 {verificationState === 'error' && <p className="ux4g-otp-status" role="alert">{error}</p>}
               </div>
+              <OtpResend onResend={() => onNotify({ tone: 'success', title: 'OTP Sent', message: 'A new OTP was sent to your Aadhaar-linked mobile number.' })} />
               {error && verificationState !== 'error' && <p className="otp-login__error" role="alert">{error}</p>}
               <button className="ux4g-btn ux4g-btn-primary ux4g-btn-md otp-login__primary" type="submit" disabled={otpValue.length !== DEMO_OTP.length || verifying}>{verifying && <span className="otp-login__loader" aria-hidden="true" />}<span>{verifying ? 'Verifying…' : 'Verify Aadhaar OTP and continue'}</span></button>
               <button className="ux4g-btn ux4g-btn-text-primary ux4g-btn-md otp-login__secondary" type="button" onClick={resetToMobile} disabled={verifying}>Change mobile number</button>

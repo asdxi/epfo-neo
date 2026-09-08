@@ -1,6 +1,6 @@
 # Project Instructions
 
-Read PRODUCT_BRIEF.md before making product or architecture decisions.
+Read PRODUCT_BRIEF.md and PRODUCT_PRINCIPLES.md before making product or architecture decisions.
 
 ## Non-negotiables
 

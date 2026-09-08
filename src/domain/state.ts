@@ -1,3 +1,6 @@
+import { reconcileMemberId } from './calculations'
+import { RECORD_ISSUE_RULE_VERSION } from './issues'
+import { deriveTransferCandidates, deriveTransferPreflight } from './transferPreflight'
 import type { AccountState, MemberRequest, Nominee, RequestState } from './types'
 
 const requestNumber = (account: AccountState, type: MemberRequest['type']): string => {
@@ -11,25 +14,31 @@ const withRequest = (account: AccountState, request: MemberRequest): AccountStat
   requests: [request, ...account.requests],
 })
 
-export function submitTransfer(account: AccountState, submittedOn: string): AccountState {
-  const exception = account.exceptions.find((item) => item.kind === 'previous-balance')
-  if (!exception || exception.state !== 'open' || !exception.employmentId || !exception.amount) return account
-  const source = account.employments.find((item) => item.id === exception.employmentId)
+export function submitTransfer(account: AccountState, submittedOn: string, sourceMemberId?: string): AccountState {
+  const preflight = sourceMemberId
+    ? deriveTransferCandidates(account).find((candidate) => candidate.employment.memberId === sourceMemberId)?.result
+    : deriveTransferPreflight(account)
+  if (!preflight) return account
+  if (preflight.state !== 'manual-required') return account
+  const source = account.employments.find((item) => item.memberId === preflight.sourceMemberId)
   const destination = account.employments.find((item) => item.status === 'current')
   if (!source || !destination) return account
-  const requestId = `request-transfer-${submittedOn}`
+  const exception = account.exceptions.find((item) => item.kind === 'previous-balance' && item.employmentId === source.id)
+  const requestId = `request-transfer-${source.id}-${submittedOn}`
+  const transferId = `transfer-${source.id}-${destination.id}-${submittedOn}`
   const reference = requestNumber(account, 'transfer')
   const request: MemberRequest = {
     id: requestId, type: 'transfer', service: 'Transfer Previous PF', reference,
     title: `Transfer from ${source.employer}`, state: 'submitted', submittedOn, updatedOn: submittedOn,
-    amount: exception.amount, employmentId: source.id,
-    nextExpectedStep: 'The previous employer will verify the employment record. No action is required right now.',
+    amount: preflight.amount, employmentId: source.id,
+    channel: 'Member portal', currentResponsibleParty: 'member',
+    nextExpectedStep: 'EPFO will acknowledge the request before it moves to employer review.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted', date: submittedOn, state: 'completed' },
-      { id: `${requestId}-employer`, label: 'Previous Employer Verification', date: null, state: 'current', explanation: 'The previous employer is expected to verify the employment record.' },
-      { id: `${requestId}-processing`, label: 'EPFO Processing', date: null, state: 'upcoming' },
-      { id: `${requestId}-funds`, label: 'Funds Transferred', date: null, state: 'upcoming' },
-      { id: `${requestId}-complete`, label: 'Completed', date: null, state: 'upcoming' },
+      { id: `${requestId}-submitted`, label: 'Request Filed', date: submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-employer`, label: 'Employment Record Verification', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
+      { id: `${requestId}-processing`, label: 'Transfer Processing', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-completed`, label: 'Transfer Completed', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
     ],
   }
   return withRequest({
@@ -37,17 +46,35 @@ export function submitTransfer(account: AccountState, submittedOn: string): Acco
     ledger: {
       ...account.ledger,
       transfers: [...account.ledger.transfers, {
-        id: `transfer-harbor-vertex-${submittedOn}`,
+        id: transferId,
         fromMemberId: source.memberId,
         toMemberId: destination.memberId,
-        amount: exception.amount,
+        amount: preflight.amount,
         initiatedOn: submittedOn,
         state: 'submitted',
         source: source.establishmentType,
+        initiationMethod: 'manual',
+        relatedRequestId: requestId,
+        pensionServiceState: exception?.pensionServiceState ?? 'not-confirmed',
         explanation: 'This transfer request is submitted. The balance remains under the previous Member ID until the transfer completes.',
       }],
     },
-    exceptions: account.exceptions.map((item) => item.id === exception.id ? { ...item, state: 'in-progress', relatedRequestId: requestId } : item),
+    exceptions: exception ? account.exceptions.map((item) => item.id === exception.id ? {
+      ...item,
+      state: 'in-progress',
+      relatedRequestId: requestId,
+      currentResponsibleParty: 'member',
+      issueSnapshot: {
+        ruleVersion: RECORD_ISSUE_RULE_VERSION,
+        sourceSnapshotAt: submittedOn,
+        sourceRecordReferences: [
+          { kind: 'employment', id: source.id },
+          { kind: 'employment', id: destination.id },
+          { kind: 'transfer', id: transferId },
+          { kind: 'request', id: requestId },
+        ],
+      },
+    } : item) : account.exceptions,
   }, request)
 }
 
@@ -58,17 +85,31 @@ export function submitGrievance(account: AccountState, input: { submittedOn: str
     id: requestId, type: 'grievance', service: 'Raise a Grievance', reference,
     title: input.category, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     employmentId: input.employmentId, contributionId: input.contributionId,
-    nextExpectedStep: 'EPFO will review the record and post an update to this request.',
+    channel: 'Grievance portal', currentResponsibleParty: 'member',
+    nextExpectedStep: 'EPFO will acknowledge the request before reviewing your record.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Grievance Submitted', date: input.submittedOn, state: 'completed', explanation: input.description },
-      { id: `${requestId}-review`, label: 'EPFO Review', date: null, state: 'current' },
-      { id: `${requestId}-response`, label: 'Response Provided', date: null, state: 'upcoming' },
+      { id: `${requestId}-submitted`, label: 'Request Filed', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: input.description },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-review`, label: 'EPFO Review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'epfo' },
     ],
   }
   const next = withRequest(account, request)
   return {
     ...next,
-    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? { ...item, state: 'in-progress', relatedRequestId: requestId } : item),
+    exceptions: next.exceptions.map((item) => item.contributionId === input.contributionId ? {
+      ...item,
+      state: 'in-progress',
+      relatedRequestId: requestId,
+      currentResponsibleParty: 'member',
+      issueSnapshot: {
+        ruleVersion: RECORD_ISSUE_RULE_VERSION,
+        sourceSnapshotAt: input.submittedOn,
+        sourceRecordReferences: [
+          ...(item.issueSnapshot?.sourceRecordReferences ?? []),
+          { kind: 'request', id: requestId },
+        ],
+      },
+    } : item),
   }
 }
 
@@ -76,14 +117,16 @@ export function submitClaim(account: AccountState, input: { submittedOn: string;
   const reference = requestNumber(account, 'claim')
   const requestId = `request-claim-${reference}`
   return withRequest(account, {
-    id: requestId, type: 'claim', service: 'Claims & Withdrawals', reference,
+    id: requestId, type: 'claim', service: 'Withdrawal Claim', reference,
     title: input.title, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     amount: input.amount,
-    nextExpectedStep: 'EPFO will review the declaration and verified bank details.',
+    channel: 'Claims portal', currentResponsibleParty: 'member',
+    nextExpectedStep: 'EPFO will review the claim before transferring it to your verified bank account.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Submitted', date: input.submittedOn, state: 'completed' },
-      { id: `${requestId}-review`, label: 'Eligibility and Record Review', date: null, state: 'current' },
-      { id: `${requestId}-payment`, label: 'Payment to Verified Bank', date: null, state: 'upcoming' },
+      { id: `${requestId}-submitted`, label: 'Request Filed', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member' },
+      { id: `${requestId}-review`, label: 'EPFO Review', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-payment`, label: 'Transfer to Verified Bank Account', date: null, state: 'upcoming', kind: 'bank-handoff', confirmation: 'expected', party: 'bank' },
+      { id: `${requestId}-completed`, label: 'Request Completed', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
     ],
   })
 }
@@ -96,11 +139,13 @@ export function submitCorrection(account: AccountState, input: { submittedOn: st
     id: requestId, type: 'correction', service: 'Correct Employment Records', reference,
     title: `${input.field} correction for ${employment?.employer ?? 'employment record'}`,
     state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn, employmentId: input.employmentId,
-    nextExpectedStep: 'The employer is expected to verify the proposed value before EPFO review.',
+    channel: 'Member portal', currentResponsibleParty: 'member',
+    nextExpectedStep: 'EPFO will acknowledge the request before it moves to employer review.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Correction Submitted', date: input.submittedOn, state: 'completed', explanation: `Proposed value: ${input.proposedValue}` },
-      { id: `${requestId}-employer`, label: 'Awaiting Employer Verification', date: null, state: 'current' },
-      { id: `${requestId}-epfo`, label: 'EPFO Review', date: null, state: 'upcoming' },
+      { id: `${requestId}-submitted`, label: 'Request Filed', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Proposed value: ${input.proposedValue}` },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
+      { id: `${requestId}-employer`, label: 'Employer Review', date: null, state: 'upcoming', kind: 'responsible-party-assignment', confirmation: 'expected', party: 'source-employer' },
+      { id: `${requestId}-completed`, label: 'Request Completed', date: null, state: 'upcoming', confirmation: 'expected', party: 'epfo' },
     ],
   })
 }
@@ -128,19 +173,24 @@ export function updateMemberProfile(account: AccountState, input: Partial<Accoun
   return { ...account, member: { ...account.member, ...changes, profileUpdatedOn: updatedOn } }
 }
 
+export function updateFaceAuthentication(account: AccountState, state: AccountState['member']['faceAuthenticationState'], updatedOn: string): AccountState {
+  return { ...account, member: { ...account.member, faceAuthenticationState: state, profileUpdatedOn: updatedOn } }
+}
+
 export function submitExit(account: AccountState, input: { submittedOn: string; employmentId: string; exitedOn: string; reason: string }): AccountState {
   const employment = account.employments.find((item) => item.id === input.employmentId)
   if (!employment) return account
   const reference = requestNumber(account, 'exit')
   const requestId = `request-exit-${reference}`
   return withRequest(account, {
-    id: requestId, type: 'exit', service: 'Exit from EPFO Scheme', reference,
-    title: `Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
+    id: requestId, type: 'exit', service: 'Mark Exit', reference,
+    title: `Mark Exit details for ${employment.employer}`, state: 'submitted', submittedOn: input.submittedOn, updatedOn: input.submittedOn,
     employmentId: input.employmentId,
-    nextExpectedStep: 'The exit details have been recorded for review. Check this request before making a withdrawal claim.',
+    channel: 'Member portal', currentResponsibleParty: 'member',
+    nextExpectedStep: 'EPFO will acknowledge the request before reviewing the exit details.',
     timeline: [
-      { id: `${requestId}-submitted`, label: 'Exit Details Submitted', date: input.submittedOn, state: 'completed', explanation: `Date of exit: ${input.exitedOn}. Reason: ${input.reason}.` },
-      { id: `${requestId}-recorded`, label: 'Record Updated', date: null, state: 'current' },
+      { id: `${requestId}-submitted`, label: 'Request Filed', date: input.submittedOn, state: 'completed', kind: 'member-submission-attempt', confirmation: 'confirmed', party: 'member', explanation: `Date of exit: ${input.exitedOn}. Reason: ${input.reason}.` },
+      { id: `${requestId}-ack`, label: 'EPFO Acknowledgement', date: null, state: 'upcoming', kind: 'epfo-acknowledgement', confirmation: 'expected', party: 'epfo' },
     ],
   })
 }
@@ -174,5 +224,73 @@ export function transitionRequest(account: AccountState, requestId: string, stat
   return {
     ...account,
     requests: account.requests.map((request) => request.id === requestId ? { ...request, state, updatedOn } : request),
+  }
+}
+
+export function prepareOrCheckExistingRequest(account: AccountState, requestId: string, updatedOn: string): AccountState {
+  return {
+    ...account,
+    requests: account.requests.map((request) => {
+      if (request.id !== requestId) return request
+      if (request.rejection) return {
+        ...request,
+        updatedOn,
+        recoveryPreparedOn: updatedOn,
+        state: 'action-required',
+        rejection: { ...request.rejection, recoveryAction: 'resume' },
+        citizenAction: 'The known request details are ready. Resume this request when you are ready.',
+        nextExpectedStep: 'Review the prepared correction, then resume this same request. No fresh submission is needed.',
+      }
+      return {
+        ...request,
+        updatedOn,
+        citizenAction: `This attempt was checked on ${updatedOn}. The acknowledgement is still not confirmed; no new request was created.`,
+      }
+    }),
+  }
+}
+
+export function completeTransferResolution(account: AccountState, transferId: string, completedOn: string): AccountState {
+  const transfer = account.ledger.transfers.find((item) => item.id === transferId)
+  if (!transfer || transfer.state === 'completed') return account
+  const requestId = transfer.relatedRequestId
+  const sourceWillBeEmpty = reconcileMemberId(account, transfer.fromMemberId).closingBalance === transfer.amount
+  return {
+    ...account,
+    employments: account.employments.map((employment) => employment.memberId === transfer.fromMemberId && sourceWillBeEmpty
+      ? { ...employment, status: 'transferred' }
+      : employment),
+    ledger: {
+      ...account.ledger,
+      transfers: account.ledger.transfers.map((item) => item.id === transferId
+        ? { ...item, state: 'completed', completedOn, explanation: 'The transfer was completed and posted once to the destination Member ID.' }
+        : item),
+    },
+    exceptions: account.exceptions.map((item) => requestId !== undefined && item.relatedRequestId === requestId
+      ? {
+          ...item,
+          state: 'resolved',
+          currentResponsibleParty: 'none',
+          explanation: 'The transfer completed and the amount is posted only to the destination Member ID.',
+          issueSnapshot: {
+            ruleVersion: RECORD_ISSUE_RULE_VERSION,
+            sourceSnapshotAt: completedOn,
+            sourceRecordReferences: item.issueSnapshot?.sourceRecordReferences ?? [],
+          },
+        }
+      : item),
+    requests: account.requests.map((request) => request.id === requestId
+      ? {
+          ...request,
+          state: 'completed',
+          updatedOn: completedOn,
+          currentResponsibleParty: 'none',
+          nextExpectedStep: 'No action is required. The transfer is complete.',
+          timeline: [...request.timeline.filter((event) => event.confirmation !== 'expected').map((event) => event.state === 'current' ? { ...event, state: 'completed' as const } : event), {
+            id: `${request.id}-resolution`, label: 'Transfer Posted to Destination', date: completedOn, state: 'completed' as const,
+            kind: 'resolution' as const, confirmation: 'confirmed' as const, party: 'epfo' as const,
+          }],
+        }
+      : request),
   }
 }

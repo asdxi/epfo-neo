@@ -137,35 +137,33 @@ select.ux4g-table-select {
 .route-skeleton span:first-child { max-width: var(--ux4g-container-sm); }
 .route-skeleton span:nth-child(2) { min-height: var(--ux4g-size-120); }
 
-.app-announcement {
-  inset-block-start: var(--ux4g-space-8);
-  inset-inline-end: var(--ux4g-space-8);
-  margin: 0;
-  max-width: min(28rem, calc(100vw - var(--ux4g-space-12)));
-  position: fixed;
-  width: max-content;
-  z-index: var(--ux4g-z-index-toast);
-}
+.app-toast-region { inset-block-start: max(var(--ux4g-space-8), env(safe-area-inset-top)); inset-inline-end: max(var(--ux4g-space-8), env(safe-area-inset-right)); pointer-events: none; position: fixed; z-index: var(--ux4g-z-index-toast); }
+.app-toast { --toast-accent: var(--ux4g-text-brand-primary-default); --toast-surface: var(--ux4g-bg-primary); align-items: start; animation: toast-enter 180ms ease-out; background: var(--toast-surface); border: var(--ux4g-border-width-xs) solid var(--ux4g-border-color-neutral-subtle); border-inline-start: var(--ux4g-space-2) solid var(--toast-accent); border-radius: var(--ux4g-radius-md); box-shadow: 0 var(--ux4g-space-3) var(--ux4g-space-8) rgb(16 42 66 / 0.18); box-sizing: border-box; display: grid; gap: var(--ux4g-space-4); grid-template-columns: auto minmax(0, 1fr) auto; max-width: min(28rem, calc(100vw - var(--ux4g-space-12))); min-width: min(22rem, calc(100vw - var(--ux4g-space-12))); padding: var(--ux4g-padding-m); pointer-events: auto; }
+.app-toast--success { --toast-accent: var(--ux4g-text-status-success); --toast-surface: var(--ux4g-bg-success-soft); }
+.app-toast--error { --toast-accent: var(--ux4g-text-status-error); --toast-surface: var(--ux4g-bg-error-soft); }
+.app-toast__icon { align-items: center; background: var(--toast-accent); border-radius: var(--ux4g-radius-full); color: var(--ux4g-text-neutral-inverse); display: inline-flex; font-size: var(--ux4g-size-14); font-weight: var(--ux4g-font-weight-bold); height: var(--ux4g-size-24); justify-content: center; width: var(--ux4g-size-24); }
+.app-toast__content { display: grid; gap: var(--ux4g-space-2); min-width: 0; }
+.app-toast__content strong { color: var(--ux4g-text-neutral-primary); line-height: var(--ux4g-line-height-20); }
+.app-toast__content p { color: var(--ux4g-text-neutral-secondary); line-height: var(--ux4g-line-height-20); margin: 0; overflow-wrap: anywhere; }
+.app-toast__dismiss { align-items: center; background: transparent; border: 0; border-radius: var(--ux4g-radius-sm); color: var(--ux4g-text-neutral-secondary); display: inline-flex; height: var(--ux4g-size-32); justify-content: center; margin: calc(var(--ux4g-space-2) * -1); padding: var(--ux4g-space-2); width: var(--ux4g-size-32); }
+.app-toast__dismiss:hover { background: rgb(255 255 255 / 0.5); color: var(--ux4g-text-neutral-primary); }
+.app-toast__dismiss svg { fill: none; height: var(--ux4g-size-20); stroke: currentColor; stroke-linecap: round; stroke-width: 2; width: var(--ux4g-size-20); }
+.demo-error-state { align-items: center; display: grid; gap: var(--ux4g-stack-l); justify-items: center; margin-inline: auto; max-width: 42rem; padding: var(--ux4g-section-m); text-align: center; }
+.demo-error-state__icon { align-items: center; background: var(--ux4g-bg-error-soft); border: var(--ux4g-border-width-sm) solid var(--ux4g-text-status-error); border-radius: var(--ux4g-radius-full); color: var(--ux4g-text-status-error); display: inline-flex; font-size: var(--ux4g-size-24); font-weight: var(--ux4g-font-weight-bold); height: var(--ux4g-size-52); justify-content: center; width: var(--ux4g-size-52); }
+.demo-error-state > div:not(.service-flow-actions) { display: grid; gap: var(--ux4g-stack-s); }
+.demo-error-state h1, .demo-error-state h2 { margin: 0; }
+.demo-error-state p { color: var(--ux4g-text-neutral-secondary); margin: 0; }
+.demo-error-state .service-flow-actions { border: 0; justify-content: center; padding: 0; }
+.records-error-state { min-height: 50vh; }
 
-.app-announcement.ux4g-alert-success {
-  border: var(--ux4g-border-width-md) solid var(--ux4g-text-status-success);
-}
-
-.app-announcement.ux4g-alert-error {
-  border: var(--ux4g-border-width-md) solid var(--ux4g-text-status-error);
-}
-
-.app-announcement .ux4g-alert-message {
-  font-weight: var(--ux4g-font-weight-semibold);
-}
+@keyframes toast-enter { from { opacity: 0; transform: translateY(calc(var(--ux4g-space-3) * -1)); } }
 
 @media (max-width: 36rem) {
-  .app-announcement {
-    inset-block-start: var(--ux4g-space-6);
-    inset-inline: var(--ux4g-space-6);
-    max-width: none;
-    width: auto;
-  }
+  .app-toast-region { inset-block-start: max(var(--ux4g-space-6), env(safe-area-inset-top)); inset-inline: max(var(--ux4g-space-4), env(safe-area-inset-left)) max(var(--ux4g-space-4), env(safe-area-inset-right)); }
+  .app-toast { max-width: none; min-width: 0; width: 100%; }
+  .demo-error-state { padding: var(--ux4g-section-s) 0; }
+  .demo-error-state .service-flow-actions { align-items: stretch; flex-direction: column; width: 100%; }
+  .demo-error-state .ux4g-btn { justify-content: center; width: 100%; }
 }
 
 /* UX4G alerts default to a horizontal content row; application alerts use a consistent title-first stack. */
